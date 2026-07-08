@@ -1,0 +1,5 @@
+# Bloqueia acesso HTTP direto aos arquivos internos da aplicação.
+# Estes arquivos (controllers, models, views, core) só devem ser executados
+# através do front-controller em public/index.php, que os inclui via PHP no
+# servidor (acesso de filesystem, não afetado por esta regra).
+Require all denied

@@ -1,0 +1,1073 @@
+/* =========================================================
+   MECANIZE — Sidebar + Topbar (sidebar.css)
+   Toda a "casca" de navegação do app: sidebar, sua versão
+   colapsada, topbar, gaveta mobile e o toggle de tema — com
+   os overrides de dark mode logo junto de cada bloco.
+   Depende dos tokens/reset definidos em global.css, que deve
+   ser carregado ANTES deste arquivo.
+   ========================================================= */
+
+.sidebar {
+  flex-shrink: 0;
+  height: 100vh;
+  min-height: 100vh;
+  position: relative;
+  overflow: visible;
+  border-right: 1.5px solid var(--color-sidebar-accent);
+  background: var(--color-sidebar-bg);
+  color: var(--color-sidebar-text);
+  display: flex;
+  flex-direction: column;
+  transition: width .25s ease;
+  width: var(--sidebar-width);
+}
+
+.sidebar__brand {
+  padding: 18px 22px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: padding .25s ease;
+}
+
+/* Logo completa (expandida) */
+.sidebar__logo-full {
+  max-width: 150px;
+  height: auto;
+  transition: max-width .25s ease;
+  display: block;
+}
+
+/* Ícone M (recolhida) — oculto por padrão */
+.sidebar__logo-icon {
+  display: none;
+  width: 36px;
+  height: 36px;
+  object-fit: contain;
+}
+
+.sidebar__nav {
+  list-style: none;
+  padding: 8px 12px 8px 12px;
+  padding-right: 22px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  scrollbar-width: thin;
+  scrollbar-color: #334155 transparent;
+  position: relative;
+  z-index: 21;
+}
+
+.sidebar__nav::-webkit-scrollbar {
+  width: 6px;
+}
+
+.sidebar__nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.sidebar__nav::-webkit-scrollbar-thumb {
+  background: #334155;
+  border-radius: 3px;
+}
+
+.sidebar__nav::-webkit-scrollbar-thumb:hover {
+  background: #475569;
+}
+
+.sidebar__nav li a {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  font-size: 13px;
+  color: var(--color-sidebar-text);
+  font-weight: 500;
+  transition: background .15s, color .15s, padding .25s ease, justify-content .25s ease;
+  white-space: nowrap;
+  overflow: hidden;
+}
+
+.sidebar__nav li a:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-sidebar-text-active);
+}
+
+.sidebar__nav li.is-active a {
+  background: var(--color-sidebar-active-bg);
+  color: var(--color-sidebar-text-active);
+  position: relative;
+}
+
+.sidebar__nav li.is-active a::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 22px;
+  background: var(--color-sidebar-accent);
+  border-radius: 0 3px 3px 0;
+}
+
+.sidebar__nav .icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: currentColor;
+}
+
+.sidebar__nav .label {
+  transition: opacity .15s ease;
+  white-space: nowrap;
+}
+
+/* Cabeçalho de seção — agrupamento por setor de utilização */
+.sidebar__section {
+  list-style: none;
+  margin: 12px 14px 2px;
+  padding: 0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-sidebar-text);
+  opacity: .42;
+  white-space: nowrap;
+  overflow: hidden;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/* botão de recolher dedicado */
+.sidebar__collapse {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 6px 12px 10px;
+  padding: 9px 14px;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-sidebar-text);
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  border: 1px solid #1E293B;
+  white-space: nowrap;
+  overflow: hidden;
+  transition: background .15s, color .15s, padding .25s ease;
+  flex-shrink: 0;
+}
+
+.sidebar__collapse:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-sidebar-text-active);
+  border-color: #334155;
+}
+
+.sidebar__collapse-icon {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  transition: transform .25s ease;
+}
+
+.sidebar__collapse-label {
+  transition: opacity .15s ease;
+}
+
+.sidebar__footer {
+  padding: 14px 18px;
+  border-top: 1px solid #1E293B;
+  font-size: 12px;
+  flex-shrink: 0;
+  overflow: hidden;
+  white-space: nowrap;
+  transition: padding .25s ease;
+}
+
+.sidebar__footer-title {
+  color: white;
+  font-weight: 600;
+  font-size: 13px;
+  margin-bottom: 2px;
+}
+
+.sidebar__footer-sub {
+  color: var(--color-sidebar-accent);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+/* =========================================================
+   ESTADO COLAPSADO (mini-sidebar)
+   ========================================================= */
+body.sidebar-collapsed {
+  --sidebar-width: 72px;
+}
+
+body.sidebar-collapsed .sidebar__brand {
+  padding: 18px 8px 12px;
+}
+
+/* Troca de logo: esconde completa, mostra ícone M */
+body.sidebar-collapsed .sidebar__logo-full {
+  display: none;
+}
+
+body.sidebar-collapsed .sidebar__logo-icon {
+  display: block;
+}
+
+/* reverte a nav pro padding simétrico no colapsado */
+body.sidebar-collapsed .sidebar__nav {
+  padding: 8px 8px;
+}
+
+/* estreita a caixa de hover/clique, mantendo o ícone centralizado */
+body.sidebar-collapsed .sidebar__nav li a {
+  justify-content: center;
+  padding: 10px 0;
+  gap: 0;
+  width: 32px;
+  margin: 0 auto;
+}
+
+body.sidebar-collapsed .sidebar__nav .label {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+/* No modo recolhido, o título de seção vira uma linha divisória */
+body.sidebar-collapsed .sidebar__section {
+  margin: 10px 14px;
+  height: 1px;
+  font-size: 0;
+  letter-spacing: 0;
+  background: var(--color-sidebar-accent);
+  opacity: .25;
+}
+
+body.sidebar-collapsed .sidebar__footer {
+  padding: 14px 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+/* esconde nome e cargo */
+body.sidebar-collapsed .sidebar__footer-title,
+body.sidebar-collapsed .sidebar__footer-sub {
+  display: none;
+}
+
+/* centraliza avatar */
+body.sidebar-collapsed .sidebar__footer a {
+  justify-content: center;
+}
+
+/* esconde texto "Sair" e deixa só ícone */
+body.sidebar-collapsed .sidebar__footer a[href="./logout"] {
+  font-size: 0;
+  justify-content: center;
+}
+
+body.sidebar-collapsed .sidebar__footer a[href="./logout"] svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* indicador ativo continua aparecendo */
+body.sidebar-collapsed .sidebar__nav li.is-active a::before {
+  left: -8px;
+}
+
+/* botão de recolher quando o sidebar está colapsado */
+body.sidebar-collapsed .sidebar__collapse {
+  justify-content: center;
+  padding: 9px 0;
+  margin: 6px 8px 10px;
+}
+
+body.sidebar-collapsed .sidebar__collapse-icon {
+  transform: rotate(180deg);
+}
+
+body.sidebar-collapsed .sidebar__collapse-label {
+  opacity: 0;
+  width: 0;
+  pointer-events: none;
+}
+
+/* =========================================
+   BOTÃO FLUTUANTE LATERAL
+========================================= */
+.sidebar__toggle-floating {
+  position: absolute;
+  top: 50%;
+  right: -15px;
+  transform: translateY(-50%);
+  width: 35px;
+  height: 67px;
+  outline: none;
+  cursor: pointer;
+  background: var(--color-sidebar-bg);
+  color: #fff;
+  border-radius: 0 16px 16px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s ease, right .25s ease;
+  z-index: 25;
+
+  border-top: 1.5px solid var(--color-sidebar-accent);
+  border-right: 1.5px solid var(--color-sidebar-accent);
+  border-bottom: 1.5px solid var(--color-sidebar-accent);
+  border-left: none;
+}
+
+.sidebar__toggle-floating::before {
+  content: '';
+  position: absolute;
+  left: -1px;
+  top: -1.5px;
+  bottom: -1.5px;
+  width: 20.5px;
+  /* era 12px — agora só cobre o canto interno sem tocar a borda da sidebar */
+  background: var(--color-sidebar-bg);
+  border-radius: 0;
+  z-index: 1;
+}
+
+.sidebar__toggle-floating svg,
+.sidebar__toggle-floating i {
+  position: relative;
+  z-index: 2;
+}
+
+/* =========================================================
+   LOGOUT PREMIUM
+========================================= */
+.sidebar__logout {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  color: rgba(255, 255, 255, .45);
+  text-decoration: none;
+  transition:
+    background .2s ease,
+    color .2s ease,
+    transform .2s ease;
+}
+
+.sidebar__logout:hover {
+  background: rgba(239, 68, 68, .08);
+  color: #ef4444;
+}
+
+.sidebar__logout-icon {
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sidebar__logout-icon svg {
+  width: 18px;
+  height: 18px;
+  overflow: visible;
+}
+
+/* =========================================
+   ANIMAÇÕES
+========================================= */
+.sidebar__logout .door,
+.sidebar__logout .arrow,
+.sidebar__logout .arrow-line {
+  transition:
+    transform .28s ease,
+    stroke .2s ease,
+    opacity .2s ease;
+  transform-origin: left center;
+}
+
+/* porta "abrindo" */
+.sidebar__logout:hover .door {
+  transform: perspective(20px) rotateY(-18deg);
+}
+
+/* seta andando */
+.sidebar__logout:hover .arrow,
+.sidebar__logout:hover .arrow-line {
+  transform: translateX(2px);
+}
+
+/* texto */
+.sidebar__logout-label {
+  font-size: 12px;
+  font-weight: 500;
+  transition:
+    color .2s ease,
+    transform .2s ease;
+}
+
+.sidebar__logout:hover .sidebar__logout-label {
+  transform: translateX(1px);
+}
+
+/* sidebar recolhida */
+body.sidebar-collapsed .sidebar__logout {
+  justify-content: center;
+  align-items: center;
+  gap: 0;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  margin: 8px auto 0;
+  border-radius: 50%;
+}
+
+body.sidebar-collapsed .sidebar__logout-icon {
+  margin: 0;
+}
+
+body.sidebar-collapsed .sidebar__logout-label {
+  opacity: 0;
+  width: 0;
+  overflow: hidden;
+}
+
+/* =========================================================
+   TOPBAR CLEAN + ATALHOS
+   ========================================================= */
+.topbar {
+  height: 54px;
+  background: #fff;
+  border-bottom: 1px solid var(--color-border);
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 0 22px;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+
+.topbar__spacer {
+  flex: 1;
+}
+
+/* Dropdown Criar */
+.topbar-create {
+  position: relative;
+  flex-shrink: 0;
+}
+
+.topbar-create summary {
+  height: 36px;
+  padding: 0 14px;
+  border-radius: 10px;
+  border: 1px solid var(--color-border);
+  background: #fff;
+  color: var(--color-text-secondary);
+  font-size: 13px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  cursor: pointer;
+  list-style: none;
+  -webkit-user-select: none;
+  user-select: none;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, box-shadow .15s ease;
+}
+
+.topbar-create summary::-webkit-details-marker {
+  display: none;
+}
+
+.topbar-create summary::after {
+  font-size: 10px;
+  color: var(--color-text-muted);
+  margin-left: 2px;
+}
+
+.topbar-create summary:hover,
+.topbar-create[open] summary {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+  background: var(--color-primary-soft);
+}
+
+.topbar-create__icon {
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: var(--color-text-muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  font-weight: 700;
+  line-height: 1;
+  transition: color .15s ease;
+}
+
+.topbar-create summary:hover .topbar-create__icon,
+.topbar-create[open] summary .topbar-create__icon {
+  color: var(--color-primary);
+}
+
+.topbar-create__menu {
+  position: absolute;
+  top: 44px;
+  width: 230px;
+  background: #fff;
+  border: 1px solid var(--color-border);
+  border-radius: 14px;
+  box-shadow: 0 16px 40px rgba(15, 23, 42, .14);
+  padding: 8px;
+  z-index: 1000;
+}
+
+.topbar-create__menu a {
+  display: block;
+  padding: 10px 12px;
+  border-radius: 10px;
+  color: var(--color-text);
+  text-decoration: none;
+  transition: background .15s ease, color .15s ease;
+}
+
+.topbar-create__menu a:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-primary);
+}
+
+.topbar-create__menu a span {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.topbar-create__menu a small {
+  display: block;
+  margin-top: 2px;
+  font-size: 11px;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+/* Usuário — margin-left:auto é o que empurra Caixa/Perfil pro fim da topbar,
+   deixando Criar/tema à esquerda. */
+.topbar__right {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.topbar__user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  padding-left: 14px;
+  border-left: 1px solid var(--color-border);
+}
+
+.topbar__avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-primary);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+
+.topbar__user-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text);
+  line-height: 1.2;
+}
+
+.topbar__user-role {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  line-height: 1.2;
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  .topbar {
+    padding: 0 14px;
+  }
+
+  .topbar__user-info {
+    display: none;
+  }
+
+  .topbar__user {
+    padding-left: 10px;
+  }
+
+  .topbar-create__menu {
+    right: -44px;
+  }
+}
+
+/* =========================================================
+   MOBILE — GAVETA (menu hambúrguer) + MODO SOMENTE VISUALIZAR
+   No celular aparece apenas Dashboard, Relatórios e Documentos
+   (somente visualizar). O desktop não é afetado.
+   ========================================================= */
+
+/* Elementos que só existem no mobile — ocultos por padrão */
+.topbar__hamburger {
+  display: none;
+  width: 38px;
+  height: 38px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 10px;
+  background: transparent;
+  color: var(--color-text-secondary);
+  flex-shrink: 0;
+  transition: background .15s ease, color .15s ease;
+}
+
+.topbar__hamburger:hover {
+  background: var(--color-bg-alt);
+  color: var(--color-primary);
+}
+
+.sidebar-backdrop {
+  display: none;
+}
+
+/* Toggle de tema dentro da gaveta — só aparece no mobile */
+.sidebar__theme-toggle {
+  display: none;
+}
+
+@media (max-width: 768px) {
+
+  /* ── Topbar: mostra hambúrguer, esconde "Criar" e o toggle de tema ── */
+  .topbar__hamburger {
+    display: inline-flex;
+    margin-right: auto;
+  }
+
+  .topbar-create {
+    display: none;
+  }
+
+  /* o toggle de tema sai do topo e vai pra dentro da gaveta */
+  .topbar .topbar-dark-toggle {
+    display: none;
+  }
+
+  .sidebar__theme-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+    margin-bottom: 10px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: transparent;
+    color: var(--color-sidebar-text);
+    font-size: 13px;
+    font-weight: 500;
+    border: 1px solid var(--color-sidebar-accent);
+    cursor: pointer;
+    transition: background .15s ease, color .15s ease;
+  }
+
+  .sidebar__theme-toggle:hover {
+    background: var(--color-sidebar-hover);
+    color: var(--color-sidebar-text-active);
+  }
+
+  .sidebar__theme-toggle-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+  }
+
+  .sidebar__theme-toggle svg {
+    width: 16px;
+    height: 16px;
+  }
+
+  /* ── Conteúdo principal ocupa a tela toda ── */
+  .app {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Sidebar vira gaveta deslizante (off-canvas) ── */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 264px;
+    height: 100vh;
+    z-index: 1100;
+    transform: translateX(-100%);
+    transition: transform .25s ease;
+    box-shadow: 2px 0 24px rgba(15, 23, 42, .22);
+  }
+
+  body.mobile-nav-open .sidebar {
+    transform: translateX(0);
+  }
+
+  /* botão flutuante de recolher não faz sentido no mobile */
+  .sidebar__toggle-floating {
+    display: none;
+  }
+
+  /* ── Fundo escurecido atrás da gaveta ── */
+  .sidebar-backdrop {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, .5);
+    z-index: 1050;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity .25s ease, visibility .25s ease;
+  }
+
+  body.mobile-nav-open .sidebar-backdrop {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  /* ── Apenas Dashboard, Relatórios e Documentos no menu ── */
+  .sidebar__nav>li {
+    display: none;
+  }
+
+  .sidebar__nav>li.mob-nav {
+    display: block;
+  }
+
+  /* ── Neutraliza o estado "recolhido" dentro da gaveta ── */
+  body.sidebar-collapsed .sidebar {
+    width: 264px;
+  }
+
+  body.sidebar-collapsed .sidebar__logo-full {
+    display: block;
+  }
+
+  body.sidebar-collapsed .sidebar__logo-icon {
+    display: none;
+  }
+
+  body.sidebar-collapsed .sidebar__nav li a {
+    justify-content: flex-start;
+    padding: 9px 14px;
+    gap: 12px;
+  }
+
+  body.sidebar-collapsed .sidebar__nav .label {
+    opacity: 1;
+    width: auto;
+    pointer-events: auto;
+  }
+
+  body.sidebar-collapsed .sidebar__footer {
+    padding: 14px 18px;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  body.sidebar-collapsed .sidebar__footer-title,
+  body.sidebar-collapsed .sidebar__footer-sub {
+    display: block;
+  }
+
+  body.sidebar-collapsed .sidebar__footer a {
+    justify-content: flex-start;
+  }
+
+  body.sidebar-collapsed .sidebar__footer a[href="./logout"] {
+    font-size: 12px;
+    justify-content: flex-start;
+  }
+
+  body.sidebar-collapsed .sidebar__logout {
+    justify-content: flex-start;
+    padding: 10px 12px;
+  }
+
+  body.sidebar-collapsed .sidebar__logout-label {
+    opacity: 1;
+    width: auto;
+  }
+
+  /* ── Somente visualizar: esconde ações de criar/editar ── */
+  /* "Nova OS" no Dashboard */
+  .page-header__actions a[href="./saveOrdemServico"] {
+    display: none;
+  }
+
+  /* botão de editar nas tabelas (mantém o de visualizar) */
+  .row-actions a[href^="./editOrdemServico"] {
+    display: none;
+  }
+
+  /* ── Polimento responsivo das telas de visualização ── */
+  .content {
+    padding: 18px 16px;
+  }
+
+  .page-header__title {
+    font-size: 19px;
+  }
+
+  /* cartões de estatística sempre em 1 coluna (vence o grid inline) */
+  .stat-grid {
+    grid-template-columns: 1fr !important;
+  }
+
+  /* centraliza o gráfico donut (Status das OS) quando a legenda quebra */
+  .donut-wrap {
+    justify-content: center;
+  }
+
+  /* modais (gerar documento) aproveitam melhor a tela pequena */
+  .modal-overlay {
+    padding: 12px;
+  }
+
+  .modal__body {
+    padding: 16px;
+  }
+
+  .modal__body [style*="grid-template-columns"] {
+    grid-template-columns: 1fr !important;
+  }
+}
+
+/* =========================================================
+   TOGGLE DE TEMA — botão no rodapé do sidebar (mobile) e na topbar
+   ========================================================= */
+.dark-toggle__track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: #334155;
+  flex-shrink: 0;
+  transition: background .2s;
+}
+
+.dark-toggle__track::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+[data-theme="dark"] .dark-toggle__track {
+  background: var(--color-sidebar-accent);
+}
+
+[data-theme="dark"] .dark-toggle__track::after {
+  transform: translateX(14px);
+}
+
+.dark-toggle__icon-light {
+  display: inline-flex;
+}
+
+.dark-toggle__icon-dark {
+  display: none;
+}
+
+[data-theme="dark"] .dark-toggle__icon-light {
+  display: none;
+}
+
+[data-theme="dark"] .dark-toggle__icon-dark {
+  display: inline-flex;
+}
+
+/* Toggle dark mode na topbar */
+.topbar-dark-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 36px;
+  border-radius: var(--radius-md);
+  border: 1.5px solid var(--color-border);
+  background: none;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
+  margin-right: 4px;
+  flex-shrink: 0;
+}
+
+.topbar-dark-toggle:hover {
+  background: var(--color-bg);
+  border-color: var(--color-border-strong);
+  color: var(--color-text);
+}
+
+[data-theme="dark"] .topbar-dark-toggle:hover {
+  background: var(--color-bg-alt);
+}
+
+/* track (a trilha do switch) */
+.topbar-dark-toggle .dark-toggle__track {
+  position: relative;
+  width: 32px;
+  height: 18px;
+  border-radius: 999px;
+  background: #CBD5E1;
+  flex-shrink: 0;
+  transition: background .2s;
+}
+
+.topbar-dark-toggle .dark-toggle__track::after {
+  content: '';
+  position: absolute;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #fff;
+  top: 3px;
+  left: 3px;
+  transition: transform .2s;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, .3);
+}
+
+[data-theme="dark"] .topbar-dark-toggle .dark-toggle__track {
+  background: var(--color-primary);
+}
+
+[data-theme="dark"] .topbar-dark-toggle .dark-toggle__track::after {
+  transform: translateX(14px);
+}
+
+/* ícones sol/lua */
+.topbar-dark-toggle .dark-toggle__icon-light,
+.topbar-dark-toggle .dark-toggle__icon-dark {
+  display: inline-flex;
+  flex-shrink: 0;
+}
+
+.topbar-dark-toggle .dark-toggle__icon-dark {
+  display: none;
+}
+
+[data-theme="dark"] .topbar-dark-toggle .dark-toggle__icon-light {
+  display: none;
+}
+
+[data-theme="dark"] .topbar-dark-toggle .dark-toggle__icon-dark {
+  display: inline-flex;
+}
+
+/* =========================================================
+   DARK MODE — overrides de sidebar/topbar
+   ========================================================= */
+[data-theme="dark"] .topbar {
+  background: var(--color-surface);
+  border-bottom-color: var(--color-border);
+}
+
+[data-theme="dark"] .topbar-create summary {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+  color: var(--color-text-secondary);
+}
+
+[data-theme="dark"] .topbar-create summary:hover,
+[data-theme="dark"] .topbar-create[open] summary {
+  background: var(--color-primary-soft);
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+[data-theme="dark"] .topbar-create__menu {
+  background: var(--color-surface);
+  border-color: var(--color-border);
+}
+
+[data-theme="dark"] .topbar-create__menu a:hover {
+  background: var(--color-bg-alt);
+}
+
+[data-theme="dark"] .topbar__user {
+  border-left-color: var(--color-border);
+}
+
+/* =========================================================
+   TOOLTIP (sidebar colapsada — reservado para uso futuro)
+   ========================================================= */
+.sidebar-tooltip {
+  position: fixed;
+  background: rgba(17, 24, 38, 0.94);
+  color: rgba(255, 255, 255, 0.92);
+  font-size: 12.5px;
+  font-weight: 500;
+  font-family: 'Inter', sans-serif;
+  padding: 7px 14px;
+  border-radius: 10px;
+  white-space: nowrap;
+  z-index: 9999;
+  pointer-events: none;
+  transform: translateY(-50%);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+  animation: sidebar-tip-in .14s cubic-bezier(.2, 0, .2, 1) forwards;
+}
+
+@keyframes sidebar-tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(-50%) translateX(-6px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(-50%) translateX(0);
+  }
+}

@@ -1,0 +1,3 @@
+# Bloqueia acesso HTTP direto aos arquivos de configuração (rotas etc.).
+# Incluídos apenas via PHP pelo front-controller em public/index.php.
+Require all denied
