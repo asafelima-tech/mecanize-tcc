@@ -34,11 +34,16 @@ $statusTexto = match ($status) {
     default     => $status
 };
 
+$linkRastreio = $linkRastreio ?? '';
+
 // Link "wa.me" com mensagem pronta — só faz sentido quando o orçamento foi
 // aprovado e o cliente tem telefone cadastrado.
 $whatsappLink = null;
 if ($status === 'aprovado' && !empty($orcamento['telefone_cliente'])) {
     $mensagem = "Olá, {$orcamento['cliente_nome']}. Seu orçamento nº {$orcamento['numero']} foi aprovado. Em breve entraremos em contato para dar andamento ao serviço.";
+    if ($linkRastreio) {
+        $mensagem .= " Acompanhe pelo link: {$linkRastreio}";
+    }
     $whatsappLink = WhatsApp::linkParaCliente($orcamento['telefone_cliente'], $mensagem);
 }
 
@@ -80,6 +85,12 @@ $decisaoOk = in_array($status, ['aprovado', 'reprovado'], true);
             <i class="bi bi-file-earmark-pdf"></i>
             Baixar PDF
         </a>
+
+        <?php if ($linkRastreio): ?>
+        <button type="button" class="btn btn--ghost" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($linkRastreio, ENT_QUOTES) ?>'); this.querySelector('span').textContent = 'Copiado!'; setTimeout(() => this.querySelector('span').textContent = 'Link de Rastreio', 2000);">
+            <i class="bi bi-link-45deg"></i> <span>Link de Rastreio</span>
+        </button>
+        <?php endif; ?>
 
         <?php if ($whatsappLink): ?>
         <a href="<?= htmlspecialchars($whatsappLink) ?>" target="_blank" rel="noopener" class="btn btn--ghost">

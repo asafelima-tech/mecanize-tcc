@@ -11,6 +11,55 @@ class Orcamento
         $this->conn = new Database();
     }
 
+    /**
+     * Retorna o token de rastreio público do orçamento, gerando um na hora
+     * se ainda não existir (cobre orçamentos criados antes desta feature).
+     */
+    public function getOuCriarToken(int $id): string
+    {
+        $stmt = $this->conn->prepare("SELECT token_rastreio FROM orcamentos WHERE id_orcamento = ?");
+        $stmt->execute([$id]);
+        $token = $stmt->fetchColumn();
+
+        if ($token) {
+            return $token;
+        }
+
+        $token = bin2hex(random_bytes(24));
+        $this->conn->prepare("UPDATE orcamentos SET token_rastreio = ? WHERE id_orcamento = ?")
+            ->execute([$token, $id]);
+
+        return $token;
+    }
+
+    /**
+     * Dados mínimos e públicos de um orçamento a partir do token de rastreio
+     * — sem valores financeiros nem dados do cliente além do primeiro nome.
+     */
+    public function getPorTokenRastreio(string $token): ?array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT
+                o.numero,
+                o.status,
+                o.data_criacao,
+                v.placa,
+                CONCAT(mv.nome, ' ', mo.nome) AS modelo,
+                c.nome AS cliente_nome
+            FROM orcamentos o
+            INNER JOIN veiculos          v  ON v.id_veiculo = o.veiculo_id
+            INNER JOIN marcas_veiculos   mv ON mv.id_marca  = v.marca_id
+            INNER JOIN modelos_veiculos  mo ON mo.id_modelo = v.modelo_id
+            INNER JOIN clientes          c  ON c.id_cliente = o.cliente_id
+            WHERE o.token_rastreio = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$token]);
+        $linha = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return $linha ?: null;
+    }
+
     /** Histórico de orçamentos de um veículo (usado na linha do tempo do veículo). */
     public function listarPorVeiculo(int $veiculoId): array
     {

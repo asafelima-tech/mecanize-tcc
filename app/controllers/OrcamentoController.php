@@ -191,6 +191,9 @@ class OrcamentoController extends Controller
             exit;
         }
 
+        $tokenRastreio = $orcamento->getOuCriarToken((int) $_GET['id']);
+        $dados['linkRastreio'] = $this->urlAbsoluta('rastrear?token=' . $tokenRastreio);
+
         $this->view('Orcamento/viewOrcamento', $dados);
     }
 

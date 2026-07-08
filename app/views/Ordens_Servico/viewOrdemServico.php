@@ -38,11 +38,16 @@ function fmtBR(float $v): string
     return 'R$ ' . number_format($v, 2, ',', '.');
 }
 
+$linkRastreio = $linkRastreio ?? '';
+
 // Link "wa.me" com mensagem pronta — só faz sentido quando a OS está
 // concluída e o cliente tem telefone cadastrado.
 $whatsappLink = null;
 if (($os['status'] ?? '') === 'CONCLUIDA' && !empty($os['telefone_cliente'])) {
     $mensagem = "Olá, {$os['nome_cliente']}. Seu veículo (placa {$placa}), referente à OS nº {$numero}, está pronto para retirada.";
+    if ($linkRastreio) {
+        $mensagem .= " Acompanhe pelo link: {$linkRastreio}";
+    }
     $whatsappLink = WhatsApp::linkParaCliente($os['telefone_cliente'], $mensagem);
 }
 
@@ -419,6 +424,11 @@ $indiceAtual   = array_search($statusAtualOS, array_keys($etapasStepper), true);
             <a href="./exportOrdemServicoPdf?id=<?= (int) ($os['id_ordem_servico'] ?? 0) ?>" class="btn btn--ghost btn--sm">
                 <i class="bi bi-file-earmark-pdf"></i> Baixar PDF
             </a>
+            <?php if ($linkRastreio): ?>
+            <button type="button" class="btn btn--ghost btn--sm" onclick="navigator.clipboard.writeText('<?= htmlspecialchars($linkRastreio, ENT_QUOTES) ?>'); this.querySelector('span').textContent = 'Copiado!'; setTimeout(() => this.querySelector('span').textContent = 'Link de Rastreio', 2000);">
+                <i class="bi bi-link-45deg"></i> <span>Link de Rastreio</span>
+            </button>
+            <?php endif; ?>
             <button type="button" class="btn btn--ghost btn--sm" onclick="window.print()">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
                     <polyline points="6 9 6 2 18 2 18 9" />

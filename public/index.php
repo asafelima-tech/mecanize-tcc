@@ -58,7 +58,7 @@ $logado = isset($_SESSION['logged']) && $_SESSION['logged'] === true;
  * endpoint AJAX) fique acessível sem sessão — não dependemos mais de cada
  * controller incluir auth.php.
  */
-$rotasPublicas = ['login', 'logout', 'erro404', 'recuperar-senha', 'redefinir-senha', 'termos', 'privacidade'];
+$rotasPublicas = ['login', 'logout', 'erro404', 'recuperar-senha', 'redefinir-senha', 'termos', 'privacidade', 'rastrear'];
 
 if (!$logado && !in_array($uri, $rotasPublicas, true)) {
     header('Location: ./login');

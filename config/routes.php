@@ -13,6 +13,9 @@ $routes = [
     'termos'      => ['controller' => 'SiteController', 'method' => 'termos'],
     'privacidade' => ['controller' => 'SiteController', 'method' => 'privacidade'],
 
+    /* Rastreamento público de OS/Orçamento (sem login) */
+    'rastrear' => ['controller' => 'RastreioController', 'method' => 'ver'],
+
     /* Login */
     'login'        => ['controller' => 'UserController', 'method' => 'login'],
     'logout'       => ['controller' => 'UserController', 'method' => 'logout'],

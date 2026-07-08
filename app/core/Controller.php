@@ -8,6 +8,18 @@ class Controller
     }
 
     /**
+     * Monta uma URL absoluta pro sistema (ex.: link de rastreio enviado por
+     * e-mail/WhatsApp, que precisa funcionar fora do navegador logado).
+     */
+    protected function urlAbsoluta(string $caminhoRelativo): string
+    {
+        $protocolo = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https://' : 'http://';
+        $base = $protocolo . ($_SERVER['HTTP_HOST'] ?? 'localhost') . rtrim(dirname($_SERVER['SCRIPT_NAME']), '/');
+
+        return $base . '/' . ltrim($caminhoRelativo, '/');
+    }
+
+    /**
      * Bloqueia o acesso ao método atual se o papel do usuário logado
      * (sessão já garantida pelo public/index.php) não estiver entre os
      * permitidos. Esconder o link no menu não é controle de acesso — isso
@@ -30,7 +42,7 @@ class Controller
 
         // Views que não usam o layout padrão (sem sidebar/topbar)
         // Comparação sensível a maiúsculas: inclui as variações usadas pelos controllers.
-        $noLayout = ['auth/login', 'user/login', 'Usuarios/login', 'Site/termos', 'Site/privacidade', 'Site/painel'];
+        $noLayout = ['auth/login', 'user/login', 'Usuarios/login', 'Site/termos', 'Site/privacidade', 'Site/painel', 'Site/rastreio', 'Site/rastreioNaoEncontrado'];
 
         if (in_array($view, $noLayout)) {
             require_once __DIR__ . "/../views/{$view}.php";

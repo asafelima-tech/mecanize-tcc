@@ -95,10 +95,13 @@ class OrdemServicoController extends Controller
             exit;
         }
 
+        $tokenRastreio = $ordemServico->getOuCriarToken((int) $id);
+
         $dados = [
-            'ordem_servico' => $ordem,
-            'itens_os'      => $ordemServico->getItensByOS($id),
-            'mao_obra_os'   => $ordemServico->getMaoObraByOS($id),
+            'ordem_servico'   => $ordem,
+            'itens_os'        => $ordemServico->getItensByOS($id),
+            'mao_obra_os'     => $ordemServico->getMaoObraByOS($id),
+            'linkRastreio'    => $this->urlAbsoluta('rastrear?token=' . $tokenRastreio),
         ];
 
         $this->view('Ordens_Servico/viewOrdemServico', $dados);

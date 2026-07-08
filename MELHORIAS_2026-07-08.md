@@ -328,6 +328,39 @@ escritas no HTML quando `$_SESSION['user_tipo'] === 'ADMIN'`; pra qualquer
 outro papel, viram array vazio. Testado e confirmado (TECNICO não vê nem o
 card nem os dados no código-fonte; ADMIN continua vendo tudo).
 
+## 15. Rastreamento público (sem login) de OS/Orçamento
+
+Pedido do dono do sistema: um link tipo rastreio de encomenda, que o cliente
+abre direto (sem senha, sem cadastro) e vê o status do próprio veículo —
+pra parar de precisar ligar perguntando "ficou pronto?".
+
+- **Banco:** nova coluna `token_rastreio` (string aleatória de 48
+  caracteres, `bin2hex(random_bytes(24))`) em `orcamentos` e
+  `ordens_servico`, com índice único. Migração
+  `database/add_token_rastreio.php` também preenche o token das OS's e
+  orçamentos que já existiam antes dessa feature.
+- **Rota pública:** `./rastrear?token=...` — adicionada em `$rotasPublicas`
+  de `public/index.php` (a única checagem que se aplica: existe o token ou
+  não). Todas as outras regras do sistema (janela de horário do atendente,
+  "navegação só por dentro do sistema", caixa obrigatório) só valem pra quem
+  está logado, então não afetam essa rota.
+- **Dados expostos são propositalmente mínimos:** placa, modelo do veículo,
+  primeiro nome do cliente e o status — **sem valor financeiro, CPF,
+  telefone ou endereço** — mesmo que o link seja encaminhado adiante sem
+  querer, não vaza nada sensível. `OrdemServico::getPorTokenRastreio()` e
+  `Orcamento::getPorTokenRastreio()` fazem essa consulta restrita.
+- **Front-end:** `Site/rastreio.php` (o mesmo visual do stepper de status já
+  usado internamente) e `Site/rastreioNaoEncontrado.php` pra token
+  inválido/expirado. Tela isolada (sem sidebar), pensada pra abrir bem no
+  celular.
+- **Como o cliente recebe o link:** botão "Link de Rastreio" (copia pra área
+  de transferência) em `viewOrdemServico.php` e `viewOrcamento.php`, e o link
+  passou a vir embutido automaticamente nas mensagens de WhatsApp que já
+  existiam (conclusão de OS / aprovação de orçamento).
+- **Testado sem login algum** (sessão HTTP nova, sem cookie): token válido
+  de OS e de orçamento renderizam a página corretamente; token inválido
+  mostra a tela de erro; nenhum valor em R$ aparece na página pública.
+
 ## O que NÃO foi feito nesta rodada (fora do escopo pedido)
 
 - CSRF tokens nos formulários.
