@@ -355,7 +355,7 @@ $indiceAtual   = array_search($statusAtualOS, array_keys($etapasStepper), true);
             </div>
 
             <!-- ⑥ RESUMO FINANCEIRO -->
-            <div class="form-section" style="margin-bottom:0;">
+            <div class="form-section">
                 <div class="form-section__title">
                     <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);
                                 border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;
@@ -386,6 +386,22 @@ $indiceAtual   = array_search($statusAtualOS, array_keys($etapasStepper), true);
                     </div>
                 </div>
             </div>
+
+            <?php if (!empty($os['assinatura_cliente'])): ?>
+            <!-- ⑦ ASSINATURA DO CLIENTE -->
+            <div class="form-section" style="margin-bottom:0;">
+                <div class="form-section__title">
+                    <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);
+                                border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;
+                                font-size:11px;font-weight:700;">⑦</span>
+                    Assinatura do Cliente
+                </div>
+                <div style="text-align:center;">
+                    <img src="<?= htmlspecialchars($os['assinatura_cliente']) ?>" alt="Assinatura do cliente"
+                        style="max-width:320px;width:100%;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:8px;">
+                </div>
+            </div>
+            <?php endif; ?>
 
         </div><!-- /modal__body -->
 

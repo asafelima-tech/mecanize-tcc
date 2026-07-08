@@ -136,6 +136,74 @@
     </div>
 </section>
 
+<?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN'): ?>
+<!-- Dashboard financeiro -->
+<section class="grid-2 mt-24">
+    <!-- Faturamento por mês -->
+    <div class="card">
+        <div class="card__header">
+            <div class="card__title">Faturamento por Mês</div>
+            <span style="display:inline-flex;align-items:center;height:32px;padding:0 10px;border:1.5px solid var(--color-border);
+                         border-radius:var(--radius-sm);font-size:12px;color:var(--color-text-muted);white-space:nowrap;">
+                Últimos 6 meses
+            </span>
+        </div>
+        <div class="card__body">
+            <div class="chart-wrap-line">
+                <canvas id="graficoFaturamentoMes"></canvas>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ticket médio + produtos mais vendidos -->
+    <div class="card">
+        <div class="card__header">
+            <div class="card__title">Ticket Médio &amp; Peças Mais Vendidas</div>
+        </div>
+        <div class="card__body">
+            <div style="display:flex;gap:16px;margin-bottom:20px;">
+                <div style="flex:1;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:14px 16px;">
+                    <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:4px;">Ticket médio (mês)</div>
+                    <div style="font-size:20px;font-weight:700;color:var(--color-primary);">
+                        R$ <?= number_format($ticketMedio['mesAtual'] ?? 0, 2, ',', '.') ?>
+                    </div>
+                </div>
+                <div style="flex:1;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:14px 16px;">
+                    <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:4px;">Ticket médio (geral)</div>
+                    <div style="font-size:20px;font-weight:700;color:var(--color-text);">
+                        R$ <?= number_format($ticketMedio['geral'] ?? 0, 2, ',', '.') ?>
+                    </div>
+                </div>
+            </div>
+
+            <?php
+            $maxQtd = 1;
+            foreach ($produtosMaisVendidos ?? [] as $p) {
+                $maxQtd = max($maxQtd, (int) $p['quantidade']);
+            }
+            ?>
+            <?php if (empty($produtosMaisVendidos)): ?>
+                <p style="font-size:13px;color:var(--color-text-muted);text-align:center;padding:12px 0;">Nenhuma peça vendida ainda.</p>
+            <?php else: ?>
+                <div style="display:flex;flex-direction:column;gap:10px;">
+                    <?php foreach ($produtosMaisVendidos as $p): $pct = round(((int) $p['quantidade'] / $maxQtd) * 100); ?>
+                        <div>
+                            <div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px;">
+                                <span style="color:var(--color-text);font-weight:600;"><?= htmlspecialchars($p['nome']) ?></span>
+                                <span style="color:var(--color-text-muted);"><?= (int) $p['quantidade'] ?> un.</span>
+                            </div>
+                            <div style="background:var(--color-bg-alt);border-radius:var(--radius-pill);height:8px;overflow:hidden;">
+                                <div style="background:var(--color-primary-gradient);height:100%;width:<?= $pct ?>%;border-radius:var(--radius-pill);"></div>
+                            </div>
+                        </div>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+        </div>
+    </div>
+</section>
+<?php endif; ?>
+
 <!-- Últimas Ordens de Serviço -->
 <section class="card mt-24">
     <div class="card__header">
@@ -279,6 +347,14 @@
     const dadosReceita = <?= json_encode($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
     const dadosStatus = <?= json_encode($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
     const totalOS = dadosStatus.reduce((a, b) => a + b, 0);
+    <?php
+    // Dados financeiros só vão pro HTML se o usuário for ADMIN — senão, mesmo
+    // com o card visual escondido, os valores apareceriam no código-fonte da
+    // página pra qualquer usuário logado.
+    $ehAdminDashboard = isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN';
+    ?>
+    const labelsFaturamentoMes = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['labels']  ?? []) : []) ?>;
+    const dadosFaturamentoMes  = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['valores'] ?? []) : []) ?>;
 
     function initCharts() {
         // ── Area chart: Fluxo OS × Receita ──────────────────────────────────────
@@ -434,6 +510,55 @@
                     },
                 },
                 plugins: [centerTextPlugin],
+            });
+        }
+
+        // ── Barras: Faturamento por Mês ──────────────────────────────────────────
+        const faturamentoMesEl = document.getElementById("graficoFaturamentoMes");
+        if (faturamentoMesEl) {
+            new Chart(faturamentoMesEl, {
+                type: "bar",
+                data: {
+                    labels: labelsFaturamentoMes,
+                    datasets: [{
+                        label: "Faturamento",
+                        data: dadosFaturamentoMes,
+                        backgroundColor: "#003BDD",
+                        borderRadius: 6,
+                        maxBarThickness: 40,
+                    }],
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            backgroundColor: "#0F172A",
+                            titleColor: "rgba(255,255,255,0.65)",
+                            bodyColor: "#fff",
+                            padding: { top: 10, bottom: 10, left: 14, right: 14 },
+                            cornerRadius: 10,
+                            callbacks: {
+                                label: (ctx) => ' R$ ' + ctx.parsed.y.toLocaleString('pt-BR', { minimumFractionDigits: 2 }),
+                            },
+                        },
+                    },
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            grid: { color: colorGrid },
+                            border: { display: false },
+                            ticks: {
+                                callback: (v) => 'R$ ' + v.toLocaleString('pt-BR'),
+                            },
+                        },
+                        x: {
+                            grid: { display: false },
+                            border: { display: false },
+                        },
+                    },
+                },
             });
         }
     }

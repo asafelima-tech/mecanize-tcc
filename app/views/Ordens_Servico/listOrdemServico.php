@@ -81,16 +81,13 @@
                                                 <circle cx="12" cy="12" r="3" />
                                             </svg>
                                         </a>
-                                        <form method="POST" action="./concluirOrdemServico" style="display:inline-flex;margin:0;"
-                                            onsubmit="return confirm('Concluir esta Ordem de Serviço?');">
-                                            <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
-                                            <button type="submit" class="row-action-btn success" title="Concluir OS">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                                    <polyline points="22 4 12 14.01 9 11.01" />
-                                                </svg>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="row-action-btn success" title="Concluir OS"
+                                            onclick="abrirModalConcluir(<?= (int) $id ?>, '<?= htmlspecialchars($os['numero'] ?? $id, ENT_QUOTES) ?>')">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                                <polyline points="22 4 12 14.01 9 11.01" />
+                                            </svg>
+                                        </button>
                                         <a href="./editOrdemServico&id=<?= $id ?>" class="row-action-btn" title="Editar">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -180,16 +177,13 @@
                                                 <circle cx="12" cy="12" r="3" />
                                             </svg>
                                         </a>
-                                        <form method="POST" action="./concluirOrdemServico" style="display:inline-flex;margin:0;"
-                                            onsubmit="return confirm('Concluir esta Ordem de Serviço?');">
-                                            <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
-                                            <button type="submit" class="row-action-btn success" title="Concluir OS">
-                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                    <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                                    <polyline points="22 4 12 14.01 9 11.01" />
-                                                </svg>
-                                            </button>
-                                        </form>
+                                        <button type="button" class="row-action-btn success" title="Concluir OS"
+                                            onclick="abrirModalConcluir(<?= (int) $id ?>, '<?= htmlspecialchars($os['numero'] ?? $id, ENT_QUOTES) ?>')">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                                                <polyline points="22 4 12 14.01 9 11.01" />
+                                            </svg>
+                                        </button>
                                         <a href="./editOrdemServico&id=<?= $id ?>" class="row-action-btn" title="Editar">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -354,7 +348,78 @@
 
 </section>
 
+<!-- ══════════════════════════════════════════════════════
+     MODAL — CONCLUIR OS
+     ══════════════════════════════════════════════════════ -->
+<div class="modal-overlay" id="modal-concluir" style="display:none;">
+    <div class="modal" style="max-width:460px;">
+        <div class="modal__header">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <div style="width:40px;height:40px;background:var(--color-success-soft);color:var(--color-success);border-radius:var(--radius-md);display:inline-flex;align-items:center;justify-content:center;">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+                        <polyline points="22 4 12 14.01 9 11.01" />
+                    </svg>
+                </div>
+                <div>
+                    <div class="modal__title">Concluir Ordem de Serviço</div>
+                    <div class="modal__subtitle" id="concluir-ref">Confirma a conclusão desta OS?</div>
+                </div>
+            </div>
+            <button type="button" class="modal__close" onclick="fecharModalConcluir()">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                    <line x1="18" y1="6" x2="6" y2="18" />
+                    <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+            </button>
+        </div>
+        <div class="modal__body" style="padding:20px 24px;">
+            <p style="font-size:12px;color:var(--color-text-muted);">Esta ação não poderá ser desfeita.</p>
+
+            <div style="margin-top:12px;">
+                <label style="font-size:11px;color:var(--color-text-muted);font-weight:600;">
+                    Assinatura do cliente <span style="font-weight:400;">(retirada do veículo, opcional)</span>
+                </label>
+                <canvas id="canvas-assinatura-concluir" width="380" height="130"
+                    style="width:100%;height:130px;margin-top:6px;background:#fff;border:1.5px dashed var(--color-border-strong);
+                           border-radius:var(--radius-md);cursor:crosshair;touch-action:none;"></canvas>
+                <button type="button" class="btn btn--ghost btn--sm" style="margin-top:8px;" onclick="assinaturaConcluir && assinaturaConcluir.limpar()">
+                    Limpar assinatura
+                </button>
+            </div>
+        </div>
+        <div class="modal__footer">
+            <button type="button" class="btn btn--ghost btn--sm" onclick="fecharModalConcluir()">Cancelar</button>
+            <form id="form-concluir" action="./concluirOrdemServico" method="POST" style="display:inline;"
+                onsubmit="document.getElementById('h-concluir-assinatura').value = (assinaturaConcluir ? assinaturaConcluir.dataUrl() : '');">
+                <input type="hidden" name="id_ordem_servico" id="h-concluir-id">
+                <input type="hidden" name="assinatura_cliente" id="h-concluir-assinatura">
+                <button type="submit" class="btn btn--sm" style="background:var(--color-success);color:#fff;border-color:var(--color-success);">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                        <polyline points="20 6 9 17 4 12" />
+                    </svg>
+                    Confirmar Conclusão
+                </button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="./assets/js/assinatura.js?v=<?= time() ?>"></script>
 <script>
+    var assinaturaConcluir = initAssinatura('canvas-assinatura-concluir');
+
+    function abrirModalConcluir(id, numero) {
+        document.getElementById('h-concluir-id').value = id;
+        document.getElementById('concluir-ref').textContent = 'OS #' + numero;
+        if (assinaturaConcluir) assinaturaConcluir.limpar();
+        document.getElementById('modal-concluir').style.display = 'flex';
+    }
+
+    function fecharModalConcluir() {
+        document.getElementById('modal-concluir').style.display = 'none';
+    }
+
     document.querySelectorAll('.tabs__item[data-tab]').forEach(tab => {
         tab.addEventListener('click', () => {
             document.querySelectorAll('.tabs__item[data-tab]').forEach(t => t.classList.remove('is-active'));

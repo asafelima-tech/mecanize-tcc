@@ -217,7 +217,12 @@ $servicos = array_filter($itens, fn($i) => ($i['tipo'] ?? '') === 'servico');
 
         <table class="assinaturas">
             <tr>
-                <td>Assinatura do Cliente</td>
+                <td>
+                    <?php if (!empty($orc['assinatura_cliente'])): ?>
+                        <img src="<?= htmlspecialchars($orc['assinatura_cliente']) ?>" style="max-height:60px;display:block;margin:0 auto 4px;"><br>
+                    <?php endif; ?>
+                    Assinatura do Cliente
+                </td>
                 <td><?= htmlspecialchars($orc['mecanico_nome'] ?? 'Responsável Técnico') ?></td>
             </tr>
         </table>

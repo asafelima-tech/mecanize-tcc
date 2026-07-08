@@ -411,4 +411,22 @@ $decisaoOk = in_array($status, ['aprovado', 'reprovado'], true);
         </div>
     </div>
 
+    <?php if (!empty($orcamento['assinatura_cliente'])): ?>
+    <!-- 6. ASSINATURA DO CLIENTE -->
+    <div class="card">
+        <div class="card__header">
+            <div class="card__title">
+                <span class="ico-wrap ico" aria-hidden="true">
+                    <i class="bi bi-pen"></i>
+                </span>
+                6. Assinatura do Cliente
+            </div>
+        </div>
+        <div class="card__body" style="text-align:center;">
+            <img src="<?= htmlspecialchars($orcamento['assinatura_cliente']) ?>" alt="Assinatura do cliente"
+                style="max-width:320px;width:100%;background:#fff;border:1px solid var(--color-border);border-radius:var(--radius-md);padding:8px;">
+        </div>
+    </div>
+    <?php endif; ?>
+
 </div>

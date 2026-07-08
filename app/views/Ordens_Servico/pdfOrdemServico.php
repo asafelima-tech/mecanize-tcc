@@ -187,7 +187,12 @@ $statusInfo = [
 
         <table class="assinaturas">
             <tr>
-                <td>Assinatura do Cliente</td>
+                <td>
+                    <?php if (!empty($os['assinatura_cliente'])): ?>
+                        <img src="<?= htmlspecialchars($os['assinatura_cliente']) ?>" style="max-height:60px;display:block;margin:0 auto 4px;"><br>
+                    <?php endif; ?>
+                    Assinatura do Cliente
+                </td>
                 <td><?= htmlspecialchars($os['nome_mecanico'] ?? 'Responsável Técnico') ?></td>
             </tr>
         </table>

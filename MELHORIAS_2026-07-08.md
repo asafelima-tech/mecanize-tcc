@@ -258,6 +258,76 @@ andamento e dos prontos pra retirada.
   circular desenhado só pra essa tela — ícone de sol/lua com troca animada
   (rotação + fade), cores e contraste fixos que funcionam nos dois temas.
 
+## 12. Segurança adicional: token do PlateRecognizer exposto
+
+Durante a implementação da assinatura digital, ao olhar `PlacaController.php`
+(leitura de placa por foto), encontrei um token de API do serviço
+platerecognizer.com **hardcoded em texto puro** — igual ao problema da senha
+do Gmail, só que dessa vez **já tinha sido enviado ao GitHub** nos commits
+anteriores (a senha do Gmail eu peguei antes do primeiro push; esse token
+passou despercebido porque só apareceu numa varredura feita depois).
+
+- Movido para `.env` (`PLATE_RECOGNIZER_TOKEN`), mesmo padrão das outras
+  credenciais.
+- Varredura no resto do código não encontrou mais nada parecido.
+- Como o token já estava no histórico remoto, reiniciei o histórico do git
+  **de novo** e usei `git push --force` pra sobrescrever o GitHub — combinado
+  com o usuário antes de fazer, por ser uma ação mais arriscada que reescrever
+  histórico que nunca foi enviado.
+
+## 13. Assinatura digital do cliente
+
+Canvas de assinatura (desenho com mouse/touch, sem biblioteca externa) em
+dois pontos do fluxo:
+
+- **Aprovar orçamento** (modal em `listOrcamentos.php`) — assinatura
+  opcional antes de confirmar a aprovação.
+- **Concluir OS** — o botão de concluir (que antes só tinha um
+  `confirm()` do navegador) virou um modal com o mesmo canvas de assinatura,
+  pensado pro momento da retirada do veículo.
+
+**Banco:** nova coluna `assinatura_cliente` (MEDIUMTEXT, guarda o PNG em
+base64 direto — sem infraestrutura de upload de arquivo, que o projeto não
+tinha) em `orcamentos` e `ordens_servico`, via
+`database/add_assinatura_cliente.php`.
+
+**Back-end:** `Orcamento::aprovar($id, $assinatura = null)` e
+`OrdemServico::concluir($id, $assinatura = null)` passaram a aceitar a
+assinatura opcionalmente (usa `COALESCE` no SQL — se não vier assinatura
+nova, não apaga uma que já existia). `getById()` de ambos os models passou a
+trazer a coluna também.
+
+**Front-end:** `public/assets/js/assinatura.js` — componente reutilizável
+(`initAssinatura(canvasId)`), usado nos dois modais. Quando existe assinatura
+salva, ela aparece em `viewOrcamento.php`, `viewOrdemServico.php` e nos dois
+templates de PDF (substituindo a linha em branco "Assinatura do Cliente" por
+uma imagem real, quando disponível).
+
+**Não incluído:** o drag do Kanban (mudança rápida de status) não pede
+assinatura — só os fluxos de aprovar orçamento e concluir OS, que são ações
+deliberadas com confirmação.
+
+## 14. Dashboard financeiro mais rico
+
+Novos gráficos no `./home`, dentro do mesmo bloco **ADMIN-only** que já
+existia pro card "Faturamento Mensal":
+
+- **Faturamento por Mês** (`Home::faturamentoPorMes()`) — gráfico de barras,
+  últimos 6 meses, reaproveitando o Chart.js já carregado no sistema.
+- **Ticket médio** (`Home::ticketMedio()`) — mês atual vs. geral.
+- **Peças mais vendidas** (`Home::produtosMaisVendidos()`) — top 6 por
+  quantidade, com barra de proporção visual.
+
+**Bug real encontrado e corrigido durante o teste:** os *dados* dos novos
+gráficos (valores de faturamento em R$) estavam sendo escritos no HTML da
+página **para qualquer usuário logado**, mesmo com o card visual escondido
+pra quem não é ADMIN — ou seja, um TECNICO/ATENDENTE não via o gráfico, mas
+conseguia ler os valores de faturamento abrindo o código-fonte da página
+(`Ctrl+U`). Corrigido: as variáveis JS com os dados financeiros só são
+escritas no HTML quando `$_SESSION['user_tipo'] === 'ADMIN'`; pra qualquer
+outro papel, viram array vazio. Testado e confirmado (TECNICO não vê nem o
+card nem os dados no código-fonte; ADMIN continua vendo tudo).
+
 ## O que NÃO foi feito nesta rodada (fora do escopo pedido)
 
 - CSRF tokens nos formulários.

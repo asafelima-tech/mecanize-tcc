@@ -281,6 +281,7 @@ class OrdemServico
             os.defeito_relatado,
             os.diagnostico,
             os.observacoes,
+            os.assinatura_cliente,
             os.valor_total_pecas,
             os.valor_total_servicos,
             os.valor_total_os,
@@ -648,19 +649,21 @@ class OrdemServico
         }
     }
 
-    public function concluir($id)
+    public function concluir($id, ?string $assinatura = null)
     {
         try {
             $stmt = $this->conn->prepare("
                 UPDATE ordens_servico
                 SET status = 'CONCLUIDA',
-                    data_conclusao = :data_conclusao
+                    data_conclusao = :data_conclusao,
+                    assinatura_cliente = COALESCE(:assinatura, assinatura_cliente)
                 WHERE id_ordem_servico = :id
             ");
 
             return $stmt->execute([
                 ':id'             => $id,
                 ':data_conclusao' => date('Y-m-d H:i:s'),
+                ':assinatura'     => $assinatura,
             ]);
         } catch (Exception $e) {
             error_log('[OS concluir] ' . $e->getMessage() . ' | ' . $e->getFile() . ':' . $e->getLine());

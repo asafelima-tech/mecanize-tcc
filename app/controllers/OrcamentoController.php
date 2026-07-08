@@ -79,8 +79,13 @@ class OrcamentoController extends Controller
             exit;
         }
 
+        // Assinatura capturada no canvas do modal de aprovação (base64 PNG).
+        // Opcional — string vazia/ausente vira null e não sobrescreve nada.
+        $assinatura = trim($_POST['assinatura_cliente'] ?? '');
+        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/')) ? $assinatura : null;
+
         $orcamento = $this->model('Orcamento');
-        $resultado = $orcamento->aprovar($id);
+        $resultado = $orcamento->aprovar($id, $assinatura);
 
         if ($resultado) {
             $this->notificarClienteAprovacao($orcamento, $id);

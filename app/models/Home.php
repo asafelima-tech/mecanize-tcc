@@ -37,6 +37,11 @@ class Home
             'graficoReceita'    => $this->graficoReceitaSemana(),
             'orcamentos'        => $this->ultimosOrcamentos(),
 
+            // Dashboard financeiro (visão de negócio, além do gráfico de OS/semana)
+            'faturamentoPorMes'  => $this->faturamentoPorMes(6),
+            'ticketMedio'        => $this->ticketMedio(),
+            'produtosMaisVendidos' => $this->produtosMaisVendidos(6),
+
             'statusEmAndamento' => $statusEmAndamento,
             'statusAguardandoPeca' => $statusAguardandoPeca,
             'statusCanceladas' => $statusCanceladas,
@@ -161,6 +166,66 @@ class Home
         }
 
         return $dados;
+    }
+
+    /** Faturamento mês a mês (últimos $meses, incluindo o atual). */
+    private function faturamentoPorMes(int $meses = 6): array
+    {
+        $labelsMes = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        $labels = [];
+        $valores = [];
+
+        for ($i = $meses - 1; $i >= 0; $i--) {
+            $stmt = $this->conn->prepare("
+                SELECT COALESCE(SUM(valor_total_os), 0)
+                FROM ordens_servico
+                WHERE status = 'CONCLUIDA'
+                  AND data_conclusao >= DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL :i MONTH), '%Y-%m-01')
+                  AND data_conclusao <  DATE_FORMAT(DATE_SUB(CURDATE(), INTERVAL :i2 MONTH), '%Y-%m-01')
+            ");
+            $stmt->execute([':i' => $i, ':i2' => $i - 1]);
+
+            $mesRef = (int) date('n', strtotime("-{$i} months"));
+            $labels[]  = $labelsMes[$mesRef - 1];
+            $valores[] = (float) $stmt->fetchColumn();
+        }
+
+        return ['labels' => $labels, 'valores' => $valores];
+    }
+
+    /** Ticket médio das OS concluídas (geral e do mês atual). */
+    private function ticketMedio(): array
+    {
+        $geral = (float) $this->conn->query("
+            SELECT COALESCE(AVG(valor_total_os), 0) FROM ordens_servico WHERE status = 'CONCLUIDA'
+        ")->fetchColumn();
+
+        $mesAtual = (float) $this->conn->query("
+            SELECT COALESCE(AVG(valor_total_os), 0)
+            FROM ordens_servico
+            WHERE status = 'CONCLUIDA'
+              AND MONTH(data_conclusao) = MONTH(CURDATE())
+              AND YEAR(data_conclusao)  = YEAR(CURDATE())
+        ")->fetchColumn();
+
+        return ['geral' => $geral, 'mesAtual' => $mesAtual];
+    }
+
+    /** Produtos mais vendidos (por quantidade), em OS's já registradas. */
+    private function produtosMaisVendidos(int $limite = 6): array
+    {
+        $stmt = $this->conn->prepare("
+            SELECT p.nome, SUM(op.quantidade) AS quantidade
+            FROM ordem_servico_produtos op
+            INNER JOIN produtos p ON p.id_produto = op.produto_id
+            GROUP BY p.id_produto, p.nome
+            ORDER BY quantidade DESC
+            LIMIT :limite
+        ");
+        $stmt->bindValue(':limite', $limite, PDO::PARAM_INT);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
     private function ultimosOrcamentos()

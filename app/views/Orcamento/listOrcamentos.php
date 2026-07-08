@@ -489,11 +489,25 @@ $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovad
                 e uma nova <strong>Ordem de Serviço</strong> será criada com status <span style="color:var(--color-primary);font-weight:600;">Em Andamento</span>.
             </p>
             <p style="font-size:12px;color:var(--color-text-muted);margin-top:12px;">Esta ação não poderá ser desfeita.</p>
+
+            <div style="margin-top:16px;">
+                <label style="font-size:11px;color:var(--color-text-muted);font-weight:600;">
+                    Assinatura do cliente <span style="font-weight:400;">(opcional)</span>
+                </label>
+                <canvas id="canvas-assinatura-aprovar" width="380" height="130"
+                    style="width:100%;height:130px;margin-top:6px;background:#fff;border:1.5px dashed var(--color-border-strong);
+                           border-radius:var(--radius-md);cursor:crosshair;touch-action:none;"></canvas>
+                <button type="button" class="btn btn--ghost btn--sm" style="margin-top:8px;" onclick="assinaturaAprovar && assinaturaAprovar.limpar()">
+                    Limpar assinatura
+                </button>
+            </div>
         </div>
         <div class="modal__footer">
             <button type="button" class="btn btn--ghost btn--sm" onclick="fecharAprovar()">Cancelar</button>
-            <form id="form-aprovar" action="./aprovarOrcamento" method="POST" style="display:inline;">
+            <form id="form-aprovar" action="./aprovarOrcamento" method="POST" style="display:inline;"
+                onsubmit="document.getElementById('h-aprovar-assinatura').value = (assinaturaAprovar ? assinaturaAprovar.dataUrl() : '');">
                 <input type="hidden" name="id_orcamento" id="h-aprovar-id">
+                <input type="hidden" name="assinatura_cliente" id="h-aprovar-assinatura">
                 <button type="submit" class="btn btn--sm" style="background:var(--color-success);color:#fff;border-color:var(--color-success);">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <polyline points="20 6 9 17 4 12" />
@@ -557,6 +571,7 @@ $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovad
 
 
 <!-- ── JavaScript ── -->
+<script src="./assets/js/assinatura.js?v=<?= time() ?>"></script>
 <script>
     /* ── Tabs ── */
     document.querySelectorAll('.tabs__item[data-tab]').forEach(tab => {
@@ -585,10 +600,13 @@ $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovad
     }
 
     /* ── Modal Aprovar ── */
+    var assinaturaAprovar = initAssinatura('canvas-assinatura-aprovar');
+
     function confirmarAprovar(id, numero, cliente) {
         document.getElementById('h-aprovar-id').value = id;
         document.getElementById('aprovar-numero').textContent = numero;
         document.getElementById('aprovar-cliente').textContent = cliente;
+        if (assinaturaAprovar) assinaturaAprovar.limpar();
         document.getElementById('modal-aprovar').style.display = 'flex';
     }
 

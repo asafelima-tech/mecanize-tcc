@@ -282,8 +282,12 @@ class OrdemServicoController extends Controller
             exit;
         }
 
+        // Assinatura capturada no canvas do modal de conclusão (base64 PNG).
+        $assinatura = trim($_POST['assinatura_cliente'] ?? '');
+        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/')) ? $assinatura : null;
+
         $ordemServico = $this->model('OrdemServico');
-        $ordemServico->concluir($id);
+        $ordemServico->concluir($id, $assinatura);
 
         $this->notificarClienteVeiculoPronto($ordemServico, $id);
 

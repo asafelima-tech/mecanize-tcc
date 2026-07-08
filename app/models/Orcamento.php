@@ -92,7 +92,7 @@ class Orcamento
         return in_array($valor, $permitidos, true) ? $valor : 'servicos';
     }
 
-    public function aprovar($id)
+    public function aprovar($id, ?string $assinatura = null)
     {
         $orc = $this->getById($id);
 
@@ -113,11 +113,12 @@ class Orcamento
         if ($osExistente) {
             $stmt = $this->conn->prepare("
                 UPDATE orcamentos
-                SET status         = 'aprovado',
-                    data_aprovacao = NOW()
+                SET status             = 'aprovado',
+                    data_aprovacao     = NOW(),
+                    assinatura_cliente = COALESCE(?, assinatura_cliente)
                 WHERE id_orcamento = ?
             ");
-            return $stmt->execute([$id]);
+            return $stmt->execute([$assinatura, $id]);
         }
 
         $itens   = $this->getItensByOrcamento($id);
@@ -153,11 +154,12 @@ class Orcamento
 
         $stmt = $this->conn->prepare("
             UPDATE orcamentos
-            SET status         = 'aprovado',
-                data_aprovacao = NOW()
+            SET status             = 'aprovado',
+                data_aprovacao     = NOW(),
+                assinatura_cliente = COALESCE(?, assinatura_cliente)
             WHERE id_orcamento = ?
         ");
-        return $stmt->execute([$id]);
+        return $stmt->execute([$assinatura, $id]);
     }
 
     public function recusar($id, $motivo = null)
@@ -337,6 +339,7 @@ class Orcamento
                 o.defeito_relatado,
                 o.diagnostico,
                 o.observacoes,
+                o.assinatura_cliente,
                 o.valor_total_pecas,
                 o.valor_total_servicos,
                 o.valor_total_orcamento,
