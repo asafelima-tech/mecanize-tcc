@@ -11,7 +11,13 @@ use Dompdf\Options;
  */
 class Pdf
 {
-    public static function baixar(string $html, string $nomeArquivo): void
+    /**
+     * $attachment = true força o download ("Baixar PDF"); false abre o PDF
+     * inline no visualizador do navegador (usado pra "Imprimir" e pra prévia
+     * embutida em iframe, já que o próprio visualizador de PDF do navegador
+     * tem botão de imprimir/salvar).
+     */
+    public static function baixar(string $html, string $nomeArquivo, bool $attachment = true): void
     {
         $options = new Options();
         $options->set('isRemoteEnabled', true);
@@ -21,6 +27,6 @@ class Pdf
         $dompdf->loadHtml($html, 'UTF-8');
         $dompdf->setPaper('A4', 'portrait');
         $dompdf->render();
-        $dompdf->stream($nomeArquivo, ['Attachment' => true]);
+        $dompdf->stream($nomeArquivo, ['Attachment' => $attachment]);
     }
 }

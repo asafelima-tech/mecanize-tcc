@@ -16,21 +16,34 @@
 
     <div class="legal-page">
 
-        <header class="legal-nav">
-            <a href="./login" class="legal-nav__brand">
-                <img src="./assets/img/logo-mecanize.png" alt="Mecanize">
-            </a>
-            <a href="./login" class="legal-nav__back">
-                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M19 12H5M12 19l-7-7 7-7" />
-                </svg>
-                Voltar ao login
-            </a>
+        <div class="legal-progress" aria-hidden="true">
+            <div class="legal-progress__fill" id="legalProgressFill"></div>
+        </div>
+
+        <header class="legal-nav" id="legalNav">
+            <div class="legal-nav__inner">
+                <a href="./login" class="legal-nav__brand">
+                    <img src="./assets/img/logo-mecanize.png" alt="Mecanize">
+                </a>
+                <a href="./login" class="legal-nav__back">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M19 12H5M12 19l-7-7 7-7" />
+                    </svg>
+                    Voltar ao login
+                </a>
+            </div>
         </header>
 
         <div class="legal-header">
+            <span class="legal-header__accent" aria-hidden="true"></span>
             <h1 class="legal-header__title">Termos de Uso</h1>
             <div class="legal-header__meta">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2" />
+                    <line x1="16" y1="2" x2="16" y2="6" />
+                    <line x1="8" y1="2" x2="8" y2="6" />
+                    <line x1="3" y1="10" x2="21" y2="10" />
+                </svg>
                 <span>Última atualização: Julho de 2026</span>
             </div>
         </div>
@@ -38,7 +51,17 @@
         <div class="legal-body-shell">
 
             <nav class="legal-toc" aria-label="Sumário">
-                <div class="legal-toc__title">Sumário</div>
+                <div class="legal-toc__title">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="8" y1="6" x2="21" y2="6" />
+                        <line x1="8" y1="12" x2="21" y2="12" />
+                        <line x1="8" y1="18" x2="21" y2="18" />
+                        <line x1="3" y1="6" x2="3.01" y2="6" />
+                        <line x1="3" y1="12" x2="3.01" y2="12" />
+                        <line x1="3" y1="18" x2="3.01" y2="18" />
+                    </svg>
+                    Sumário
+                </div>
                 <a href="#s1">1. Introdução</a>
                 <a href="#s2">2. Sobre a Mecanize</a>
                 <a href="#s3">3. Aceitação dos Termos</a>
@@ -248,23 +271,58 @@
                 <p>Ao utilizar a plataforma, o cliente declara estar ciente destes Termos de Uso e concorda integralmente com todas as suas disposições.</p>
 
                 <div class="legal-content__signature">
-                    <b>Mecanize</b>
-                    <em>Tecnologia para transformar a gestão de oficinas mecânicas.</em>
+                    <img src="./assets/img/logo-mecanize.png" alt="Mecanize">
+                    <em>a automatização que sua oficina pede.</em>
                 </div>
 
             </article>
 
         </div>
 
-        <div class="legal-footer">
-            <span>© <?= date('Y') ?> Mecanize</span>
-            <span class="dot"></span>
-            <a href="./termos">Termos</a>
-            <span class="dot"></span>
-            <a href="./privacidade">Privacidade</a>
-        </div>
+        <footer class="legal-footer">
+            <div class="legal-footer__inner">
+                <span>© <?= date('Y') ?> Mecanize</span>
+                <span class="dot"></span>
+                <a href="./termos">Termos</a>
+                <span class="dot"></span>
+                <a href="./privacidade">Privacidade</a>
+            </div>
+        </footer>
 
     </div>
+
+    <script>
+        (function () {
+            var page = document.querySelector('.legal-page');
+            var fill = document.getElementById('legalProgressFill');
+            var nav = document.getElementById('legalNav');
+            var links = Array.prototype.slice.call(document.querySelectorAll('.legal-toc a'));
+            var sections = links.map(function (a) {
+                return document.getElementById(a.getAttribute('href').slice(1));
+            });
+
+            function onScroll() {
+                var scrollTop = page.scrollTop;
+                var scrollable = page.scrollHeight - page.clientHeight;
+                fill.style.width = (scrollable > 0 ? (scrollTop / scrollable) * 100 : 0) + '%';
+
+                nav.classList.toggle('is-scrolled', scrollTop > 8);
+
+                var atual = sections[0];
+                for (var i = 0; i < sections.length; i++) {
+                    if (sections[i] && sections[i].getBoundingClientRect().top - 96 <= 0) {
+                        atual = sections[i];
+                    }
+                }
+                links.forEach(function (a) {
+                    a.classList.toggle('is-active', !!atual && a.getAttribute('href') === '#' + atual.id);
+                });
+            }
+
+            page.addEventListener('scroll', onScroll, { passive: true });
+            onScroll();
+        })();
+    </script>
 
 </body>
 

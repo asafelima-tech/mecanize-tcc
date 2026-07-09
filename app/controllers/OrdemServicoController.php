@@ -137,7 +137,7 @@ class OrdemServicoController extends Controller
 
         $numero = preg_replace('/[^A-Za-z0-9_-]/', '_', $os['numero_os'] ?? (string) $os['id_ordem_servico']);
 
-        Pdf::baixar($html, "os_{$numero}.pdf");
+        Pdf::baixar($html, "os_{$numero}.pdf", empty($_GET['inline']));
     }
 
     public function save()

@@ -365,5 +365,4 @@ pra parar de precisar ligar perguntando "ficou pronto?".
 
 - CSRF tokens nos formulários.
 - Testes automatizados.
-- Migração completa da validação pros outros 12 models.
 - Envio de WhatsApp automático de verdade — ver decisão na seção 7 acima.

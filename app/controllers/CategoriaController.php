@@ -18,6 +18,16 @@ class CategoriaController extends Controller
         $categoria = $this->model('Categoria');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $validator = (new Validator($_POST))->required('nome', 'Nome');
+
+            if ($validator->fails()) {
+                $this->view('categoria/saveCategoria', [
+                    'error' => $validator->firstError(),
+                    'old'   => $_POST,
+                ]);
+                return;
+            }
+
             if ($categoria->create($_POST)) {
                 header('Location: ./listCategoria');
                 exit;
@@ -41,6 +51,16 @@ class CategoriaController extends Controller
         if (empty($_POST['id_categoria'])) {
             header('Location: ./listCategoria');
             exit;
+        }
+
+        $validator = (new Validator($_POST))->required('nome', 'Nome');
+
+        if ($validator->fails()) {
+            $this->view('categoria/editCategoria', [
+                'categoria' => $_POST,
+                'error'     => $validator->firstError(),
+            ]);
+            return;
         }
 
         if ($categoria->update($_POST)) {

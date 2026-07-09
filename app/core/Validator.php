@@ -102,6 +102,51 @@ class Validator
         return $this;
     }
 
+    /** DDDs realmente atribuídos pela Anatel — usado por celularBr() abaixo. */
+    private const DDDS_VALIDOS = [
+        11, 12, 13, 14, 15, 16, 17, 18, 19,
+        21, 22, 24, 27, 28,
+        31, 32, 33, 34, 35, 37, 38,
+        41, 42, 43, 44, 45, 46, 47, 48, 49,
+        51, 53, 54, 55,
+        61, 62, 63, 64, 65, 66, 67, 68, 69,
+        71, 73, 74, 75, 77, 79,
+        81, 82, 83, 84, 85, 86, 87, 88, 89,
+        91, 92, 93, 94, 95, 96, 97, 98, 99,
+    ];
+
+    /**
+     * Valida celular brasileiro (formato exigido pro link de WhatsApp
+     * funcionar de verdade: DDD real + 9 dígitos, começando com 9).
+     * Campo opcional — só valida se algo foi preenchido; para exigir
+     * preenchimento, combine com required() antes.
+     * Não confirma que o número tem WhatsApp de fato (isso exigiria API
+     * paga/não-oficial) — só barra números impossíveis ou claramente falsos
+     * (DDD inexistente, quantidade errada de dígitos, todos os dígitos iguais).
+     */
+    public function celularBr(string $campo, ?string $rotulo = null): static
+    {
+        $valor = trim((string) $this->valor($campo));
+        if ($valor === '') {
+            return $this;
+        }
+
+        $digitos = preg_replace('/\D+/', '', $valor);
+        $ddd     = (int) substr($digitos, 0, 2);
+        $local   = substr($digitos, 2);
+
+        $valido = strlen($digitos) === 11
+            && in_array($ddd, self::DDDS_VALIDOS, true)
+            && ($local[0] ?? '') === '9'
+            && !preg_match('/^(\d)\1+$/', $local);
+
+        if (!$valido) {
+            $this->erro($campo, ($rotulo ?? $campo) . ' precisa ser um celular válido, com DDD (ex: (18) 99999-8888).');
+        }
+
+        return $this;
+    }
+
     /**
      * Regra livre — usada, por exemplo, para checar duplicidade reaproveitando
      * métodos que já existem nos models (User::emailExiste, Cliente::emailExisteAtivo).

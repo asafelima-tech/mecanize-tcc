@@ -38,6 +38,95 @@ $coresLookup = [];
 foreach ($coresCarro as $nomeCor => $hexCor) {
     $coresLookup[strtolower($nomeCor)] = $hexCor;
 }
+
+/**
+ * Desenha a placa como SVG inline (em vez de CSS puro) — dá pra usar filtro
+ * de iluminação especular (feSpecularLighting) pra simular o relevo
+ * metálico de verdade da placa antiga, e formas nítidas (sem gradiente
+ * borrado) pros detalhes da Mercosul. Proporção 300x100 ≈ a real (400x130mm).
+ * $uid precisa ser único por placa na página, pra cada <svg> ter seu próprio
+ * filtro (IDs de filtro duplicados no mesmo documento confundem o navegador).
+ */
+function renderPlacaSvg(string $placaTxt, bool $isMercosul, $uid): string
+{
+    $texto = htmlspecialchars($placaTxt);
+    $fEmboss = "emboss-{$uid}";
+
+    if (!$isMercosul) {
+        // ===== Modelo antigo: chapa cinza, número em relevo metálico =====
+        return <<<SVG
+        <svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa {$texto}, modelo antigo">
+            <defs>
+                <linearGradient id="bgAntiga-{$uid}" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stop-color="#f3f4f5"/>
+                    <stop offset="0.55" stop-color="#dcdde0"/>
+                    <stop offset="1" stop-color="#c9cacd"/>
+                </linearGradient>
+                <filter id="{$fEmboss}" x="-30%" y="-30%" width="160%" height="160%">
+                    <feGaussianBlur in="SourceAlpha" stdDeviation="1.4" result="blur"/>
+                    <feSpecularLighting in="blur" surfaceScale="3.2" specularConstant="0.85" specularExponent="14" lighting-color="#ffffff" result="spec">
+                        <feDistantLight azimuth="235" elevation="55"/>
+                    </feSpecularLighting>
+                    <feComposite in="spec" in2="SourceAlpha" operator="in" result="specClip"/>
+                    <feComposite in="SourceGraphic" in2="specClip" operator="arithmetic" k1="0" k2="1" k3="1" k4="0"/>
+                </filter>
+            </defs>
+            <rect x="2.5" y="2.5" width="295" height="95" rx="9" fill="url(#bgAntiga-{$uid})" stroke="#000000" stroke-width="5"/>
+            <rect x="8" y="8" width="284" height="84" rx="5" fill="none" stroke="#ffffff" stroke-opacity="0.5" stroke-width="1"/>
+            <text x="150" y="66" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="42" letter-spacing="3" fill="#1b1c1f" filter="url(#{$fEmboss})">{$texto}</text>
+        </svg>
+        SVG;
+    }
+
+    // ===== Mercosul: faixa azul, emblema, bandeira, selo de QR =====
+    return <<<SVG
+    <svg viewBox="0 0 300 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Placa {$texto}, Mercosul">
+        <defs>
+            <linearGradient id="bgTop-{$uid}" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" stop-color="#2166e0"/>
+                <stop offset="1" stop-color="#0c3c96"/>
+            </linearGradient>
+        </defs>
+        <rect x="2.5" y="2.5" width="295" height="95" rx="9" fill="#fcfcfd" stroke="#000000" stroke-width="5"/>
+        <path d="M8 8 h284 v18 a5 5 0 0 1 -5 5 h-274 a5 5 0 0 1 -5 -5 Z" fill="url(#bgTop-{$uid})"/>
+
+        <!-- Emblema Mercosul: arco de estrelas + faixa verde -->
+        <g transform="translate(18,10)">
+            <circle cx="0" cy="9" r="1.3" fill="#ffd60a"/>
+            <circle cx="6" cy="3" r="1.3" fill="#ffd60a"/>
+            <circle cx="13" cy="1.5" r="1.3" fill="#ffd60a"/>
+            <circle cx="20" cy="3" r="1.3" fill="#ffd60a"/>
+            <path d="M-2 13 Q 10 19 22 13" stroke="#3ddc70" stroke-width="1.6" fill="none" stroke-linecap="round"/>
+        </g>
+
+        <text x="150" y="21" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="13" letter-spacing="3.5" fill="#ffffff">BRASIL</text>
+
+        <!-- Bandeira do Brasil, canto superior direito -->
+        <g transform="translate(262,9)">
+            <rect width="24" height="16" rx="2" fill="#1e9e3e"/>
+            <polygon points="12,2 22,8 12,14 2,8" fill="#ffdf00"/>
+            <circle cx="12" cy="8" r="3.4" fill="#1c4fb0"/>
+        </g>
+
+        <text x="150" y="72" text-anchor="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="38" letter-spacing="1.5" fill="#131417">{$texto}</text>
+
+        <!-- Selo de QR code (estilizado) -->
+        <g transform="translate(14,78)">
+            <rect width="18" height="18" fill="#ffffff" stroke="#101114" stroke-width="1"/>
+            <rect x="2" y="2" width="4" height="4" fill="#101114"/>
+            <rect x="8" y="2" width="2" height="2" fill="#101114"/>
+            <rect x="12" y="2" width="4" height="4" fill="#101114"/>
+            <rect x="2" y="8" width="2" height="2" fill="#101114"/>
+            <rect x="8" y="8" width="2" height="2" fill="#101114"/>
+            <rect x="12" y="8" width="2" height="2" fill="#101114"/>
+            <rect x="2" y="12" width="4" height="4" fill="#101114"/>
+            <rect x="8" y="12" width="2" height="2" fill="#101114"/>
+            <rect x="12" y="12" width="4" height="4" fill="#101114"/>
+        </g>
+        <text x="36" y="93" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="10" fill="#131417">BR</text>
+    </svg>
+    SVG;
+}
 ?>
 
 <!-- Page Header -->
@@ -220,14 +309,13 @@ foreach ($coresCarro as $nomeCor => $hexCor) {
                         <tr>
                             <!-- Placa -->
                             <td>
-                                <?php $placaTxt = $veiculo['placa'] ?? $veiculo['placa_normalizada'] ?? '—'; ?>
-                                <span class="plate-br" title="<?= htmlspecialchars($placaTxt) ?>">
-                                    <span class="plate-br__top">
-                                        <span class="plate-br__merco" aria-hidden="true"></span>
-                                        <span class="plate-br__country">BRASIL</span>
-                                        <span class="plate-br__flag" aria-hidden="true"></span>
-                                    </span>
-                                    <span class="plate-br__num"><?= htmlspecialchars($placaTxt) ?></span>
+                                <?php
+                                $placaTxt   = $veiculo['placa'] ?? $veiculo['placa_normalizada'] ?? '—';
+                                $placaLimpa = strtoupper(preg_replace('/[^A-Z0-9]/', '', $placaTxt));
+                                $isMercosul = (bool) preg_match('/^[A-Z]{3}[0-9][A-Z][0-9]{2}$/', $placaLimpa);
+                                ?>
+                                <span class="plate-br" title="<?= htmlspecialchars($placaTxt) ?> (<?= $isMercosul ? 'Mercosul' : 'Modelo antigo' ?>)">
+                                    <?= renderPlacaSvg($placaTxt, $isMercosul, $veiculo['id_veiculo'] ?? $placaLimpa) ?>
                                 </span>
                             </td>
 

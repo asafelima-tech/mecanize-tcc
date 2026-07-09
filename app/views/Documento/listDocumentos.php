@@ -455,7 +455,7 @@ $paginaAtual     = $paginaAtual     ?? 1;
 
             </div>
 
-            <!-- Prévia do orçamento -->
+            <!-- Prévia do documento — iframe com o PDF real (mesmo template de app/views/Ordens_Servico/pdfOrdemServico.php) -->
             <div style="border:1px solid var(--color-border);border-radius:var(--radius-lg);overflow:hidden;">
 
                 <div style="padding:10px 16px;background:var(--color-bg-alt);border-bottom:1px solid var(--color-border);display:flex;align-items:center;gap:8px;">
@@ -466,70 +466,7 @@ $paginaAtual     = $paginaAtual     ?? 1;
                     <span class="fw-600 fs-12 text-secondary">Prévia do Documento</span>
                 </div>
 
-                <div id="previa-documento" style="padding:28px 32px;background:#fff;">
-
-                    <!-- Cabeçalho doc -->
-                    <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:28px;padding-bottom:20px;border-bottom:2px solid #E2E8F0;">
-                        <div>
-                            <div style="font-size:22px;font-weight:800;color:#0F172A;letter-spacing:-.5px;">SuperSpeed</div>
-                            <div style="font-size:12px;color:#64748B;margin-top:2px;">Oficina Mecânica</div>
-                        </div>
-                        <div style="text-align:right;">
-                            <div style="font-size:18px;font-weight:700;color:var(--color-primary);" id="prev-numero">OS-0000</div>
-                            <div style="font-size:11px;color:#64748B;margin-top:2px;" id="prev-data">Emitido em <?= date('d/m/Y') ?></div>
-                        </div>
-                    </div>
-
-                    <!-- Dados -->
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;margin-bottom:24px;">
-                        <div>
-                            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Cliente</div>
-                            <div style="font-size:14px;font-weight:600;color:#0F172A;" id="prev-cliente">—</div>
-                            <div style="font-size:12px;color:#64748B;margin-top:2px;" id="prev-veiculo">—</div>
-                        </div>
-                        <div>
-                            <div style="font-size:10px;font-weight:700;color:#94A3B8;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px;">Execução</div>
-                            <div style="font-size:14px;font-weight:600;color:#0F172A;" id="prev-mecanico">—</div>
-                            <div style="font-size:12px;color:#64748B;margin-top:2px;">Conclusão: <span id="prev-conclusao">—</span></div>
-                        </div>
-                    </div>
-
-                    <!-- Tabela itens (prévia) -->
-                    <table style="width:100%;border-collapse:collapse;margin-bottom:20px;font-size:13px;">
-                        <thead>
-                            <tr style="background:#F1F5F9;">
-                                <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#475569;">Item</th>
-                                <th style="padding:9px 12px;text-align:left;font-size:11px;font-weight:700;color:#475569;">Tipo</th>
-                                <th style="padding:9px 12px;text-align:center;font-size:11px;font-weight:700;color:#475569;">Qtd</th>
-                                <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#475569;">Unit.</th>
-                                <th style="padding:9px 12px;text-align:right;font-size:11px;font-weight:700;color:#475569;">Subtotal</th>
-                            </tr>
-                        </thead>
-                        <tbody id="prev-itens-tbody"></tbody>
-                    </table>
-
-                    <!-- Totais -->
-                    <div style="display:flex;justify-content:flex-end;">
-                        <div style="min-width:280px;">
-                            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#64748B;border-bottom:1px solid #E2E8F0;">
-                                <span>Peças</span><span id="prev-tot-pecas">R$ 0,00</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:6px 0;font-size:13px;color:#64748B;border-bottom:1px solid #E2E8F0;">
-                                <span>Serviços</span><span id="prev-tot-servicos">R$ 0,00</span>
-                            </div>
-                            <div style="display:flex;justify-content:space-between;padding:10px 0 0;font-size:16px;font-weight:800;color:#0F172A;">
-                                <span>Total</span>
-                                <span id="prev-tot-total" style="color:var(--color-primary);">R$ 0,00</span>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Rodapé doc -->
-                    <div style="margin-top:28px;padding-top:16px;border-top:1px solid #E2E8F0;font-size:11px;color:#94A3B8;text-align:center;">
-                        Documento gerado pelo sistema Mecanize · <?= date('d/m/Y H:i') ?>
-                    </div>
-
-                </div>
+                <iframe id="previa-documento-frame" title="Prévia do documento" style="width:100%;height:640px;border:0;display:block;background:#fff;"></iframe>
 
             </div>
 
@@ -656,33 +593,9 @@ $paginaAtual     = $paginaAtual     ?? 1;
     function finalizarDocumento() {
         if (!osAtual) return;
         fecharModal();
-        const itens = osAtual.itens || [];
-        let totPecas = 0,
-            totServicos = 0;
 
-        document.getElementById('final-ref').textContent = 'Orçamento ' + (osAtual.numero || '#' + osAtual.id);
-        document.getElementById('prev-numero').textContent = osAtual.numero || '#' + osAtual.id;
-        document.getElementById('prev-data').textContent = 'Emitido em ' + new Date().toLocaleDateString('pt-BR');
-        document.getElementById('prev-cliente').textContent = osAtual.cliente || '—';
-        document.getElementById('prev-veiculo').textContent = (osAtual.veiculo || '') + (osAtual.placa ? ' · ' + osAtual.placa : '');
-        document.getElementById('prev-mecanico').textContent = osAtual.mecanico || '—';
-        document.getElementById('prev-conclusao').textContent = fmtData(osAtual.data_conclusao);
-
-        document.getElementById('prev-itens-tbody').innerHTML = itens.map(it => {
-            const sub = parseFloat(it.preco) * parseInt(it.qty || 1);
-            it.tipo === 'produto' ? totPecas += sub : totServicos += sub;
-            return `<tr style="border-bottom:1px solid #F1F5F9;">
-            <td style="padding:8px 12px;font-size:13px;font-weight:500;color:#0F172A;">${it.nome}</td>
-            <td style="padding:8px 12px;font-size:12px;color:#64748B;">${it.tipo === 'produto' ? 'Peça' : 'Serviço'}</td>
-            <td style="padding:8px 12px;text-align:center;font-size:13px;">${it.qty || 1}</td>
-            <td style="padding:8px 12px;text-align:right;font-size:12px;color:#64748B;">${fmtBR(it.preco)}</td>
-            <td style="padding:8px 12px;text-align:right;font-size:13px;font-weight:700;color:#0F172A;">${fmtBR(sub)}</td>
-        </tr>`;
-        }).join('') || `<tr><td colspan="5" style="padding:16px;text-align:center;color:#94A3B8;">Nenhum item.</td></tr>`;
-
-        document.getElementById('prev-tot-pecas').textContent = fmtBR(totPecas);
-        document.getElementById('prev-tot-servicos').textContent = fmtBR(totServicos);
-        document.getElementById('prev-tot-total').textContent = fmtBR(totPecas + totServicos);
+        document.getElementById('final-ref').textContent = 'OS ' + (osAtual.numero || '#' + osAtual.id);
+        document.getElementById('previa-documento-frame').src = './exportOrdemServicoPdf?id=' + encodeURIComponent(osAtual.id) + '&inline=1';
         document.getElementById('modal-final').style.display = 'flex';
     }
 
@@ -696,18 +609,13 @@ $paginaAtual     = $paginaAtual     ?? 1;
     }
 
     function imprimirDocumento() {
-        const conteudo = document.getElementById('previa-documento').innerHTML;
-        const win = window.open('', '_blank', 'width=800,height=600');
-        win.document.write(`<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Orçamento ${osAtual?.numero || ''}</title>
-    <style>*{box-sizing:border-box;margin:0;padding:0}body{font-family:"Segoe UI",Arial,sans-serif;font-size:14px;color:#0F172A;padding:32px;}table{width:100%;border-collapse:collapse;}th,td{padding:9px 12px;}@media print{body{padding:0;}}</style>
-    </head><body>${conteudo}</body></html>`);
-        win.document.close();
-        win.focus();
-        setTimeout(() => win.print(), 400);
+        if (!osAtual) return;
+        window.open('./exportOrdemServicoPdf?id=' + encodeURIComponent(osAtual.id) + '&inline=1', '_blank');
     }
 
     function baixarPDF() {
-        imprimirDocumento();
+        if (!osAtual) return;
+        window.location.href = './exportOrdemServicoPdf?id=' + encodeURIComponent(osAtual.id);
     }
 
     function baixarExcel() {

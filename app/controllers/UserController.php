@@ -521,6 +521,7 @@ class UserController extends Controller
                 'id_usuario' => $idUser,
                 'nome'       => trim($_POST['nome'] ?? ''),
                 'email'      => trim($_POST['email'] ?? ''),
+                'telefone'   => trim($_POST['telefone'] ?? ''),
                 'tipo'       => trim($_POST['tipo'] ?? ''),
                 'ativo'      => $usuarioAtual['ativo']
             ];
@@ -529,6 +530,17 @@ class UserController extends Controller
                 $dados['senha'] = password_hash($_POST['senha'], PASSWORD_DEFAULT);
             } else {
                 $dados['senha'] = $usuarioAtual['senha'];
+            }
+
+            $validator = new Validator($_POST);
+            $validator->celularBr('telefone', 'Telefone');
+
+            if ($validator->fails()) {
+                $this->view('Usuarios/perfil', [
+                    'usuario'      => array_merge($usuarioAtual, $dados),
+                    'mensagemErro' => $validator->firstError()
+                ]);
+                return;
             }
 
             if ($userModel->emailExiste($dados['email'], $idUser)) {

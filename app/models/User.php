@@ -208,16 +208,22 @@ class User
 
     public function update($data)
     {
+        // telefone só é enviado pela tela de perfil — os demais fluxos (admin
+        // editando outro usuário, troca de senha, redefinição por token) não
+        // passam essa chave; COALESCE preserva o valor já salvo nesses casos.
+        $telefone = array_key_exists('telefone', $data) ? trim((string) $data['telefone']) : null;
+
         // Atualiza COM senha
         if (!empty($data['senha'])) {
 
-            $sql = "UPDATE usuarios 
-                    SET 
-                        nome = ?, 
-                        email = ?, 
-                        senha = ?, 
-                        tipo = ?, 
+            $sql = "UPDATE usuarios
+                    SET
+                        nome = ?,
+                        email = ?,
+                        senha = ?,
+                        tipo = ?,
                         ativo = ?,
+                        telefone = COALESCE(?, telefone),
                         atualizado_em = NOW()
                     WHERE id_usuario = ?";
 
@@ -229,17 +235,19 @@ class User
                 $data['senha'], // NÃO criptografa novamente
                 $data['tipo'],
                 $data['ativo'],
+                $telefone,
                 $data['id_usuario']
             ]);
         }
 
         // Atualiza SEM senha
-        $sql = "UPDATE usuarios 
-                SET 
-                    nome = ?, 
-                    email = ?, 
-                    tipo = ?, 
+        $sql = "UPDATE usuarios
+                SET
+                    nome = ?,
+                    email = ?,
+                    tipo = ?,
                     ativo = ?,
+                    telefone = COALESCE(?, telefone),
                     atualizado_em = NOW()
                 WHERE id_usuario = ?";
 
@@ -250,6 +258,7 @@ class User
             trim($data['email']),
             $data['tipo'],
             $data['ativo'],
+            $telefone,
             $data['id_usuario']
         ]);
     }

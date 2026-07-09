@@ -75,6 +75,7 @@ class ClienteController extends Controller
                     fn($v) => !$cliente->emailExisteAtivo($v ?? ''),
                     'Já existe um cliente ativo com este e-mail.'
                 )
+                ->celularBr('telefone', 'Telefone')
                 ->custom(
                     'telefone',
                     fn($v) => !$cliente->telefoneExisteAtivo($v ?? ''),
@@ -135,6 +136,7 @@ class ClienteController extends Controller
                     fn($v) => !$cliente->emailExisteAtivo($v ?? '', $id),
                     'Já existe outro cliente ativo com este e-mail.'
                 )
+                ->celularBr('telefone', 'Telefone')
                 ->custom(
                     'telefone',
                     fn($v) => !$cliente->telefoneExisteAtivo($v ?? '', $id),

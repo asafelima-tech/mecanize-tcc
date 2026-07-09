@@ -167,9 +167,9 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                                         <circle cx="12" cy="13" r="3" stroke="var(--color-primary)" stroke-width="1.6" />
                                     </svg>
 
-                                    <span style="font-size:11px; color:var(--color-text-muted); line-height:1.4;">
+                                    <span id="textoFotoPlaca" style="font-size:11px; color:var(--color-text-muted); line-height:1.4;">
                                         Foto da placa<br>
-                                        <span style="font-size:10px; opacity:.7;">clique para anexar ou fotografar</span>
+                                        <span style="font-size:10px; opacity:.7;">arraste a imagem, clique para anexar ou fotografe</span>
                                     </span>
 
                                     <input
@@ -658,6 +658,65 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
         };
         reader.readAsDataURL(input.files[0]);
     }
+
+    // Arrastar e soltar a foto da placa direto na área tracejada, como
+    // alternativa a clicar (que já abria a galeria/câmera nativamente).
+    (function () {
+        const dropArea = document.getElementById('labelFotoPlaca');
+        const inputFoto = document.getElementById('fotoPlaca');
+        if (!dropArea || !inputFoto) return;
+
+        function estiloArrastando() {
+            dropArea.style.borderColor = 'var(--color-primary)';
+            dropArea.style.background = 'var(--color-primary-soft)';
+        }
+
+        function estiloParado() {
+            dropArea.style.borderColor = 'var(--color-border, #D1D5DB)';
+            dropArea.style.background = 'var(--color-bg-soft, #F9FAFB)';
+        }
+
+        ['dragenter', 'dragover'].forEach(function (evento) {
+            dropArea.addEventListener(evento, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                estiloArrastando();
+            });
+        });
+
+        ['dragleave', 'dragend'].forEach(function (evento) {
+            dropArea.addEventListener(evento, function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                estiloParado();
+            });
+        });
+
+        dropArea.addEventListener('drop', function (e) {
+            e.preventDefault();
+            e.stopPropagation();
+            estiloParado();
+
+            const arquivos = e.dataTransfer.files;
+            if (!arquivos || !arquivos[0]) return;
+
+            if (!arquivos[0].type.startsWith('image/')) {
+                alert('Solte um arquivo de imagem (foto da placa).');
+                return;
+            }
+
+            inputFoto.files = arquivos;
+            aoSelecionarFotoPlaca(inputFoto);
+        });
+
+        // Se o usuário errar o alvo e soltar fora da área tracejada, evita
+        // que o navegador abra a imagem numa aba nova em vez de ignorar.
+        ['dragover', 'drop'].forEach(function (evento) {
+            document.addEventListener(evento, function (e) {
+                if (!dropArea.contains(e.target)) e.preventDefault();
+            });
+        });
+    })();
 
     function removerFotoPlaca() {
         document.getElementById('fotoPlaca').value = '';

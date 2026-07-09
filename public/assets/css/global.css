@@ -1966,105 +1966,25 @@ select:not(.ts-hidden-accessible):focus {
   color: var(--color-text);
 }
 
-/* Placa estilo Mercosul (Brasil) — visual realista usado na listagem */
+/* Placa — renderizada como SVG inline (ver renderPlacaSvg() em
+   listVeiculos.php), pra usar filtro de luz especular no relevo da placa
+   antiga e formas nítidas nos detalhes da Mercosul (sem gradiente CSS
+   borrado). O wrapper só cuida do tamanho e da sombra de "objeto físico". */
 .plate-br {
-  display: inline-flex;
-  flex-direction: column;
-  width: 118px;
-  background: linear-gradient(180deg, #ffffff 0%, #eef0f2 100%);
-  border: 2px solid #0f0f10;
-  border-radius: 8px;
-  overflow: hidden;
-  line-height: 1;
-  box-shadow:
-    0 1px 2px rgba(0, 0, 0, .28),
-    inset 0 0 0 1px rgba(255, 255, 255, .75);
+  display: inline-block;
+  width: 148px;
+  line-height: 0;
+  filter:
+    drop-shadow(0 1px 1px rgba(0, 0, 0, .22))
+    drop-shadow(0 2px 4px rgba(0, 0, 0, .28));
   -webkit-user-select: none;
   user-select: none;
-  font-family: Arial, "Helvetica Neue", sans-serif;
 }
 
-.plate-br__top {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 4px;
-  padding: 2px 6px;
-  background: linear-gradient(180deg, #0c43a0 0%, #082f73 100%);
-  /* azul Mercosul */
-  color: #fff;
-  border-bottom: 1px solid #06224f;
-}
-
-.plate-br__country {
-  flex: 1;
-  text-align: center;
-  font-family: Arial, "Helvetica Neue", sans-serif;
-  font-size: 7px;
-  font-weight: 800;
-  letter-spacing: 2px;
-  text-transform: uppercase;
-}
-
-/* Emblema Mercosul (bandeira azul com 4 estrelas amarelas) */
-.plate-br__merco {
-  width: 12px;
-  height: 8px;
-  flex-shrink: 0;
-  border-radius: 1px;
-  background:
-    radial-gradient(circle at 28% 32%, #ffd60a .9px, transparent 1.4px),
-    radial-gradient(circle at 60% 26%, #ffd60a .9px, transparent 1.4px),
-    radial-gradient(circle at 38% 66%, #ffd60a .9px, transparent 1.4px),
-    radial-gradient(circle at 70% 62%, #ffd60a .9px, transparent 1.4px),
-    linear-gradient(180deg, #1559c6, #0c43a0);
-  box-shadow: inset 0 0 0 .5px rgba(255, 255, 255, .35);
-}
-
-/* Mini bandeira do Brasil */
-.plate-br__flag {
-  width: 13px;
-  height: 9px;
-  flex-shrink: 0;
-  border-radius: 1px;
-  background: #1e9e3e;
-  /* verde */
-  position: relative;
-  overflow: hidden;
-  box-shadow: inset 0 0 0 .5px rgba(0, 0, 0, .25);
-}
-
-.plate-br__flag::before {
-  content: "";
-  position: absolute;
-  inset: 1.5px;
-  background: #ffdf00;
-  /* amarelo */
-  clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%);
-}
-
-.plate-br__flag::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 50%;
-  width: 4px;
-  height: 4px;
-  transform: translate(-50%, -50%);
-  background: #0c43a0;
-  /* azul */
-  border-radius: 50%;
-}
-
-.plate-br__num {
-  text-align: center;
-  padding: 4px 4px 5px;
-  font-family: "Consolas", "Courier New", monospace;
-  font-size: 16px;
-  font-weight: 800;
-  letter-spacing: 2.5px;
-  color: #15171a;
-  text-shadow: 0 1px 0 rgba(255, 255, 255, .55);
+.plate-br svg {
+  display: block;
+  width: 100%;
+  height: auto;
 }
 
 /* Cadastro de modelo na hora (save/editVeiculo) */
@@ -2937,24 +2857,84 @@ select.form-input {
 
 /* =========================================================
    LEGAL DOCS (Termos de Uso / Política de Privacidade)
-   Páginas públicas e independentes (sem sidebar). Estrutura
-   editorial (nav simples → título grande → metadados com
-   régua → sumário fixo + conteúdo corrido), nas cores/fonte
-   do design system do Mecanize.
+   Páginas públicas e independentes (sem sidebar). Tratamento
+   editorial "documento oficial": barra de progresso de leitura,
+   nav que ganha profundidade ao rolar, textura de marca sutil
+   atrás do header, sumário como card com destaque de seção ativa
+   (scroll-spy) e assinatura/rodapé com mais peso visual — tudo
+   nas cores/fonte do design system do Mecanize, sem alterar uma
+   vírgula do texto legal em si.
    ========================================================= */
 .legal-page {
   height: 100vh;
   overflow-y: auto;
+  overflow-x: hidden;
   background: var(--color-bg);
+  scroll-behavior: smooth;
+  position: relative;
+}
+
+/* Barra fina de progresso de leitura, fixa no topo da viewport */
+.legal-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  z-index: 100;
+  background: transparent;
+}
+
+.legal-progress__fill {
+  height: 100%;
+  width: 0%;
+  background: var(--color-primary-gradient);
+}
+
+/* Textura de marca sutil atrás do nav + header (sem precisar de wrapper extra) */
+.legal-page::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 480px;
+  background:
+    radial-gradient(ellipse 900px 320px at 12% 0%, rgba(0, 59, 221, .08), transparent 70%),
+    radial-gradient(ellipse 700px 260px at 100% 0%, rgba(0, 59, 221, .05), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
 }
 
 .legal-nav {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  transition: background .2s ease, box-shadow .2s ease, backdrop-filter .2s ease;
+}
+
+.legal-nav.is-scrolled {
+  background: rgba(255, 255, 255, .85);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  box-shadow: 0 1px 2px rgba(17, 24, 38, .05), 0 1px 0 var(--color-border);
+}
+
+.legal-nav__inner {
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 28px 24px;
+  padding: 24px 24px;
+}
+
+.legal-nav__brand,
+.legal-nav__back {
+  min-width: 0;
+  flex-shrink: 1;
+  white-space: nowrap;
 }
 
 .legal-nav__brand {
@@ -2963,7 +2943,7 @@ select.form-input {
 }
 
 .legal-nav__brand img {
-  height: 20px;
+  height: 36px;
   width: auto;
   display: block;
 }
@@ -2989,9 +2969,20 @@ select.form-input {
 }
 
 .legal-header {
+  position: relative;
+  z-index: 1;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 12px 24px 0;
+  padding: 20px 24px 0;
+}
+
+.legal-header__accent {
+  display: block;
+  width: 44px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary-gradient);
+  margin-bottom: 22px;
 }
 
 .legal-header__title {
@@ -3000,36 +2991,54 @@ select.form-input {
   letter-spacing: -0.03em;
   line-height: 1.03;
   color: var(--color-text);
-  margin-bottom: 26px;
+  margin-bottom: 24px;
 }
 
 .legal-header__meta {
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 16px;
-  padding-bottom: 22px;
-  border-bottom: 1.5px solid var(--color-text);
-  font-size: 13px;
+  gap: 8px;
+  padding: 9px 16px 9px 14px;
+  margin-bottom: 22px;
+  border-radius: var(--radius-pill);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  box-shadow: var(--shadow-sm);
+  font-size: 12.5px;
   font-weight: 600;
   color: var(--color-text-muted);
 }
 
+.legal-header__meta svg {
+  flex-shrink: 0;
+  color: var(--color-primary);
+}
+
 .legal-body-shell {
+  position: relative;
   max-width: 1040px;
   margin: 0 auto;
-  padding: 44px 24px 80px;
+  padding: 40px 24px 80px;
   display: grid;
-  grid-template-columns: 230px 1fr;
-  gap: 48px;
+  grid-template-columns: 252px 1fr;
+  gap: 40px;
   align-items: start;
 }
 
 .legal-toc {
   position: sticky;
-  top: 28px;
+  top: 92px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
 }
 
 .legal-toc__title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
   font-size: 10.5px;
   font-weight: 700;
   text-transform: uppercase;
@@ -3038,25 +3047,38 @@ select.form-input {
   margin-bottom: 12px;
 }
 
+.legal-toc__title svg {
+  color: var(--color-primary);
+}
+
 .legal-toc a {
   display: block;
-  padding: 6px 0 6px 12px;
-  margin-left: -13px;
-  border-left: 2px solid transparent;
+  padding: 7px 10px;
+  border-left: 2.5px solid transparent;
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
   font-size: 13px;
   color: var(--color-text-secondary);
   text-decoration: none;
   line-height: 1.5;
-  transition: color .12s, border-color .12s;
+  transition: color .12s, border-color .12s, background .12s;
 }
 
 .legal-toc a:hover {
   color: var(--color-primary);
+  border-left-color: var(--color-primary-soft);
+  background: var(--color-bg-alt);
+}
+
+.legal-toc a.is-active {
+  color: var(--color-primary);
   border-left-color: var(--color-primary);
+  background: var(--color-primary-soft);
+  font-weight: 700;
 }
 
 .legal-content {
   min-width: 0;
+  position: relative;
 }
 
 .legal-content h2 {
@@ -3064,10 +3086,10 @@ select.form-input {
   font-weight: 800;
   letter-spacing: -0.01em;
   color: var(--color-text);
-  margin: 44px 0 16px;
-  padding-top: 28px;
+  margin: 46px 0 16px;
+  padding-top: 30px;
   border-top: 1px solid var(--color-border);
-  scroll-margin-top: 24px;
+  scroll-margin-top: 100px;
 }
 
 .legal-content>h2:first-child {
@@ -3126,30 +3148,51 @@ select.form-input {
 }
 
 .legal-content__signature {
-  margin-top: 48px;
-  padding-top: 28px;
-  border-top: 1px solid var(--color-border);
+  position: relative;
+  margin-top: 56px;
+  padding: 28px 26px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
 }
 
-.legal-content__signature b {
+.legal-content__signature::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: var(--color-primary-gradient);
+}
+
+.legal-content__signature img {
   display: block;
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--color-text);
+  height: 30px;
+  width: auto;
 }
 
 .legal-content__signature em {
   display: block;
-  margin-top: 4px;
+  margin-top: 8px;
   font-size: 13px;
   color: var(--color-text-muted);
   font-style: italic;
 }
 
 .legal-footer {
+  position: relative;
+  margin-top: 20px;
+  background: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+}
+
+.legal-footer__inner {
   max-width: 1040px;
   margin: 0 auto;
-  padding: 0 24px 48px;
+  padding: 26px 24px;
   font-size: 12px;
   color: var(--color-text-muted);
 }
@@ -3190,8 +3233,20 @@ select.form-input {
 }
 
 @media (max-width: 480px) {
-  .legal-nav {
-    padding: 20px 18px;
+  .legal-nav__inner {
+    padding: 16px 14px;
+    gap: 8px;
+  }
+
+  .legal-nav__brand img {
+    height: 28px;
+  }
+
+  .legal-nav__back {
+    height: 34px;
+    padding: 0 12px;
+    font-size: 11.5px;
+    gap: 5px;
   }
 
   .legal-header {
@@ -3204,6 +3259,10 @@ select.form-input {
 
   .legal-body-shell {
     padding: 32px 18px 60px;
+  }
+
+  .legal-footer__inner {
+    padding: 22px 18px;
   }
 }
 

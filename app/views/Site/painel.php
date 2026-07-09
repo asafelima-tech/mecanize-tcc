@@ -9,10 +9,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./assets/css/global.css">
 
-    <!-- Aplica o tema ANTES de renderizar — evita flash (mesmo padrão do layout principal) -->
+    <!-- Aplica o tema ANTES de renderizar — evita flash (mesmo padrão do layout principal,
+         mas com chave de localStorage própria: o tema do painel é independente do resto
+         do sistema — trocar aqui não deve mudar o tema de quem está usando o sistema
+         normalmente em outra aba/computador, e vice-versa) -->
     <script>
         (function () {
-            var saved = localStorage.getItem('mecanize-theme');
+            var saved = localStorage.getItem('mecanize-theme-painel');
             var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
             if (saved === 'dark' || (!saved && prefersDark)) {
                 document.documentElement.setAttribute('data-theme', 'dark');
@@ -304,7 +307,7 @@
         atualizarRelogio();
         setInterval(atualizarRelogio, 1000);
 
-        // ── Dark mode toggle (mesmo localStorage do resto do sistema) ──
+        // ── Dark mode toggle (chave de localStorage própria do painel — ver nota no <head>) ──
         (function () {
             var html = document.documentElement;
             var btn = document.getElementById('temaToggle');
@@ -313,7 +316,7 @@
             btn.addEventListener('click', function () {
                 var dark = html.getAttribute('data-theme') !== 'dark';
                 html.setAttribute('data-theme', dark ? 'dark' : 'light');
-                localStorage.setItem('mecanize-theme', dark ? 'dark' : 'light');
+                localStorage.setItem('mecanize-theme-painel', dark ? 'dark' : 'light');
             });
         })();
     </script>
