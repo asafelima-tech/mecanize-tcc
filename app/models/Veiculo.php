@@ -301,17 +301,27 @@ class Veiculo
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
-            ':cliente_id'        => $data['cliente_id'],
-            ':marca_id'          => $data['marca_id'],
-            ':modelo_id'         => $data['modelo_id'],
-            ':placa'             => strtoupper(trim($data['placa'])),
-            ':placa_normalizada' => $this->normalizarPlaca($data['placa']),
-            ':ano'               => $data['ano'] ?: null,
-            ':cor'               => $data['cor'] ?: null,
-            ':combustivel'       => $data['combustivel'] ?: null,
-            ':observacoes'       => $data['observacoes'] ?: null,
-        ]);
+        try {
+            return $stmt->execute([
+                ':cliente_id'        => $data['cliente_id'],
+                ':marca_id'          => $data['marca_id'],
+                ':modelo_id'         => $data['modelo_id'],
+                ':placa'             => strtoupper(trim($data['placa'])),
+                ':placa_normalizada' => $this->normalizarPlaca($data['placa']),
+                ':ano'               => $data['ano'] ?: null,
+                ':cor'               => $data['cor'] ?: null,
+                ':combustivel'       => $data['combustivel'] ?: null,
+                ':observacoes'       => $data['observacoes'] ?: null,
+            ]);
+        } catch (\PDOException $e) {
+            // Backstop do índice único uq_veiculos_placa_normalizada — ver
+            // comentário no update() acima.
+            if ($e->getCode() === '23000') {
+                $this->lastError = 'Já existe um veículo cadastrado com esta placa.';
+                return false;
+            }
+            throw $e;
+        }
     }
 
     public function update($id, $data)
@@ -338,18 +348,29 @@ class Veiculo
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
-            ':cliente_id'        => $data['cliente_id'],
-            ':marca_id'          => $data['marca_id'],
-            ':modelo_id'         => $data['modelo_id'],
-            ':placa'             => strtoupper(trim($data['placa'])),
-            ':placa_normalizada' => $this->normalizarPlaca($data['placa']),
-            ':ano'               => $data['ano'] ?: null,
-            ':cor'               => $data['cor'] ?: null,
-            ':combustivel'       => $data['combustivel'] ?: null,
-            ':observacoes'       => $data['observacoes'] ?: null,
-            ':id_veiculo'        => $id,
-        ]);
+        try {
+            return $stmt->execute([
+                ':cliente_id'        => $data['cliente_id'],
+                ':marca_id'          => $data['marca_id'],
+                ':modelo_id'         => $data['modelo_id'],
+                ':placa'             => strtoupper(trim($data['placa'])),
+                ':placa_normalizada' => $this->normalizarPlaca($data['placa']),
+                ':ano'               => $data['ano'] ?: null,
+                ':cor'               => $data['cor'] ?: null,
+                ':combustivel'       => $data['combustivel'] ?: null,
+                ':observacoes'       => $data['observacoes'] ?: null,
+                ':id_veiculo'        => $id,
+            ]);
+        } catch (\PDOException $e) {
+            // Backstop do índice único uq_veiculos_placa_normalizada pegando
+            // uma corrida que placaExiste() não pegou — vira a mesma
+            // mensagem amigável em vez de erro 500 genérico.
+            if ($e->getCode() === '23000') {
+                $this->lastError = 'Já existe um veículo cadastrado com esta placa.';
+                return false;
+            }
+            throw $e;
+        }
     }
 
     /**

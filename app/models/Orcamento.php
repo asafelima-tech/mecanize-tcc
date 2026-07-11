@@ -155,18 +155,25 @@ class Orcamento
 
     /**
      * Aprova o orçamento e cria a OS correspondente (se ainda não existir
-     * uma). A checagem "já existe OS pra este orçamento?" + a criação da OS
-     * + o UPDATE de status rodam dentro de uma única transação, com
-     * `SELECT ... FOR UPDATE` travando a linha do orçamento (e, de novo,
-     * a checagem de OS existente) do início ao fim — isso serializa duas
-     * aprovações quase simultâneas do mesmo orçamento (duplo clique, retry
-     * de rede): a segunda só prossegue depois que a primeira já commitou, e
-     * nesse ponto ela enxerga a OS recém-criada e cai no branch de "só
-     * atualiza status", em vez de criar uma segunda OS (o que duplicaria
-     * baixa de estoque e mão de obra). O índice único
-     * uq_ordens_servico_orcamento_id (database/add_unique_orcamento_os.php)
-     * é o backstop final — mesmo que o lock falhe por algum motivo, o
-     * segundo INSERT concorrente é rejeitado pelo banco.
+     * uma).
+     *
+     * IMPORTANTE — por que a OS é criada FORA da transação que lê o
+     * orçamento: `ordens_servico.orcamento_id` tem uma FOREIGN KEY de
+     * verdade pra `orcamentos.id_orcamento`. Uma versão anterior desta
+     * função mantinha um `SELECT ... FOR UPDATE` na linha do orçamento
+     * aberto durante a chamada a `OrdemServico::create()` (que usa sua
+     * própria conexão) — e o INSERT em `ordens_servico`, pra validar essa
+     * FK, precisa de um lock de leitura na MESMA linha do orçamento que já
+     * estava travada em modo exclusivo pela transação ainda aberta. Isso
+     * não era uma corrida rara: travava 100% das aprovações por
+     * `innodb_lock_wait_timeout` (~50s) até falhar — foi pego só ao
+     * escrever os testes automatizados, não no teste manual anterior.
+     *
+     * A proteção contra duplo-clique/corrida agora é o índice único
+     * `uq_ordens_servico_orcamento_id` (database/add_unique_orcamento_os.php):
+     * se duas aprovações quase simultâneas passarem da checagem "já existe
+     * OS?" ao mesmo tempo, o banco rejeita a segunda `INSERT`, e o código
+     * trata esse caso como sucesso (a outra requisição já criou a OS).
      */
     public function aprovar($id, ?string $assinatura = null)
     {
@@ -183,78 +190,21 @@ class Orcamento
                 return false;
             }
 
-            // FOR UPDATE também aqui: força ler a versão mais recente já
-            // confirmada (não a foto da transação), fechando a janela de
-            // corrida entre a checagem e a criação da OS.
-            $stmtOs = $this->conn->prepare("
-                SELECT id_ordem_servico
-                FROM ordens_servico
-                WHERE orcamento_id = ?
-                LIMIT 1
-                FOR UPDATE
-            ");
+            $stmtOs = $this->conn->prepare("SELECT id_ordem_servico FROM ordens_servico WHERE orcamento_id = ? LIMIT 1");
             $stmtOs->execute([$id]);
             $osExistente = $stmtOs->fetch(PDO::FETCH_ASSOC);
 
             if ($osExistente) {
-                $stmt = $this->conn->prepare("
-                    UPDATE orcamentos
-                    SET status             = 'aprovado',
-                        data_aprovacao     = NOW(),
-                        assinatura_cliente = COALESCE(?, assinatura_cliente)
-                    WHERE id_orcamento = ?
-                ");
-                $ok = $stmt->execute([$assinatura, $id]);
+                $ok = $this->marcarAprovado($id, $assinatura);
                 $ok ? $this->conn->commit() : $this->conn->rollBack();
                 return $ok;
             }
 
             $itens = $this->getItensByOrcamento($id);
 
-            error_log('[aprovar] itens do orçamento ' . $id . ': ' . json_encode($itens));
-
-            // OrdemServico::create() usa sua própria conexão/transação —
-            // roda e commita de forma independente, mas isso não abre
-            // brecha pra corrida porque a linha do orçamento continua
-            // travada (FOR UPDATE) nesta transação até o fim desta função.
-            $osModel = new OrdemServico();
-
-            $resultado = $osModel->create([
-                'orcamento_id'         => $id,
-                'status'               => 'EM_ANDAMENTO',
-                'data_abertura'        => date('Y-m-d H:i:s'),
-                'cliente_id'           => $orc['cliente_id'],
-                'veiculo_id'           => $orc['veiculo_id'],
-                'km_veiculo'           => $orc['km_veiculo'],
-                'defeito_relatado'     => $orc['defeito_relatado'],
-                'diagnostico'          => $orc['diagnostico'],
-                'observacoes'          => $orc['observacoes'],
-                'valor_total_pecas'    => $orc['valor_total_pecas'],
-                'valor_total_servicos' => $orc['valor_total_servicos'],
-                'valor_total_os'       => $orc['valor_total_orcamento'],
-                'mecanico_id'          => $orc['mecanico_id'],
-                'valor_mao_obra'       => $orc['valor_mao_obra'],
-                'comissao_pct'         => $orc['comissao_pct'],
-                'comissao_base'        => $orc['comissao_base'] ?? 'servicos',
-                'itens'                => $itens,
-            ]);
-
-            if (!$resultado) {
-                $this->conn->rollBack();
-                error_log('[aprovar] Falha ao criar OS a partir do orçamento: ' . $id);
-                return false;
-            }
-
-            $stmt = $this->conn->prepare("
-                UPDATE orcamentos
-                SET status             = 'aprovado',
-                    data_aprovacao     = NOW(),
-                    assinatura_cliente = COALESCE(?, assinatura_cliente)
-                WHERE id_orcamento = ?
-            ");
-            $ok = $stmt->execute([$assinatura, $id]);
-            $ok ? $this->conn->commit() : $this->conn->rollBack();
-            return $ok;
+            // Libera o FOR UPDATE (commit) ANTES de criar a OS numa conexão
+            // separada — ver o porquê no docblock acima.
+            $this->conn->commit();
         } catch (\Throwable $e) {
             if ($this->conn->inTransaction()) {
                 $this->conn->rollBack();
@@ -262,6 +212,54 @@ class Orcamento
             error_log('[aprovar] Exceção: ' . $e->getMessage());
             return false;
         }
+
+        $osModel = new OrdemServico();
+
+        $resultado = $osModel->create([
+            'orcamento_id'         => $id,
+            'status'               => 'EM_ANDAMENTO',
+            'data_abertura'        => date('Y-m-d H:i:s'),
+            'cliente_id'           => $orc['cliente_id'],
+            'veiculo_id'           => $orc['veiculo_id'],
+            'km_veiculo'           => $orc['km_veiculo'],
+            'defeito_relatado'     => $orc['defeito_relatado'],
+            'diagnostico'          => $orc['diagnostico'],
+            'observacoes'          => $orc['observacoes'],
+            'valor_total_pecas'    => $orc['valor_total_pecas'],
+            'valor_total_servicos' => $orc['valor_total_servicos'],
+            'valor_total_os'       => $orc['valor_total_orcamento'],
+            'mecanico_id'          => $orc['mecanico_id'],
+            'valor_mao_obra'       => $orc['valor_mao_obra'],
+            'comissao_pct'         => $orc['comissao_pct'],
+            'comissao_base'        => $orc['comissao_base'] ?? 'servicos',
+            'itens'                => $itens,
+        ]);
+
+        if (!$resultado) {
+            // Pode ter falhado por uma corrida de verdade (índice único
+            // rejeitou porque outra requisição criou a OS entre o commit
+            // acima e este INSERT) — nesse caso não é um erro, é sucesso.
+            $stmtOs = $this->conn->prepare("SELECT id_ordem_servico FROM ordens_servico WHERE orcamento_id = ? LIMIT 1");
+            $stmtOs->execute([$id]);
+            if (!$stmtOs->fetch()) {
+                error_log('[aprovar] Falha ao criar OS a partir do orçamento: ' . $id);
+                return false;
+            }
+        }
+
+        return $this->marcarAprovado($id, $assinatura);
+    }
+
+    private function marcarAprovado($id, ?string $assinatura): bool
+    {
+        $stmt = $this->conn->prepare("
+            UPDATE orcamentos
+            SET status             = 'aprovado',
+                data_aprovacao     = NOW(),
+                assinatura_cliente = COALESCE(?, assinatura_cliente)
+            WHERE id_orcamento = ?
+        ");
+        return $stmt->execute([$assinatura, $id]);
     }
 
     /**

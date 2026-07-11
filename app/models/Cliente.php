@@ -519,20 +519,33 @@ class Cliente
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
-            $dados['tipo_pessoa'] ?? null,
-            $dados['nome']        ?? null,
-            $dados['cpf']         ?? null,
-            $dados['cnpj']        ?? null,
-            $dados['email']       ?? null,
-            $dados['telefone']    ?? null,
-            $dados['endereco']    ?? null,
-            $dados['bairro']      ?? null,
-            $dados['cidade']      ?? null,
-            $dados['uf']          ?? null,
-            $dados['cep']         ?? null,
-            $dados['observacoes'] ?? null,
-        ]);
+        try {
+            return $stmt->execute([
+                $dados['tipo_pessoa'] ?? null,
+                $dados['nome']        ?? null,
+                $dados['cpf']         ?? null,
+                $dados['cnpj']        ?? null,
+                $dados['email']       ?? null,
+                $dados['telefone']    ?? null,
+                $dados['endereco']    ?? null,
+                $dados['bairro']      ?? null,
+                $dados['cidade']      ?? null,
+                $dados['uf']          ?? null,
+                $dados['cep']         ?? null,
+                $dados['observacoes'] ?? null,
+            ]);
+        } catch (\PDOException $e) {
+            // Backstop dos índices únicos (uq_clientes_*_ativo) pegando uma
+            // corrida que a checagem de aplicação acima não pegou (duplo
+            // clique quase simultâneo) — sqlstate 23000 é violação de
+            // integridade/unicidade. Vira a mesma mensagem amigável de
+            // sempre, em vez de estourar como erro 500 genérico.
+            if ($e->getCode() === '23000') {
+                $this->lastError = 'Já existe outro cliente ativo com o mesmo e-mail, telefone, CPF ou CNPJ.';
+                return false;
+            }
+            throw $e;
+        }
     }
 
     public function listarAtivos(): array
@@ -584,23 +597,32 @@ class Cliente
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
-            $dados['tipo_pessoa'] ?? null,
-            $dados['nome']        ?? null,
-            $dados['cpf']         ?? null,
-            $dados['cnpj']        ?? null,
-            $dados['email']       ?? null,
-            $dados['telefone']    ?? null,
-            $dados['endereco']    ?? null,
-            $dados['bairro']      ?? null,
-            $dados['cidade']      ?? null,
-            $dados['uf']          ?? null,
-            $dados['cep']         ?? null,
-            $dados['observacoes'] ?? null,
-            $ativo,
-            $ativo,
-            $id
-        ]);
+        try {
+            return $stmt->execute([
+                $dados['tipo_pessoa'] ?? null,
+                $dados['nome']        ?? null,
+                $dados['cpf']         ?? null,
+                $dados['cnpj']        ?? null,
+                $dados['email']       ?? null,
+                $dados['telefone']    ?? null,
+                $dados['endereco']    ?? null,
+                $dados['bairro']      ?? null,
+                $dados['cidade']      ?? null,
+                $dados['uf']          ?? null,
+                $dados['cep']         ?? null,
+                $dados['observacoes'] ?? null,
+                $ativo,
+                $ativo,
+                $id
+            ]);
+        } catch (\PDOException $e) {
+            // Mesmo backstop de create() — ver comentário lá.
+            if ($e->getCode() === '23000') {
+                $this->lastError = 'Já existe outro cliente ativo com o mesmo e-mail, telefone, CPF ou CNPJ.';
+                return false;
+            }
+            throw $e;
+        }
     }
     public function delete(int $id): bool
     {

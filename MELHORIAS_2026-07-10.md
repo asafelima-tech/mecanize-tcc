@@ -265,13 +265,100 @@ nenhum dado de produção foi alterado.
 
 ## Fora do escopo desta rodada
 
-- Checagem de duplicidade de e-mail/telefone/placa/CPF/CNPJ continua sendo
-  só a nível de aplicação (SELECT antes do INSERT), não um índice único no
-  banco — um índice único de verdade exigiria uma coluna gerada/filtrada
-  (o app permite duplicidade entre um cliente ativo e um inativo, de
-  propósito) e ficou fora do escopo pra não arriscar quebrar esse
-  comportamento existente sem um teste de carga real.
+- ~~Checagem de duplicidade de e-mail/telefone/placa/CPF/CNPJ continua sendo
+  só a nível de aplicação~~ — **feito depois, ver seção 6 abaixo.**
 - `requireRole()` continua ausente na maioria dos controllers de
   cliente/veículo/produto/categoria/movimentação para as ações que **não**
   são exclusão (criar/editar seguem liberados pra todo mundo) — isso foi
   confirmado como intencional com o dono do sistema.
+
+## 6. Fechando os últimos gaps: índices únicos no banco + suíte de testes automatizados
+
+Pedido do dono do sistema depois de perguntar "podemos dizer que está
+pronto?" — respondi que pra uso de uma oficina só, sim, mas com duas
+ressalvas da seção anterior em aberto. Ele pediu pra fechar as duas.
+
+### 6.1. Índices únicos como backstop no banco
+
+A checagem de duplicidade de e-mail/telefone/CPF/CNPJ (`clientes`) e placa
+(`veiculos`) só existia a nível de aplicação (SELECT antes do INSERT) —
+uma corrida de verdade (duplo clique, retry de rede) ainda podia criar
+duplicata. Adicionar um índice único direto nas colunas quebraria uma
+regra já existente e intencional (duplicidade É permitida entre um
+cliente ativo e um inativo — reativar um cadastro antigo não pode ser
+bloqueado por um cliente novo que reusou o mesmo contato). Solução:
+`database/add_indices_unicos.php` adiciona 4 **colunas geradas** (STORED)
+em `clientes` — `uniq_email`/`uniq_telefone`/`uniq_cpf`/`uniq_cnpj` — que só
+reproduzem o valor normalizado quando `ativo = 1` e o campo não está vazio
+(senão viram `NULL`, e o InnoDB não conta múltiplos `NULL` como duplicata
+num índice único). O índice único é criado em cima dessas colunas geradas,
+nunca nas colunas reais. `veiculos.placa_normalizada` não tem conceito de
+"inativo", então ganhou um índice único direto, sem a complicação.
+
+- **Achada uma duplicata real nos dados** antes de rodar a migração: dois
+  clientes ativos com o mesmo e-mail (`ronald_speed@gmail.com`) — o cliente
+  #3 "Roberto", que a auditoria de ontem já tinha sinalizado com telefone
+  inválido. Perguntei ao dono do sistema; ele confirmou que era dado de
+  teste do início do projeto e pediu pra desativar (soft-delete,
+  `Cliente::delete()`, histórico preservado) — feito antes da migração.
+- **Confirmação explícita do dono do sistema antes de rodar**: como isso é
+  uma alteração de schema em tabelas de produção (`clientes`/`veiculos`),
+  o próprio ambiente bloqueou a execução automática até eu descrever
+  exatamente o que ia mudar e pedir autorização direta — autorizado, e a
+  migração rodou sem problema (nenhuma outra duplicata encontrada).
+- **`Cliente::create()`/`update()` e `Veiculo::create()`/`update()`** ganharam
+  `try/catch` em volta do `execute()`: uma violação do índice único (SQLSTATE
+  `23000`) agora vira a mesma mensagem amigável de sempre
+  ("Já existe outro cliente ativo com..."), em vez de estourar como exceção
+  não tratada (a tela de erro 500 genérica adicionada mais cedo hoje).
+- **Testado** com dado descartável: e-mail duplicado entre dois clientes
+  ativos bloqueado; mesmo e-mail entre um cliente ativo e um inativo
+  permitido; dois clientes sem e-mail (`NULL`) não conflitam entre si; CPF
+  duplicado bloqueado pelo backstop do banco mesmo sem checagem prévia na
+  aplicação (`Cliente::create()` só pré-checa e-mail/telefone, não CPF/CNPJ
+  — exatamente o cenário que o índice único existe pra cobrir).
+
+### 6.2. Suíte de testes automatizados (PHPUnit)
+
+Projeto não tinha nenhum teste automatizado. Instalado PHPUnit 9.6 (via
+`composer.phar` — PHPUnit 10+ exige PHP 8.1, esta máquina tem PHP 8.0.30)
+como dependência de desenvolvimento. Criado um **banco de teste dedicado**
+(`mecanize_db_test`, cópia do schema de `mecanize_db` via `mysqldump
+--no-data`) — os testes nunca encostam no banco de produção;
+`tests/bootstrap.php` carrega `.env.testing` (comitado, sem segredo nenhum)
+antes de qualquer outra coisa e aborta se `DB_NAME` não for
+`mecanize_db_test`, como trava de segurança.
+
+28 testes cobrindo a lógica mais crítica corrigida hoje: `Validator`
+(celularBr aceitando fixo, cpfCnpj com dígito verificador), `Csrf` (geração/
+validação de token), `Cliente` (os índices únicos da seção 6.1),
+`MovimentacaoEstoque` (bloqueio de saída maior que o estoque, quantidade
+fracionada preservada, auditoria automática de ajuste manual) e `Orcamento`
+(aprovar/recusar). Cada teste cria e remove seu próprio dado de teste —
+nunca reaproveita nem deixa lixo (confirmado rodando a suíte duas vezes
+seguidas e conferindo as tabelas zeradas depois).
+
+**Achado real ao escrever os testes de `Orcamento`** (não um problema do
+teste, um bug de verdade na correção da seção 3 de hoje): `aprovar()` fazia
+`SELECT ... FOR UPDATE` na linha do orçamento e mantinha essa trava aberta
+enquanto chamava `OrdemServico::create()` — que roda numa conexão PDO
+separada e precisa, pra validar a `FOREIGN KEY` de `ordens_servico.orcamento_id`,
+de um lock de leitura na MESMA linha do orçamento que a primeira conexão já
+travava em modo exclusivo. Resultado: **toda aprovação de orçamento
+travava por ~50 segundos (`innodb_lock_wait_timeout`) até falhar** — não
+uma corrida rara, sempre, em qualquer aprovação, inclusive em produção
+(confirmado que `mecanize_db` tem essa mesma FK). Só apareceu porque o
+teste automatizado realmente executa o código; a revisão manual de código
+mais cedo hoje não teria pego isso. Corrigido: a checagem "já existe OS?"
+continua com `FOR UPDATE`, mas a transação é **commitada antes** de chamar
+`OrdemServico::create()` (conexão separada) — a proteção contra dupla-OS
+por corrida passa a ser só o índice único `uq_ordens_servico_orcamento_id`
+(que já existia desde a seção 3), tratando uma eventual rejeição do INSERT
+por essa constraint como sucesso (a outra requisição já criou a OS).
+Testado: as 3 aprovações/recusas relevantes passam em ~0,2s (era >50s antes
+do fix), e a suíte inteira roda em menos de 1 segundo.
+
+**Como rodar:** `/c/xampp/php/php.exe vendor/bin/phpunit` (usa
+`phpunit.xml` na raiz, que aponta pro bootstrap acima). Pra recriar o banco
+de teste do zero: `mysqldump -u root --no-data mecanize_db | mysql -u root
+mecanize_db_test` (depois de criar o banco `mecanize_db_test`).

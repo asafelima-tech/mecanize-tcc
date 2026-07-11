@@ -2,3 +2,4 @@
 /database/backups/
 composer.phar
 .env
+/.phpunit.cache/
