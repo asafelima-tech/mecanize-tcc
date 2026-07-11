@@ -185,6 +185,7 @@ $margem     = $precoCusto > 0 ? (($precoVenda - $precoCusto) / $precoCusto) * 10
                     <input type="text" value="<?= number_format((float)($produto['estoque_minimo'] ?? 0), 0, ',', '.') ?>" readonly>
                 </div>
 
+                <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                 <div class="form-field">
                     <label>Preço de Custo</label>
                     <div class="os-money-input">
@@ -192,6 +193,7 @@ $margem     = $precoCusto > 0 ? (($precoVenda - $precoCusto) / $precoCusto) * 10
                         <input type="text" value="<?= number_format($precoCusto, 2, ',', '.') ?>" readonly>
                     </div>
                 </div>
+                <?php endif; ?>
 
                 <div class="form-field">
                     <label>Preço de Venda</label>
@@ -201,6 +203,7 @@ $margem     = $precoCusto > 0 ? (($precoVenda - $precoCusto) / $precoCusto) * 10
                     </div>
                 </div>
 
+                <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                 <div class="form-field" style="grid-column: 1 / -1;">
                     <label>Margem de Lucro</label>
                     <div class="os-money-input os-money-input--total">
@@ -208,6 +211,7 @@ $margem     = $precoCusto > 0 ? (($precoVenda - $precoCusto) / $precoCusto) * 10
                         <input type="text" value="<?= number_format($margem, 2, ',', '.') ?>" readonly>
                     </div>
                 </div>
+                <?php endif; ?>
 
             </div>
         </div>

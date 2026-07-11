@@ -238,12 +238,14 @@ foreach ($combustiveis as $tipoCombustivel) {
     <!-- FOOTER DE AÇÕES -->
     <div class="veiculo-edit-footer">
 
+        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
         <a href="./deleteVeiculo&id=<?= $veiculo['id_veiculo'] ?>"
             class="btn btn--danger-ghost"
             onclick="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
             <i class="bi bi-trash"></i>
             Excluir Veículo
         </a>
+        <?php endif; ?>
 
         <div class="veiculo-edit-footer__right">
             <a href="./listVeiculos" class="btn btn--ghost">

@@ -97,7 +97,9 @@
         <div class="card__body">
             <div class="chart-legend">
                 <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#003BDD;vertical-align:middle;"></i> Ordens de Serviço</span>
+                <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN'): ?>
                 <span><i style="display:inline-block;width:16px;height:2.5px;border-radius:2px;background:none;border-top:2.5px dashed #93C5FD;vertical-align:middle;"></i> Receita (R$)</span>
+                <?php endif; ?>
             </div>
             <div class="chart-wrap-line">
                 <canvas id="graficoFluxo"></canvas>
@@ -343,16 +345,18 @@
         }
     };
 
-    const dadosOS = <?= json_encode($graficoOS     ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
-    const dadosReceita = <?= json_encode($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
-    const dadosStatus = <?= json_encode($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
-    const totalOS = dadosStatus.reduce((a, b) => a + b, 0);
     <?php
     // Dados financeiros só vão pro HTML se o usuário for ADMIN — senão, mesmo
     // com o card visual escondido, os valores apareceriam no código-fonte da
-    // página pra qualquer usuário logado.
+    // página pra qualquer usuário logado. Vale pro "Faturamento Mensal" E pra
+    // série de Receita do gráfico "Fluxo de OS × Receita" (essa ficava de
+    // fora dessa mesma checagem antes, vazando receita diária pra quem não é ADMIN).
     $ehAdminDashboard = isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN';
     ?>
+    const dadosOS = <?= json_encode($graficoOS     ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
+    const dadosReceita = <?= json_encode($ehAdminDashboard ? ($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) : []) ?>;
+    const dadosStatus = <?= json_encode($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
+    const totalOS = dadosStatus.reduce((a, b) => a + b, 0);
     const labelsFaturamentoMes = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['labels']  ?? []) : []) ?>;
     const dadosFaturamentoMes  = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['valores'] ?? []) : []) ?>;
 
@@ -370,46 +374,53 @@
             gradLight.addColorStop(0, "rgba(147,197,253,0.30)");
             gradLight.addColorStop(1, "rgba(147,197,253,0.01)");
 
+            const datasetsFluxo = [{
+                label: "Ordens de Serviço",
+                data: dadosOS,
+                borderColor: "#003BDD",
+                backgroundColor: gradBlue,
+                fill: true,
+                tension: 0.42,
+                borderWidth: 2.5,
+                pointRadius: 4,
+                pointBackgroundColor: "#fff",
+                pointBorderColor: "#003BDD",
+                pointBorderWidth: 2,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: "#003BDD",
+                pointHoverBorderColor: "#fff",
+                pointHoverBorderWidth: 2,
+            }];
+
+            // Série de Receita só existe pra ADMIN — dadosReceita já vem vazio
+            // do PHP pra outros papéis, mas nem monta o dataset nesse caso
+            // (evita uma linha "achatada" em zero no lugar do card escondido).
+            <?php if ($ehAdminDashboard): ?>
+            datasetsFluxo.push({
+                label: "Receita (R$)",
+                data: dadosReceita,
+                borderColor: "#93C5FD",
+                backgroundColor: gradLight,
+                fill: true,
+                tension: 0.42,
+                borderWidth: 2,
+                borderDash: [5, 4],
+                pointRadius: 4,
+                pointBackgroundColor: "#fff",
+                pointBorderColor: "#93C5FD",
+                pointBorderWidth: 2,
+                pointHoverRadius: 7,
+                pointHoverBackgroundColor: "#93C5FD",
+                pointHoverBorderColor: "#fff",
+                pointHoverBorderWidth: 2,
+            });
+            <?php endif; ?>
+
             new Chart(ctx, {
                 type: "line",
                 data: {
                     labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
-                    datasets: [{
-                            label: "Ordens de Serviço",
-                            data: dadosOS,
-                            borderColor: "#003BDD",
-                            backgroundColor: gradBlue,
-                            fill: true,
-                            tension: 0.42,
-                            borderWidth: 2.5,
-                            pointRadius: 4,
-                            pointBackgroundColor: "#fff",
-                            pointBorderColor: "#003BDD",
-                            pointBorderWidth: 2,
-                            pointHoverRadius: 7,
-                            pointHoverBackgroundColor: "#003BDD",
-                            pointHoverBorderColor: "#fff",
-                            pointHoverBorderWidth: 2,
-                        },
-                        {
-                            label: "Receita (R$)",
-                            data: dadosReceita,
-                            borderColor: "#93C5FD",
-                            backgroundColor: gradLight,
-                            fill: true,
-                            tension: 0.42,
-                            borderWidth: 2,
-                            borderDash: [5, 4],
-                            pointRadius: 4,
-                            pointBackgroundColor: "#fff",
-                            pointBorderColor: "#93C5FD",
-                            pointBorderWidth: 2,
-                            pointHoverRadius: 7,
-                            pointHoverBackgroundColor: "#93C5FD",
-                            pointHoverBorderColor: "#fff",
-                            pointHoverBorderWidth: 2,
-                        },
-                    ],
+                    datasets: datasetsFluxo,
                 },
                 options: {
                     responsive: true,
@@ -516,6 +527,11 @@
         // ── Barras: Faturamento por Mês ──────────────────────────────────────────
         const faturamentoMesEl = document.getElementById("graficoFaturamentoMes");
         if (faturamentoMesEl) {
+            const ctxFaturamentoMes = faturamentoMesEl.getContext("2d");
+            const gradFaturamentoMes = ctxFaturamentoMes.createLinearGradient(0, 0, 0, 320);
+            gradFaturamentoMes.addColorStop(0, "#60A5FA");
+            gradFaturamentoMes.addColorStop(1, "#003BDD");
+
             new Chart(faturamentoMesEl, {
                 type: "bar",
                 data: {
@@ -523,8 +539,9 @@
                     datasets: [{
                         label: "Faturamento",
                         data: dadosFaturamentoMes,
-                        backgroundColor: "#003BDD",
+                        backgroundColor: gradFaturamentoMes,
                         borderRadius: 6,
+                        borderSkipped: false,
                         maxBarThickness: 40,
                     }],
                 },

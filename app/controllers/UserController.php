@@ -13,61 +13,82 @@ class UserController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $userModel = $this->model('User');
 
-            if ($userModel->login($_POST)) {
-                $userData = $userModel->getUserByEmail($_POST['email']);
+            $email = trim($_POST['email'] ?? '');
+            $senha = $_POST['senha'] ?? '';
 
-                if (!$userData) {
-                    $this->view('Usuarios/login', [
-                        'error' => 'Usuário não encontrado.'
-                    ]);
-                    return;
-                }
+            $userData = ($email !== '' && $senha !== '') ? $userModel->getUserByEmail($email) : null;
 
-                if ($userData['ativo'] != 1) {
-                    $this->view('Usuarios/login', [
-                        'error' => 'Usuário bloqueado.'
-                    ]);
-                    return;
-                }
-
-                if (($userData['tipo'] ?? '') === 'ATENDENTE') {
-                    date_default_timezone_set('America/Sao_Paulo');
-
-                    $diaSemana = (int) date('N');
-                    $horaAtual = date('H:i');
-
-                    $podeEntrar = false;
-
-                    if ($diaSemana >= 1 && $diaSemana <= 5 && $horaAtual >= '07:00' && $horaAtual < '18:00') {
-                        $podeEntrar = true;
-                    }
-
-                    if ($diaSemana === 6 && $horaAtual >= '07:00' && $horaAtual < '13:00') {
-                        $podeEntrar = true;
-                    }
-
-                    if (!$podeEntrar) {
-                        $this->view('Usuarios/login', [
-                            'error' => 'Acesso permitido para atendentes de segunda a sexta das 07:00 às 18:00 e aos sábados das 07:00 às 13:00.'
-                        ]);
-                        return;
-                    }
-                }
-
-                $_SESSION['logged'] = true;
-
-                foreach ($userData as $key => $value) {
-                    $_SESSION["user_$key"] = $value;
-                }
-
-                header('Location: ./home');
-                exit;
+            // Checado ANTES de validar a senha: se a conta já está bloqueada por
+            // excesso de tentativas, nem vale a pena gastar um password_verify().
+            if ($userData && $userModel->estaBloqueado($userData)) {
+                $this->view('Usuarios/login', [
+                    'error' => 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em ' .
+                        $userModel->minutosBloqueioRestante($userData) . ' minuto(s).'
+                ]);
+                return;
             }
 
-            $this->view('Usuarios/login', [
-                'error' => 'Login inválido.'
-            ]);
-            return;
+            $senhaValida = $userData && password_verify($senha, $userData['senha']);
+
+            if (!$senhaValida) {
+                // Só incrementa o contador se o e-mail existir de verdade — não
+                // adianta "bloquear" uma conta que não existe.
+                if ($userData) {
+                    $userModel->registrarTentativaFalha($userData['id_usuario']);
+                }
+
+                $this->view('Usuarios/login', [
+                    'error' => 'Login inválido.'
+                ]);
+                return;
+            }
+
+            $userModel->resetarTentativas($userData['id_usuario']);
+
+            if ($userData['ativo'] != 1) {
+                $this->view('Usuarios/login', [
+                    'error' => 'Usuário bloqueado.'
+                ]);
+                return;
+            }
+
+            if (($userData['tipo'] ?? '') === 'ATENDENTE') {
+                date_default_timezone_set('America/Sao_Paulo');
+
+                $diaSemana = (int) date('N');
+                $horaAtual = date('H:i');
+
+                $podeEntrar = false;
+
+                if ($diaSemana >= 1 && $diaSemana <= 5 && $horaAtual >= '07:00' && $horaAtual < '18:00') {
+                    $podeEntrar = true;
+                }
+
+                if ($diaSemana === 6 && $horaAtual >= '07:00' && $horaAtual < '13:00') {
+                    $podeEntrar = true;
+                }
+
+                if (!$podeEntrar) {
+                    $this->view('Usuarios/login', [
+                        'error' => 'Acesso permitido para atendentes de segunda a sexta das 07:00 às 18:00 e aos sábados das 07:00 às 13:00.'
+                    ]);
+                    return;
+                }
+            }
+
+            // Gera um novo ID de sessão ao autenticar — sem isso, um ID de
+            // sessão plantado antes do login (fixação de sessão) continuaria
+            // válido depois, deixando quem o plantou herdar a sessão logada.
+            session_regenerate_id(true);
+
+            $_SESSION['logged'] = true;
+
+            foreach ($userData as $key => $value) {
+                $_SESSION["user_$key"] = $value;
+            }
+
+            header('Location: ./home');
+            exit;
         }
 
         // Aviso exibido quando o atendente é desconectado por fim do expediente.
@@ -121,7 +142,8 @@ class UserController extends Controller
                         $resumo['caixa_atual'],
                         $expirado
                             ? 'Fechado automaticamente ao expirar o horário de acesso'
-                            : 'Fechado automaticamente ao sair do sistema'
+                            : 'Fechado automaticamente ao sair do sistema',
+                        $resumo['caixa_atual']
                     );
                 }
             } catch (\Throwable $e) {
@@ -522,7 +544,11 @@ class UserController extends Controller
                 'nome'       => trim($_POST['nome'] ?? ''),
                 'email'      => trim($_POST['email'] ?? ''),
                 'telefone'   => trim($_POST['telefone'] ?? ''),
-                'tipo'       => trim($_POST['tipo'] ?? ''),
+                // 'tipo' NUNCA vem do próprio formulário de perfil — só o admin,
+                // via UserController::edit() (que já exige requireRole(['ADMIN'])),
+                // pode mudar o papel de alguém. Ignorar qualquer 'tipo' postado
+                // aqui evita que o próprio usuário se promova a ADMIN.
+                'tipo'       => $usuarioAtual['tipo'],
                 'ativo'      => $usuarioAtual['ativo']
             ];
 
@@ -687,10 +713,7 @@ class UserController extends Controller
                     $reset = $this->model('PasswordReset');
                     $token = $reset->criar($usuario['id_usuario']);
 
-                    $link = (isset($_SERVER['HTTPS']) ? 'https://' : 'http://')
-                        . $_SERVER['HTTP_HOST']
-                        . dirname($_SERVER['SCRIPT_NAME'])
-                        . '/redefinir-senha?token=' . $token;
+                    $link = $this->urlAbsoluta('redefinir-senha?token=' . $token);
 
                     $corpo = "<p>Olá, {$usuario['nome']}.</p>"
                         . "<p>Clique no link abaixo para redefinir sua senha. Esse link expira em 30 minutos:</p>"

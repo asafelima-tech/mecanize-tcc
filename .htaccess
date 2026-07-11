@@ -1,0 +1,8 @@
+# Bloqueia acesso HTTP direto a TUDO na raiz do projeto (.env, .git, composer.*,
+# MELHORIAS_*.md, vendor/, etc.). O Apache serve a pasta htdocs inteira sem
+# vhost dedicado a este projeto, então sem isso qualquer arquivo aqui (incluindo
+# .env com senha do banco/e-mail/API) é baixável direto pela URL.
+# public/ tem seu próprio .htaccess com "Require all granted" para ser
+# servido normalmente — o restante do projeto só é acessado via PHP
+# require/include (filesystem), nunca por requisição HTTP direta.
+Require all denied

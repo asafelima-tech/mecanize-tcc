@@ -94,13 +94,16 @@
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                             </svg>
                                         </a>
-                                        <a href="./deleteOrdemServico&id=<?= $id ?>" class="row-action-btn danger" title="Excluir"
-                                            onclick="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                            </svg>
-                                        </a>
+                                        <form method="post" action="./deleteOrdemServico" style="display:inline;"
+                                            onsubmit="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
+                                            <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
+                                            <button type="submit" class="row-action-btn danger" title="Excluir">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6" />
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                </svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -190,13 +193,16 @@
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                             </svg>
                                         </a>
-                                        <a href="./deleteOrdemServico&id=<?= $id ?>" class="row-action-btn danger" title="Excluir"
-                                            onclick="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <polyline points="3 6 5 6 21 6" />
-                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                            </svg>
-                                        </a>
+                                        <form method="post" action="./deleteOrdemServico" style="display:inline;"
+                                            onsubmit="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
+                                            <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
+                                            <button type="submit" class="row-action-btn danger" title="Excluir">
+                                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                    <polyline points="3 6 5 6 21 6" />
+                                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                                </svg>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -375,6 +381,22 @@
         </div>
         <div class="modal__body" style="padding:20px 24px;">
             <p style="font-size:12px;color:var(--color-text-muted);">Esta ação não poderá ser desfeita.</p>
+
+            <div class="form-field" style="margin-top:12px;">
+                <label>Forma de pagamento <span style="color:var(--color-danger)">*</span></label>
+                <!-- form="form-concluir": o <select> não é descendente do <form> (que só
+                     envolve o botão no rodapé), mas o atributo form associa mesmo assim,
+                     então o valor vai junto no submit sem precisar de input oculto duplicado. -->
+                <select name="forma_pagamento" id="h-concluir-forma-pagamento" form="form-concluir" required>
+                    <option value="DINHEIRO">Dinheiro</option>
+                    <option value="PIX">Pix</option>
+                    <option value="CARTAO">Cartão</option>
+                    <option value="BOLETO">Boleto</option>
+                </select>
+                <small style="color:var(--color-text-muted);font-size:11px;">
+                    O valor da OS é lançado automaticamente no caixa ao concluir.
+                </small>
+            </div>
 
             <div style="margin-top:12px;">
                 <label style="font-size:11px;color:var(--color-text-muted);font-weight:600;">

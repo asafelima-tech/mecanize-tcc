@@ -158,12 +158,14 @@ if (session_status() === PHP_SESSION_NONE) {
                             type="number"
                             id="quantidade"
                             name="quantidade"
-                            min="1"
+                            min="0.001"
+                            step="0.001"
                             value="<?= htmlspecialchars($movimentacao['quantidade']) ?>"
                             required>
                     </div>
 
-                    <!-- Custo unitário (somente leitura) -->
+                    <!-- Custo unitário (somente leitura, só ADMIN) -->
+                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                     <div class="form-field" style="grid-column: span 3;">
                         <label>Custo unitário registrado</label>
                         <input
@@ -174,6 +176,7 @@ if (session_status() === PHP_SESSION_NONE) {
                             Atualizado automaticamente com o preço de custo atual do produto.
                         </span>
                     </div>
+                    <?php endif; ?>
 
                 </div>
             </div>
@@ -227,12 +230,16 @@ if (session_status() === PHP_SESSION_NONE) {
     <!-- FOOTER DE AÇÕES -->
     <div class="cliente-edit-footer">
 
-        <a href="./deleteMovimentacaoEstoque&id=<?= (int)$movimentacao['id_movimentacao'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja excluir esta movimentação?')">
-            <i class="bi bi-trash"></i>
-            Excluir Movimentação
-        </a>
+        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
+        <form method="post" action="./deleteMovimentacaoEstoque" style="display:inline;"
+            onsubmit="return confirm('Deseja excluir esta movimentação?')">
+            <input type="hidden" name="id" value="<?= (int)$movimentacao['id_movimentacao'] ?>">
+            <button type="submit" class="btn btn--danger-ghost">
+                <i class="bi bi-trash"></i>
+                Excluir Movimentação
+            </button>
+        </form>
+        <?php endif; ?>
 
         <div class="cliente-edit-footer__right">
             <a href="./listMovimentacaoEstoque" class="btn btn--ghost">

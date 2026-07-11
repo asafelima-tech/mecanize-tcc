@@ -304,6 +304,21 @@ class Produtos
    public function update($id, $data)
 {
     try {
+        // Estoque antes da edição — pra registrar um AJUSTE de auditoria se
+        // essa tela mudar o valor diretamente (sem isso, uma correção de
+        // estoque feita aqui era invisível no histórico de movimentações,
+        // impossível de reconciliar depois com a soma dos registros).
+        $stmtAntes = $this->conn->prepare("SELECT estoque_atual, preco_custo FROM produtos WHERE id_produto = ?");
+        $stmtAntes->execute([(int) $id]);
+        $antes = $stmtAntes->fetch(PDO::FETCH_ASSOC);
+
+        $novoEstoque = isset($data['estoque_atual']) && $data['estoque_atual'] !== ''
+            ? (float) str_replace(',', '.', $data['estoque_atual'])
+            : 0.0;
+        $novoCusto = isset($data['preco_custo']) && $data['preco_custo'] !== ''
+            ? (float) str_replace(',', '.', $data['preco_custo'])
+            : 0.0;
+
         $sql = "UPDATE produtos SET
             categorias_produtos_id = :categorias_produtos_id,
             codigo_barras = :codigo_barras,
@@ -323,7 +338,7 @@ class Produtos
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':categorias_produtos_id' => !empty($data['categorias_produtos_id']) ? (int) $data['categorias_produtos_id'] : null,
             ':codigo_barras'          => !empty($data['codigo_barras']) ? trim($data['codigo_barras']) : null,
             ':nome'                   => trim($data['nome'] ?? ''),
@@ -331,14 +346,32 @@ class Produtos
             ':descricao'              => !empty($data['descricao']) ? trim($data['descricao']) : null,
             ':aplicacao'              => !empty($data['aplicacao']) ? trim($data['aplicacao']) : null,
             ':volume_embalagem'       => !empty($data['volume_embalagem']) ? trim($data['volume_embalagem']) : null,
-            ':estoque_atual'          => isset($data['estoque_atual']) && $data['estoque_atual'] !== '' ? str_replace(',', '.', $data['estoque_atual']) : 0,
+            ':estoque_atual'          => $novoEstoque,
             ':estoque_minimo'         => isset($data['estoque_minimo']) && $data['estoque_minimo'] !== '' ? str_replace(',', '.', $data['estoque_minimo']) : 0,
-            ':preco_custo'            => isset($data['preco_custo']) && $data['preco_custo'] !== '' ? str_replace(',', '.', $data['preco_custo']) : 0,
+            ':preco_custo'            => $novoCusto,
             ':preco_venda'            => isset($data['preco_venda']) && $data['preco_venda'] !== '' ? str_replace(',', '.', $data['preco_venda']) : 0,
             ':ativo'                  => isset($data['ativo']) ? (int) $data['ativo'] : 1,
             ':localizacao'            => !empty($data['localizacao']) ? trim($data['localizacao']) : null,
             ':id_produto'             => (int) $id
         ]);
+
+        // Registra o AJUSTE só se o estoque realmente mudou por esta tela —
+        // quantidade guardada com sinal (positivo = subiu, negativo = desceu)
+        // porque 'AJUSTE' não segue a convenção +/- de ENTRADA/SAIDA (nada
+        // mais soma/interpreta essas linhas pra recalcular estoque; são só
+        // um registro de auditoria pra humano ler depois).
+        if ($ok && $antes) {
+            $diferenca = round($novoEstoque - (float) $antes['estoque_atual'], 3);
+
+            if ($diferenca !== 0.0) {
+                $this->conn->prepare("
+                    INSERT INTO movimentacoes_estoque (produto_id, tipo, quantidade, custo_unitario)
+                    VALUES (?, 'AJUSTE', ?, ?)
+                ")->execute([(int) $id, $diferenca, $novoCusto]);
+            }
+        }
+
+        return $ok;
 
     } catch (Throwable $e) {
         $this->lastError = $e->getMessage();

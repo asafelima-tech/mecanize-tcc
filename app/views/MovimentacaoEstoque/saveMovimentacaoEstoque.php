@@ -198,7 +198,8 @@ if (!isset($produtos)) {
                                 type="number"
                                 id="quantidade"
                                 name="quantidade"
-                                min="1"
+                                min="0.001"
+                                step="0.001"
                                 value="<?= htmlspecialchars($old['quantidade'] ?? '') ?>"
                                 placeholder="0"
                                 required>
@@ -294,12 +295,12 @@ if (!isset($produtos)) {
     function estoqueSelecionado() {
         const opt = sel.options[sel.selectedIndex];
         const e = opt?.dataset?.estoque;
-        return (e !== undefined && opt.value) ? parseInt(e, 10) : null;
+        return (e !== undefined && opt.value) ? parseFloat(e) : null;
     }
 
     document.getElementById('formNovaMovimentacao').addEventListener('submit', function(e) {
         const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
-        const qtd = parseInt(document.getElementById('quantidade').value, 10) || 0;
+        const qtd = parseFloat(document.getElementById('quantidade').value) || 0;
         const estoque = estoqueSelecionado();
 
         if (tipo === 'SAIDA' && estoque !== null && qtd > estoque) {

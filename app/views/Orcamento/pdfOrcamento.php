@@ -33,10 +33,14 @@ $enderecoCompleto = implode(' · ', array_map('htmlspecialchars', $enderecoParte
 
 $veiculoNome = trim(($orc['marca_veiculo'] ?? '') . ' ' . ($orc['modelo_veiculo'] ?? ''));
 
+// Nota: valor_mao_obra é a comissão do técnico já carve-out de dentro de
+// valor_total_pecas/valor_total_servicos (ver saveOrcamento.php/editOrcamento.php,
+// onde "lucro = total - comissão") — não é um valor adicional cobrado do
+// cliente. Por isso NÃO entra no subtotal nem aparece neste documento (que é
+// entregue ao cliente), mesmo tratamento que pdfOrdemServico.php já dá.
 $totalPecas    = (float) ($orc['valor_total_pecas']    ?? 0);
 $totalServicos = (float) ($orc['valor_total_servicos'] ?? 0);
-$totalMaoObra  = (float) ($orc['valor_mao_obra']       ?? 0);
-$subtotalOrc   = $totalPecas + $totalServicos + $totalMaoObra;
+$subtotalOrc   = $totalPecas + $totalServicos;
 $descontoOrc   = (float) ($orc['desconto_total'] ?? 0);
 $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $descontoOrc));
 ?>
@@ -298,7 +302,6 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
     <table class="totais">
         <tr><td>Total Peças</td><td class="valor">R$ <?= number_format($totalPecas, 2, ',', '.') ?></td></tr>
         <tr><td>Total Serviços</td><td class="valor">R$ <?= number_format($totalServicos, 2, ',', '.') ?></td></tr>
-        <tr><td>Mão de obra</td><td class="valor">R$ <?= number_format($totalMaoObra, 2, ',', '.') ?></td></tr>
         <tr><td>Subtotal</td><td class="valor">R$ <?= number_format($subtotalOrc, 2, ',', '.') ?></td></tr>
         <tr><td>Desconto</td><td class="valor">- R$ <?= number_format($descontoOrc, 2, ',', '.') ?></td></tr>
     </table>

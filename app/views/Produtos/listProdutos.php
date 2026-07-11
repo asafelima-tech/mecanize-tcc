@@ -232,6 +232,7 @@
                                     </a>
 
                                     <!-- Excluir -->
+                                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                                     <form
                                         method="POST"
                                         action="./deleteProduto"
@@ -245,6 +246,7 @@
                                             </svg>
                                         </button>
                                     </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

@@ -7,7 +7,10 @@ class CategoriaController extends Controller
         $categoria = $this->model('Categoria');
 
         $dados = [
-            'categorias' => $categoria->list()
+            'categorias' => $categoria->list(),
+            'error'      => ($_GET['erro'] ?? '') === 'emUso'
+                ? 'Não é possível excluir: ainda há produtos cadastrados nesta categoria. Mova-os para outra categoria antes de excluir.'
+                : null,
         ];
 
         $this->view('categoria/listCategoria', $dados);
@@ -93,13 +96,22 @@ class CategoriaController extends Controller
 }
     public function delete()
     {
-        if (empty($_GET['id'])) {
+        $this->requireRole(['ADMIN']);
+
+        // POST em vez de GET: um link GET de exclusão pode ser disparado por um
+        // <img>/pré-carregamento em outra página só de o ADMIN estar logado
+        // (nenhum clique consciente necessário). O gate de CSRF só cobre POST.
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id'])) {
             header('Location: ./listCategoria');
             exit;
         }
 
         $categoria = $this->model('Categoria');
-        $categoria->delete($_GET['id']);
+
+        if (!$categoria->delete($_POST['id'])) {
+            header('Location: ./listCategoria?erro=emUso');
+            exit;
+        }
 
         header('Location: ./listCategoria');
         exit;

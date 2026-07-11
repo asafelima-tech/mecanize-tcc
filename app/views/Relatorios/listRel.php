@@ -49,12 +49,20 @@
             </div>
         </div>
         <div class="stat-card__value">R$ <?= number_format($faturamentoMensal ?? 0, 2, ',', '.') ?></div>
-        <div class="stat-card__delta">
+        <?php $pctFat = (float) ($faturamentoPorcentagem ?? 0); ?>
+        <div class="stat-card__delta <?= $pctFat < 0 ? 'negative' : '' ?>">
+            <?php if ($pctFat < 0): ?>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+                <polyline points="23 18 13.5 8.5 8.5 13.5 1 6" />
+                <polyline points="17 18 23 18 23 12" />
+            </svg>
+            <?php else: ?>
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                 <polyline points="17 6 23 6 23 12" />
             </svg>
-            <?= $faturamentoPorcentagem ?? 0 ?>% no período
+            <?php endif; ?>
+            <?= ($pctFat > 0 ? '+' : '') . number_format($pctFat, 1, ',', '.') ?>% vs. mês anterior
         </div>
     </div>
 
@@ -129,7 +137,7 @@
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18" />
                 <polyline points="17 6 23 6 23 12" />
             </svg>
-            Receita Mensal vs Despesas
+            Receita Mensal
         </div>
         <select class="toolbar-select toolbar-select--sm">
             <option>Mensal</option>
@@ -137,9 +145,12 @@
         </select>
     </div>
     <div class="card__body">
+        <!-- "vs Despesas" removido: o sistema não tem nenhum controle de
+             despesas ainda (nenhuma tabela rastreia isso) — mostrar uma
+             série sempre zerada ao lado da receita real dava a impressão
+             de que a oficina não tem despesa nenhuma, o que é enganoso. -->
         <div class="chart-legend">
             <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#003BDD;vertical-align:middle;"></i> Receita (R$)</span>
-            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#BFDBFE;vertical-align:middle;"></i> Despesa (R$)</span>
         </div>
         <div class="chart-wrap">
             <canvas id="barChart"></canvas>
@@ -234,7 +245,6 @@
 
     const labelsGrafico = <?= json_encode($labelsGrafico          ?? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul']) ?>;
     const dadosReceita = <?= json_encode($graficoReceita         ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
-    const dadosDespesas = <?= json_encode($graficoDespesas        ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
 
     function initCharts() {
         const el = document.getElementById("barChart");
@@ -253,14 +263,6 @@
                         label: "Receita (R$)",
                         data: dadosReceita,
                         backgroundColor: gradReceita,
-                        borderRadius: 6,
-                        borderSkipped: false,
-                        maxBarThickness: 36,
-                    },
-                    {
-                        label: "Despesa (R$)",
-                        data: dadosDespesas,
-                        backgroundColor: "#BFDBFE",
                         borderRadius: 6,
                         borderSkipped: false,
                         maxBarThickness: 36,

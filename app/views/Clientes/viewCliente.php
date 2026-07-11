@@ -41,8 +41,8 @@ $enderecoCompleto = implode(', ', array_filter([$endereco !== '—' ? $endereco 
 if (empty($enderecoCompleto)) $enderecoCompleto = '—';
 
 // Iniciais para avatar
-$iniciais = strtoupper(implode('', array_map(
-    fn($p) => $p[0],
+$iniciais = mb_strtoupper(implode('', array_map(
+    fn($p) => mb_substr($p, 0, 1),
     array_slice(explode(' ', $nome), 0, 2)
 )));
 ?>

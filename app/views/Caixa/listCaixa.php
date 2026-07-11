@@ -238,7 +238,14 @@ $labelCategoria = [
                         $vAbert   = (float) ($c['valor_abertura'] ?? 0);
                         $vFech    = $c['valor_fechamento'];
                         $temFech  = $vFech !== null;
-                        $dif      = $temFech ? ((float) $vFech - $vAbert) : null;
+                        // "Diferença" = contado − esperado (sobra/falta de verdade na
+                        // gaveta), a mesma métrica da tela de fechamento ao vivo — não
+                        // "fechamento − abertura" (que é só a variação líquida do dia e
+                        // pode mascarar uma falta de caixa atrás de vendas grandes).
+                        // Sessões fechadas ANTES da coluna valor_esperado existir não
+                        // têm como calcular isso retroativamente — ficam como "—".
+                        $vEsperado = $c['valor_esperado'] ?? null;
+                        $dif       = ($temFech && $vEsperado !== null) ? ((float) $vFech - (float) $vEsperado) : null;
                     ?>
                         <tr>
                             <td class="id-col">#<?= htmlspecialchars($c['id_caixa']) ?></td>

@@ -94,7 +94,8 @@ class CaixaController extends Controller
             $sucesso = $caixa->fechar(
                 $usuarioId,
                 $_POST['valor_fechamento'] ?? 0,
-                $_POST['observacao'] ?? null
+                $_POST['observacao'] ?? null,
+                $resumo['caixa_atual'] ?? null
             );
 
             if ($sucesso) {

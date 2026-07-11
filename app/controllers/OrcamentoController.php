@@ -81,8 +81,13 @@ class OrcamentoController extends Controller
 
         // Assinatura capturada no canvas do modal de aprovação (base64 PNG).
         // Opcional — string vazia/ausente vira null e não sobrescreve nada.
+        // Exige PNG especificamente (é o único formato que o canvas de
+        // assinatura emite) em vez de qualquer "data:image/*" — o valor vai
+        // direto pra uma <img> num PDF renderizado com acesso remoto
+        // habilitado (Dompdf), então aceitar outros tipos (ex.: SVG) seria
+        // superfície de ataque sem nenhum ganho funcional.
         $assinatura = trim($_POST['assinatura_cliente'] ?? '');
-        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/')) ? $assinatura : null;
+        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/png;base64,')) ? $assinatura : null;
 
         $orcamento = $this->model('Orcamento');
         $resultado = $orcamento->aprovar($id, $assinatura);

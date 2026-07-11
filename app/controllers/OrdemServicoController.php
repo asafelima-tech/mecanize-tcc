@@ -285,17 +285,71 @@ class OrdemServicoController extends Controller
             exit;
         }
 
-        // Assinatura capturada no canvas do modal de conclusão (base64 PNG).
+        // Assinatura capturada no canvas do modal de conclusão. Exige PNG
+        // especificamente (único formato que o canvas emite) em vez de
+        // qualquer "data:image/*" — vai direto pra uma <img> num PDF com
+        // acesso remoto habilitado (Dompdf), então aceitar outros tipos
+        // (ex.: SVG) seria superfície de ataque sem ganho funcional.
         $assinatura = trim($_POST['assinatura_cliente'] ?? '');
-        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/')) ? $assinatura : null;
+        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/png;base64,')) ? $assinatura : null;
 
         $ordemServico = $this->model('OrdemServico');
-        $ordemServico->concluir($id, $assinatura);
+
+        if ($ordemServico->concluir($id, $assinatura)) {
+            $this->registrarRecebimentoNoCaixa($ordemServico, $id);
+        }
 
         $this->notificarClienteVeiculoPronto($ordemServico, $id);
 
         header('Location: ./listOrdemServico');
         exit;
+    }
+
+    /**
+     * Lança o valor da OS concluída como ENTRADA no caixa da sessão aberta —
+     * antes disso, concluir uma OS nunca refletia no livro-caixa (o schema já
+     * tinha origem='OS'/categoria='OS' prontos, mas nada os preenchia), então
+     * o "caixa atual" e o faturamento do dashboard podiam divergir sem
+     * qualquer aviso. Uma falha aqui é registrada mas não desfaz a conclusão
+     * da OS (o técnico já entregou o veículo; um caixa fechado ou uma falha
+     * de banco não pode travar esse fluxo — cai para lançamento manual).
+     */
+    private function registrarRecebimentoNoCaixa($ordemServico, $id): void
+    {
+        try {
+            $movCaixa = $this->model('MovimentacaoCaixa'); // garante a classe carregada antes de usar MovimentacaoCaixa::FORMAS
+
+            $formaPagamento = $_POST['forma_pagamento'] ?? null;
+            if (!in_array($formaPagamento, MovimentacaoCaixa::FORMAS, true)) {
+                return;
+            }
+
+            $caixa  = $this->model('Caixa');
+            $aberto = $caixa->getCaixaAberto();
+            if (!$aberto) {
+                return;
+            }
+
+            $ordem = $ordemServico->getById($id);
+            $valor = (float) ($ordem['valor_total_os'] ?? 0);
+            if ($valor <= 0) {
+                return;
+            }
+
+            $movCaixa->registrar(
+                $aberto['id_caixa'],
+                'ENTRADA',
+                $valor,
+                $formaPagamento,
+                'OS',
+                'OS ' . ($ordem['numero_os'] ?? ('#' . $id)),
+                $_SESSION['user_id_usuario'] ?? null,
+                'OS',
+                $id
+            );
+        } catch (\Throwable $e) {
+            error_log('[concluir OS] Falha ao lançar recebimento no caixa: ' . $e->getMessage());
+        }
     }
 
     /**

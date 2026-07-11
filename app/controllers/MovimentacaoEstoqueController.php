@@ -117,7 +117,12 @@ public function edit()
     // ── DELETE ──────────────────────────────────────────────────────
     public function delete()
     {
-        $id = (int)($_GET['id'] ?? 0);
+        $this->requireRole(['ADMIN']);
+
+        // POST em vez de GET: sem isso, um <img>/pré-carregamento em outra
+        // página dispara a exclusão (e a reversão de estoque) só de o ADMIN
+        // estar logado, sem clique consciente. O gate de CSRF só cobre POST.
+        $id = ($_SERVER['REQUEST_METHOD'] === 'POST') ? (int)($_POST['id'] ?? 0) : 0;
 
         if (!$id) {
             header('Location: ./listMovimentacaoEstoque');

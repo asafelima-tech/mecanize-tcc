@@ -109,6 +109,7 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="./assets/js/masks.js?v=<?= time() ?>"></script>
 <script src="./assets/js/text-format.js?v=<?= time() ?>"></script>
+<script src="./assets/js/csrf.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

@@ -396,6 +396,7 @@ function renderPlacaSvg(string $placaTxt, bool $isMercosul, $uid): string
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                         </svg>
                                     </a>
+                                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                                     <a
                                         href="./deleteVeiculo&id=<?= $veiculo['id_veiculo'] ?>"
                                         class="row-action-btn danger"
@@ -406,6 +407,7 @@ function renderPlacaSvg(string $placaTxt, bool $isMercosul, $uid): string
                                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                         </svg>
                                     </a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -430,21 +432,35 @@ function renderPlacaSvg(string $placaTxt, bool $isMercosul, $uid): string
     <!-- Paginação -->
     <div class="pagination">
         <span>
-            Mostrando <?= !empty($veiculos) ? count($veiculos) : 0 ?> de <?= $totalVeiculos ?? 0 ?> resultados
+            Mostrando <?= !empty($veiculos) ? count($veiculos) : 0 ?> de <?= (int)($totalResultados ?? 0) ?> resultados
         </span>
         <div class="pagination__pages">
             <?php
-            $pagAtual  = (int)($paginaAtual ?? 1);
-            $totalPags = (int)ceil(($totalVeiculos ?? 0) / 10);
-            $totalPags = max($totalPags, 1);
-            $inicio    = max(1, $pagAtual - 1);
-            $fim       = min($totalPags, $pagAtual + 1);
+            $pagAtual = (int)($paginaAtual ?? 1);
+            // totalPaginas vem do model a partir do total FILTRADO (totalResultados),
+            // não do total geral de veículos — senão a paginação ignora a busca ativa.
+            $totalPags = max(1, (int)($totalPaginas ?? 1));
+
+            // Preserva busca/marca/modelo/cliente ao trocar de página; só troca "pagina".
+            $queryBaseVeic = $_GET;
+            unset($queryBaseVeic['pagina'], $queryBaseVeic['url']);
+
+            function hrefPaginaVeiculo($pagina, $queryBase)
+            {
+                return './listVeiculos?' . http_build_query(array_merge($queryBase, ['pagina' => $pagina]));
+            }
+
+            $inicio = max(1, $pagAtual - 1);
+            $fim    = min($totalPags, $pagAtual + 1);
             ?>
-            <button class="pagination__btn" <?= $pagAtual <= 1 ? 'disabled' : '' ?>>‹</button>
+            <button type="button" class="pagination__btn"
+                <?= ($pagAtual <= 1) ? 'disabled' : 'onclick="window.location=\'' . hrefPaginaVeiculo($pagAtual - 1, $queryBaseVeic) . '\'"' ?>>‹</button>
             <?php for ($p = $inicio; $p <= $fim; $p++): ?>
-                <button class="pagination__btn <?= $p === $pagAtual ? 'is-active' : '' ?>"><?= $p ?></button>
+                <button type="button" class="pagination__btn <?= $p === $pagAtual ? 'is-active' : '' ?>"
+                    onclick="window.location='<?= hrefPaginaVeiculo($p, $queryBaseVeic) ?>'"><?= $p ?></button>
             <?php endfor; ?>
-            <button class="pagination__btn" <?= $pagAtual >= $totalPags ? 'disabled' : '' ?>>›</button>
+            <button type="button" class="pagination__btn"
+                <?= ($pagAtual >= $totalPags) ? 'disabled' : 'onclick="window.location=\'' . hrefPaginaVeiculo($pagAtual + 1, $queryBaseVeic) . '\'"' ?>>›</button>
         </div>
     </div>
 

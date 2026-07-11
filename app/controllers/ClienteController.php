@@ -80,6 +80,18 @@ class ClienteController extends Controller
                     'telefone',
                     fn($v) => !$cliente->telefoneExisteAtivo($v ?? ''),
                     'Já existe um cliente ativo com este telefone.'
+                )
+                ->cpfCnpj('cpf', 'CPF')
+                ->custom(
+                    'cpf',
+                    fn($v) => !$cliente->cpfExisteAtivo($v ?? ''),
+                    'Já existe um cliente ativo com este CPF.'
+                )
+                ->cpfCnpj('cnpj', 'CNPJ')
+                ->custom(
+                    'cnpj',
+                    fn($v) => !$cliente->cnpjExisteAtivo($v ?? ''),
+                    'Já existe um cliente ativo com este CNPJ.'
                 );
 
             if ($validator->fails()) {
@@ -121,10 +133,12 @@ class ClienteController extends Controller
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $id = $_POST['id_cliente'] ?? null;
 
-            if (!$id) {
+            if (!$id || !ctype_digit((string) $id)) {
                 header('Location: ./listClientes');
                 exit;
             }
+
+            $id = (int) $id;
 
             $validator = new Validator($_POST);
             $validator
@@ -141,6 +155,18 @@ class ClienteController extends Controller
                     'telefone',
                     fn($v) => !$cliente->telefoneExisteAtivo($v ?? '', $id),
                     'Já existe outro cliente ativo com este telefone.'
+                )
+                ->cpfCnpj('cpf', 'CPF')
+                ->custom(
+                    'cpf',
+                    fn($v) => !$cliente->cpfExisteAtivo($v ?? '', $id),
+                    'Já existe outro cliente ativo com este CPF.'
+                )
+                ->cpfCnpj('cnpj', 'CNPJ')
+                ->custom(
+                    'cnpj',
+                    fn($v) => !$cliente->cnpjExisteAtivo($v ?? '', $id),
+                    'Já existe outro cliente ativo com este CNPJ.'
                 );
 
             if ($validator->fails()) {
@@ -236,9 +262,14 @@ class ClienteController extends Controller
             exit;
         }
 
+        if (!ctype_digit((string) $_GET['id'])) {
+            header('Location: ./listClientesDesativados');
+            exit;
+        }
+
         $cliente = $this->model('Cliente');
 
-        $cliente->reativar($_GET['id']);
+        $cliente->reativar((int) $_GET['id']);
 
         header('Location: ./listClientesDesativados');
         exit;
@@ -246,6 +277,8 @@ class ClienteController extends Controller
 
     public function delete()
     {
+        $this->requireRole(['ADMIN']);
+
         if (empty($_GET['id'])) {
             header('Location: ./listClientes');
             exit;

@@ -341,12 +341,14 @@ if (session_status() === PHP_SESSION_NONE) {
     <!-- FOOTER DE AÇÕES -->
     <div class="cliente-edit-footer">
 
+        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
         <a href="./deleteCliente&id=<?= (int)$cliente['id_cliente'] ?>"
             class="btn btn--danger-ghost"
             onclick="return confirm('Deseja desativar este cliente?')">
             <i class="bi bi-person-x"></i>
             Desativar Cliente
         </a>
+        <?php endif; ?>
 
         <div class="cliente-edit-footer__right">
             <a href="./listClientes" class="btn btn--ghost">

@@ -1,62 +1,16 @@
 <?php
 
+/**
+ * Só modelosPorMarca()/criarModelo() são de verdade — são os únicos roteados
+ * (config/routes.php), chamados via fetch() de dentro de saveVeiculo/editVeiculo.
+ * Havia também list()/save()/edit()/delete() aqui, mas referenciavam models
+ * ('ModeloVeiculo'/'MarcaVeiculo') que nunca existiram — código morto sem
+ * rota nenhuma apontando pra ele, removido em vez de deixado pra explodir
+ * com erro fatal no dia que alguém finalmente ligar uma rota esperando que
+ * funcionasse.
+ */
 class ModeloVeiculoController extends Controller
 {
-    public function list()
-    {
-        $modelo = $this->model('ModeloVeiculo');
-        $dados  = $modelo->getResumo();
-        $this->view('Modelos/listModeloVeiculo', $dados);
-    }
-
-    public function save()
-    {
-        $modelo = $this->model('ModeloVeiculo');
-        $marca  = $this->model('MarcaVeiculo');
-
-        $dados = [
-            'marcas' => $marca->listarMarcas(),
-        ];
-
-        $this->view('Modelos/saveModeloVeiculo', $dados);
-    }
-
-    public function edit()
-    {
-        $id = $_GET['id'] ?? null;
-
-        if (!$id) {
-            header('Location: ./listModeloVeiculo');
-            exit;
-        }
-
-        $modelo = $this->model('ModeloVeiculo');
-        $marca  = $this->model('MarcaVeiculo');
-
-        $dados = [
-            'modelo' => $modelo->getById($id),
-            'marcas' => $marca->listarMarcas(),
-        ];
-
-        $this->view('Modelos/editModeloVeiculo', $dados);
-    }
-
-    public function delete()
-    {
-        $id = $_GET['id'] ?? null;
-
-        if (!$id) {
-            header('Location: ./listModeloVeiculo');
-            exit;
-        }
-
-        $modelo = $this->model('ModeloVeiculo');
-        $modelo->delete($id);
-
-        header('Location: ./listModeloVeiculo');
-        exit;
-    }
-
     /**
      * Retorna modelos de uma marca em JSON.
      * Chamado via fetch() no saveVeiculo / editVeiculo.

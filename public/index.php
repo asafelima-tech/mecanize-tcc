@@ -1,14 +1,54 @@
 <?php
 
+// Descarta qualquer erro fatal de uma requisição ANTERIOR atendida pelo mesmo
+// worker do Apache/mod_php — sem isso, error_get_last() no shutdown handler
+// abaixo podia "herdar" um erro de outro request antigo e marcar como 500
+// uma página que renderizou perfeitamente.
+error_clear_last();
+
 date_default_timezone_set('America/Sao_Paulo');
 
 require_once __DIR__ . '/../app/core/Env.php';
 Env::carregar(__DIR__ . '/../.env');
 
+/*
+ * ── Tratamento global de erro ───────────────────────────────────────────────
+ * Sem isso, uma falha de banco/config imprevista mostrava um stack trace cru
+ * (caminho absoluto dos arquivos, DSN) pra qualquer visitante — display_errors
+ * fica ligado por padrão no php.ini. Com APP_DEBUG=false (produção), o detalhe
+ * vai só pro log do PHP e a tela mostra uma página genérica.
+ */
+$appDebug = filter_var(env('APP_DEBUG', false), FILTER_VALIDATE_BOOLEAN);
+ini_set('display_errors', $appDebug ? '1' : '0');
+ini_set('log_errors', '1');
+
+set_exception_handler(function (\Throwable $e) use ($appDebug) {
+    error_log('Erro não tratado: ' . $e);
+    http_response_code(500);
+    if ($appDebug) {
+        echo '<pre style="white-space:pre-wrap">' . htmlspecialchars((string) $e) . '</pre>';
+    } else {
+        require __DIR__ . '/../app/views/Site/500.php';
+    }
+    exit;
+});
+
+register_shutdown_function(function () use ($appDebug) {
+    $erro = error_get_last();
+    if ($erro && in_array($erro['type'], [E_ERROR, E_PARSE, E_CORE_ERROR, E_COMPILE_ERROR], true)) {
+        error_log("Erro fatal: {$erro['message']} em {$erro['file']}:{$erro['line']}");
+        if (!$appDebug && !headers_sent()) {
+            http_response_code(500);
+            require __DIR__ . '/../app/views/Site/500.php';
+        }
+    }
+});
+
 require_once __DIR__ . '/../app/core/Controller.php';
 require_once __DIR__ . '/../app/core/Database.php';
 require_once __DIR__ . '/../app/core/Validator.php';
 require_once __DIR__ . '/../app/core/WhatsApp.php';
+require_once __DIR__ . '/../app/core/Csrf.php';
 require_once __DIR__ . '/../config/routes.php';
 
 /**
@@ -45,10 +85,45 @@ $uri = $_GET['url'] ?? 'home';
 $uri = trim($uri, '/');
 
 if (session_status() === PHP_SESSION_NONE) {
+    // HttpOnly (JS não lê o cookie) + SameSite=Lax (bloqueia o cookie em
+    // requisições cross-site, mitigando CSRF, sem quebrar navegação normal
+    // por link) + Secure só quando o acesso já é HTTPS (em HTTP, como no
+    // ambiente local via XAMPP, exigir Secure faria o navegador descartar
+    // o cookie e ninguém conseguiria logar).
+    $https = !empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off';
+    session_set_cookie_params([
+        'lifetime' => 0,
+        'path'     => '/',
+        'secure'   => $https,
+        'httponly' => true,
+        'samesite' => 'Lax',
+    ]);
     session_start();
 }
 
 $logado = isset($_SESSION['logged']) && $_SESSION['logged'] === true;
+
+/*
+ * ── Proteção CSRF ───────────────────────────────────────────────────────────
+ * Nenhum POST era protegido antes disso — bastava a sessão ativa pra qualquer
+ * ação mudar dado (criar/editar/excluir cliente, veículo, produto, OS, caixa
+ * etc.), o que abre brecha pra um site externo disparar essas ações em nome
+ * de um usuário logado (CSRF). Centralizado aqui, cobre toda rota de uma vez.
+ * O token vem do campo oculto csrf_token (forms) ou do header X-CSRF-Token
+ * (fetch/AJAX) — ambos preenchidos automaticamente por
+ * public/assets/js/csrf.js, além do helper csrf_field() usado nos forms.
+ */
+if (($_SERVER['REQUEST_METHOD'] ?? 'GET') === 'POST') {
+    $tokenRecebido = $_POST['csrf_token'] ?? ($_SERVER['HTTP_X_CSRF_TOKEN'] ?? null);
+
+    if (!Csrf::valido($tokenRecebido)) {
+        // 419 (convenção não-padrão pra "token CSRF expirado") derruba pra 500
+        // neste Apache/mod_php — não é um código HTTP registrado. 403 é.
+        http_response_code(403);
+        (new Controller())->view('Site/419');
+        exit;
+    }
+}
 
 /*
  * ── Autenticação obrigatória ───────────────────────────────────────────────

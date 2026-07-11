@@ -228,6 +228,7 @@
                             placeholder="0">
                     </div>
 
+                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                     <div class="form-field">
                         <label>Preço de Custo</label>
                         <div class="os-money-input">
@@ -241,6 +242,12 @@
     placeholder="0.00">
                         </div>
                     </div>
+                    <?php else: ?>
+                    <!-- Não-ADMIN não vê custo/margem, mas o valor precisa seguir no
+                         submit — sem isso, Produtos::update() zeraria preco_custo
+                         (ela lê direto de $_POST, sem valor = 0). -->
+                    <input type="hidden" name="preco_custo" value="<?= htmlspecialchars(number_format((float)($produto['preco_custo'] ?? 0), 2, '.', '')) ?>">
+                    <?php endif; ?>
 
                     <div class="form-field">
                         <label>Preço de Venda</label>
@@ -256,6 +263,7 @@
                         </div>
                     </div>
 
+                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                     <div class="form-field" style="grid-column: 1 / -1;">
                         <label>Margem de Lucro</label>
                         <div class="os-money-input os-money-input--total">
@@ -269,6 +277,7 @@
     placeholder="Ex.: 30">
                         </div>
                     </div>
+                    <?php endif; ?>
 
                 </div>
 
@@ -295,6 +304,7 @@
     <!-- FOOTER DE AÇÕES -->
     <div class="os-edit-footer">
 
+        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
         <button type="submit"
             formaction="./deleteProduto"
             formmethod="post"
@@ -304,6 +314,7 @@
             <i class="bi bi-trash"></i>
             Excluir Produto
         </button>
+        <?php endif; ?>
 
         <div class="os-edit-footer__right">
             <a href="./listProduto" class="btn btn--ghost">
@@ -322,6 +333,8 @@
 </form>
 
 <script>
+    // preco_custo/margem_lucro só existem no DOM pra ADMIN (Preço de Custo
+    // e Margem de Lucro ficam ocultos pra outros papéis — ver PHP acima).
     const inputCusto = document.getElementById('preco_custo');
     const inputVenda = document.getElementById('preco_venda');
     const inputMargem = document.getElementById('margem_lucro');
@@ -338,69 +351,80 @@
         min: 0
     };
 
-    const mCusto = IMask(inputCusto, moneyOpts);
     const mVenda = IMask(inputVenda, moneyOpts);
-
-    // Valores iniciais chegam com ponto decimal (ex.: "1234.56")
-    mCusto.typedValue = parseFloat(String(inputCusto.value).replace(',', '.')) || 0;
     mVenda.typedValue = parseFloat(String(inputVenda.value).replace(',', '.')) || 0;
 
-    let ultimoCampoEditado = null;
-    let travaVenda = false;
-
-    const somenteNumeros = valor => String(valor || '').replace(/\D/g, '');
-
-    function calcularMargem() {
-        const custo = mCusto.typedValue || 0;
-        const venda = mVenda.typedValue || 0;
-        inputMargem.value = custo > 0 ? Math.round(((venda - custo) / custo) * 100) : 0;
-    }
-
-    function calcularVendaPelaMargem() {
-        const custo = mCusto.typedValue || 0;
-        const margem = parseInt(somenteNumeros(inputMargem.value), 10) || 0;
-        const venda = custo > 0 ? +(custo + (custo * margem / 100)).toFixed(2) : 0;
-        travaVenda = true;          // evita que o 'accept' do venda recalcule a margem
-        mVenda.typedValue = venda;
-        travaVenda = false;
-    }
-
-    mCusto.on('accept', function () {
-        if (ultimoCampoEditado === 'margem') calcularVendaPelaMargem();
-        else calcularMargem();
-    });
-
-    mVenda.on('accept', function () {
-        if (travaVenda) return;
-        ultimoCampoEditado = 'venda';
-        calcularMargem();
-    });
-
-    inputMargem.addEventListener('input', function () {
-        ultimoCampoEditado = 'margem';
-        this.value = somenteNumeros(this.value);
-        calcularVendaPelaMargem();
-    });
-
-    inputMargem.addEventListener('blur', function () {
-        if (this.value.trim() === '') {
-            this.value = '0';
-            calcularVendaPelaMargem();
-        }
-    });
-
-    [inputCusto, inputVenda, inputMargem].forEach(input => {
-        input.addEventListener('focus', function () { setTimeout(() => this.select(), 0); });
-        input.addEventListener('click', function () { setTimeout(() => this.select(), 0); });
-    });
-
-    calcularMargem();
-
-    // Desmascara no envio: manda o valor cru (1234.56) pro back-end, sem alterá-lo
-    if (inputCusto.form) {
-        inputCusto.form.addEventListener('submit', function () {
-            inputCusto.value = String(mCusto.typedValue || 0);
+    if (inputVenda.form) {
+        inputVenda.form.addEventListener('submit', function () {
             inputVenda.value = String(mVenda.typedValue || 0);
         });
+    }
+
+    inputVenda.addEventListener('focus', function () { setTimeout(() => this.select(), 0); });
+    inputVenda.addEventListener('click', function () { setTimeout(() => this.select(), 0); });
+
+    if (inputCusto && inputMargem) {
+        const mCusto = IMask(inputCusto, moneyOpts);
+
+        // Valores iniciais chegam com ponto decimal (ex.: "1234.56")
+        mCusto.typedValue = parseFloat(String(inputCusto.value).replace(',', '.')) || 0;
+
+        let ultimoCampoEditado = null;
+        let travaVenda = false;
+
+        const somenteNumeros = valor => String(valor || '').replace(/\D/g, '');
+
+        function calcularMargem() {
+            const custo = mCusto.typedValue || 0;
+            const venda = mVenda.typedValue || 0;
+            inputMargem.value = custo > 0 ? Math.round(((venda - custo) / custo) * 100) : 0;
+        }
+
+        function calcularVendaPelaMargem() {
+            const custo = mCusto.typedValue || 0;
+            const margem = parseInt(somenteNumeros(inputMargem.value), 10) || 0;
+            const venda = custo > 0 ? +(custo + (custo * margem / 100)).toFixed(2) : 0;
+            travaVenda = true;          // evita que o 'accept' do venda recalcule a margem
+            mVenda.typedValue = venda;
+            travaVenda = false;
+        }
+
+        mCusto.on('accept', function () {
+            if (ultimoCampoEditado === 'margem') calcularVendaPelaMargem();
+            else calcularMargem();
+        });
+
+        mVenda.on('accept', function () {
+            if (travaVenda) return;
+            ultimoCampoEditado = 'venda';
+            calcularMargem();
+        });
+
+        inputMargem.addEventListener('input', function () {
+            ultimoCampoEditado = 'margem';
+            this.value = somenteNumeros(this.value);
+            calcularVendaPelaMargem();
+        });
+
+        inputMargem.addEventListener('blur', function () {
+            if (this.value.trim() === '') {
+                this.value = '0';
+                calcularVendaPelaMargem();
+            }
+        });
+
+        [inputCusto, inputMargem].forEach(input => {
+            input.addEventListener('focus', function () { setTimeout(() => this.select(), 0); });
+            input.addEventListener('click', function () { setTimeout(() => this.select(), 0); });
+        });
+
+        calcularMargem();
+
+        // Desmascara no envio: manda o valor cru (1234.56) pro back-end, sem alterá-lo
+        if (inputCusto.form) {
+            inputCusto.form.addEventListener('submit', function () {
+                inputCusto.value = String(mCusto.typedValue || 0);
+            });
+        }
     }
 </script>

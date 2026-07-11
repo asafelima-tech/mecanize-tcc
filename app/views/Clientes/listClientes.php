@@ -214,7 +214,7 @@
                             <td>
                                 <div class="user-cell">
                                     <div class="avatar">
-                                        <?= strtoupper(substr($cliente['nome'], 0, 2)) ?>
+                                        <?= mb_strtoupper(mb_substr($cliente['nome'], 0, 2)) ?>
                                     </div>
                                     <div>
                                         <div class="user-cell__name"><?= htmlspecialchars($cliente['nome']) ?></div>
@@ -299,6 +299,7 @@
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                         </svg>
                                     </a>
+                                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                                     <a
                                         href="./deleteCliente?id=<?= $cliente['id_cliente'] ?>"
                                         class="row-action-btn danger"
@@ -309,6 +310,7 @@
                                             <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                                         </svg>
                                     </a>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>
@@ -336,23 +338,37 @@
             Mostrando <?= !empty($clientes) ? count($clientes) : 0 ?> de <?= (int)($totalResultados ?? 0) ?> resultados
         </span>
         <div class="pagination__pages">
-            <button class="pagination__btn" <?= (($paginaAtual ?? 1) <= 1) ? 'disabled' : '' ?>>‹</button>
-
             <?php
-            $pagAtual   = (int)($paginaAtual ?? 1);
-            $totalPags  = (int)ceil(($totalClientes ?? 0) / 10); // assumindo 10 por página
-            $totalPags  = max($totalPags, 1);
-            $inicio     = max(1, $pagAtual - 1);
-            $fim        = min($totalPags, $pagAtual + 1);
+            $pagAtual = (int)($paginaAtual ?? 1);
+            // totalPaginas já vem calculado pelo model a partir do total FILTRADO
+            // (totalResultados) — não recalcular aqui a partir do total geral de
+            // clientes, senão a paginação ignora a busca/filtro ativo.
+            $totalPags = max(1, (int)($totalPaginas ?? 1));
 
-            for ($p = $inicio; $p <= $fim; $p++):
+            // Preserva busca/status ao trocar de página; só troca "pagina".
+            $queryBase = $_GET;
+            unset($queryBase['pagina'], $queryBase['url']);
+
+            function hrefPaginaCliente($pagina, $queryBase)
+            {
+                return './listClientes?' . http_build_query(array_merge($queryBase, ['pagina' => $pagina]));
+            }
+
+            $inicio = max(1, $pagAtual - 1);
+            $fim    = min($totalPags, $pagAtual + 1);
             ?>
-                <button class="pagination__btn <?= $p === $pagAtual ? 'is-active' : '' ?>">
+            <button type="button" class="pagination__btn"
+                <?= ($pagAtual <= 1) ? 'disabled' : 'onclick="window.location=\'' . hrefPaginaCliente($pagAtual - 1, $queryBase) . '\'"' ?>>‹</button>
+
+            <?php for ($p = $inicio; $p <= $fim; $p++): ?>
+                <button type="button" class="pagination__btn <?= $p === $pagAtual ? 'is-active' : '' ?>"
+                    onclick="window.location='<?= hrefPaginaCliente($p, $queryBase) ?>'">
                     <?= $p ?>
                 </button>
             <?php endfor; ?>
 
-            <button class="pagination__btn" <?= $pagAtual >= $totalPags ? 'disabled' : '' ?>>›</button>
+            <button type="button" class="pagination__btn"
+                <?= ($pagAtual >= $totalPags) ? 'disabled' : 'onclick="window.location=\'' . hrefPaginaCliente($pagAtual + 1, $queryBase) . '\'"' ?>>›</button>
         </div>
     </div>
 

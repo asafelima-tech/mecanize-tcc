@@ -20,6 +20,12 @@
     </div>
 </div>
 
+<?php if (!empty($error)): ?>
+    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:20px;font-size:13px;">
+        <?= htmlspecialchars($error) ?>
+    </div>
+<?php endif; ?>
+
 <section class="card">
 
     <div class="table-toolbar">
@@ -74,14 +80,18 @@
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                         </svg>
                                     </a>
-                                    <a href="./deleteCategoria&id=<?= $categoria['id_categoria'] ?>"
-                                        class="row-action-btn danger" title="Excluir"
-                                        onclick="return confirm('Deseja realmente excluir esta categoria?')">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        </svg>
-                                    </a>
+                                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
+                                    <form method="post" action="./deleteCategoria" style="display:inline;"
+                                        onsubmit="return confirm('Deseja realmente excluir esta categoria?')">
+                                        <input type="hidden" name="id" value="<?= $categoria['id_categoria'] ?>">
+                                        <button type="submit" class="row-action-btn danger" title="Excluir">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

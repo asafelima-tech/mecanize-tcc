@@ -177,6 +177,46 @@ class Cliente
         return (int) $stmt->fetchColumn() > 0;
     }
 
+    /** CPF já usado por OUTRO cliente ATIVO? (compara só os dígitos) */
+    public function cpfExisteAtivo($cpf, $exceto = null): bool
+    {
+        $doc = $this->soDigitos($cpf);
+        if ($doc === '') return false;
+
+        $col = "REPLACE(REPLACE(cpf,'.',''),'-','')";
+
+        $sql    = "SELECT COUNT(*) FROM clientes WHERE ativo = 1 AND $col = ?";
+        $params = [$doc];
+        if ($exceto !== null) {
+            $sql      .= " AND id_cliente <> ?";
+            $params[]  = $exceto;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
+    /** CNPJ já usado por OUTRO cliente ATIVO? (compara só os dígitos) */
+    public function cnpjExisteAtivo($cnpj, $exceto = null): bool
+    {
+        $doc = $this->soDigitos($cnpj);
+        if ($doc === '') return false;
+
+        $col = "REPLACE(REPLACE(REPLACE(cnpj,'.',''),'/',''),'-','')";
+
+        $sql    = "SELECT COUNT(*) FROM clientes WHERE ativo = 1 AND $col = ?";
+        $params = [$doc];
+        if ($exceto !== null) {
+            $sql      .= " AND id_cliente <> ?";
+            $params[]  = $exceto;
+        }
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+        return (int) $stmt->fetchColumn() > 0;
+    }
+
     public function getResumo($filtros = [])
     {
         $totalResultados = $this->contarClientesFiltrados($filtros);
@@ -515,6 +555,13 @@ class Cliente
             return false;
         }
 
+        // Mantém desativado_em coerente com o "Ativo" da tela de Editar, do
+        // mesmo jeito que delete()/reativar() já fazem — sem isso, alternar
+        // esse campo por aqui deixava a data de desativação desatualizada,
+        // bagunçando a ordenação de listClientesDesativados (ORDER BY
+        // desativado_em DESC).
+        $ativo = (int) ($dados['ativo'] ?? 1);
+
         $sql = "
         UPDATE clientes SET
             tipo_pessoa = ?,
@@ -530,6 +577,7 @@ class Cliente
             cep = ?,
             observacoes = ?,
             ativo = ?,
+            desativado_em = CASE WHEN ? = 0 THEN NOW() ELSE NULL END,
             atualizado_em = NOW()
         WHERE id_cliente = ?
     ";
@@ -549,7 +597,8 @@ class Cliente
             $dados['uf']          ?? null,
             $dados['cep']         ?? null,
             $dados['observacoes'] ?? null,
-            $dados['ativo']       ?? 1,
+            $ativo,
+            $ativo,
             $id
         ]);
     }

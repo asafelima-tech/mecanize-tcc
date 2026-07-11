@@ -141,25 +141,110 @@ class Orcamento
         return in_array($valor, $permitidos, true) ? $valor : 'servicos';
     }
 
+    /**
+     * Garante que só um dos status válidos do ENUM do banco seja gravado por
+     * atualizar() — mesmo tratamento que normalizarComissaoBase() já dá pra
+     * comissao_base, evitando que um POST adulterado grave um status
+     * arbitrário na coluna.
+     */
+    private function normalizarStatus($valor)
+    {
+        $permitidos = ['pendente', 'aprovado', 'reprovado', 'cancelado'];
+        return in_array($valor, $permitidos, true) ? $valor : 'pendente';
+    }
+
+    /**
+     * Aprova o orçamento e cria a OS correspondente (se ainda não existir
+     * uma). A checagem "já existe OS pra este orçamento?" + a criação da OS
+     * + o UPDATE de status rodam dentro de uma única transação, com
+     * `SELECT ... FOR UPDATE` travando a linha do orçamento (e, de novo,
+     * a checagem de OS existente) do início ao fim — isso serializa duas
+     * aprovações quase simultâneas do mesmo orçamento (duplo clique, retry
+     * de rede): a segunda só prossegue depois que a primeira já commitou, e
+     * nesse ponto ela enxerga a OS recém-criada e cai no branch de "só
+     * atualiza status", em vez de criar uma segunda OS (o que duplicaria
+     * baixa de estoque e mão de obra). O índice único
+     * uq_ordens_servico_orcamento_id (database/add_unique_orcamento_os.php)
+     * é o backstop final — mesmo que o lock falhe por algum motivo, o
+     * segundo INSERT concorrente é rejeitado pelo banco.
+     */
     public function aprovar($id, ?string $assinatura = null)
     {
-        $orc = $this->getById($id);
+        $this->conn->beginTransaction();
 
-        if (!$orc) {
-            error_log('[aprovar] Orçamento não encontrado: ' . $id);
-            return false;
-        }
+        try {
+            $stmtOrc = $this->conn->prepare("SELECT * FROM orcamentos WHERE id_orcamento = ? FOR UPDATE");
+            $stmtOrc->execute([$id]);
+            $orc = $stmtOrc->fetch(PDO::FETCH_ASSOC);
 
-        $stmtOs = $this->conn->prepare("
-            SELECT id_ordem_servico
-            FROM ordens_servico
-            WHERE orcamento_id = ?
-            LIMIT 1
-        ");
-        $stmtOs->execute([$id]);
-        $osExistente = $stmtOs->fetch(PDO::FETCH_ASSOC);
+            if (!$orc) {
+                $this->conn->rollBack();
+                error_log('[aprovar] Orçamento não encontrado: ' . $id);
+                return false;
+            }
 
-        if ($osExistente) {
+            // FOR UPDATE também aqui: força ler a versão mais recente já
+            // confirmada (não a foto da transação), fechando a janela de
+            // corrida entre a checagem e a criação da OS.
+            $stmtOs = $this->conn->prepare("
+                SELECT id_ordem_servico
+                FROM ordens_servico
+                WHERE orcamento_id = ?
+                LIMIT 1
+                FOR UPDATE
+            ");
+            $stmtOs->execute([$id]);
+            $osExistente = $stmtOs->fetch(PDO::FETCH_ASSOC);
+
+            if ($osExistente) {
+                $stmt = $this->conn->prepare("
+                    UPDATE orcamentos
+                    SET status             = 'aprovado',
+                        data_aprovacao     = NOW(),
+                        assinatura_cliente = COALESCE(?, assinatura_cliente)
+                    WHERE id_orcamento = ?
+                ");
+                $ok = $stmt->execute([$assinatura, $id]);
+                $ok ? $this->conn->commit() : $this->conn->rollBack();
+                return $ok;
+            }
+
+            $itens = $this->getItensByOrcamento($id);
+
+            error_log('[aprovar] itens do orçamento ' . $id . ': ' . json_encode($itens));
+
+            // OrdemServico::create() usa sua própria conexão/transação —
+            // roda e commita de forma independente, mas isso não abre
+            // brecha pra corrida porque a linha do orçamento continua
+            // travada (FOR UPDATE) nesta transação até o fim desta função.
+            $osModel = new OrdemServico();
+
+            $resultado = $osModel->create([
+                'orcamento_id'         => $id,
+                'status'               => 'EM_ANDAMENTO',
+                'data_abertura'        => date('Y-m-d H:i:s'),
+                'cliente_id'           => $orc['cliente_id'],
+                'veiculo_id'           => $orc['veiculo_id'],
+                'km_veiculo'           => $orc['km_veiculo'],
+                'defeito_relatado'     => $orc['defeito_relatado'],
+                'diagnostico'          => $orc['diagnostico'],
+                'observacoes'          => $orc['observacoes'],
+                'valor_total_pecas'    => $orc['valor_total_pecas'],
+                'valor_total_servicos' => $orc['valor_total_servicos'],
+                'valor_total_os'       => $orc['valor_total_orcamento'],
+                'mecanico_id'          => $orc['mecanico_id'],
+                'valor_mao_obra'       => $orc['valor_mao_obra'],
+                'comissao_pct'         => $orc['comissao_pct'],
+                'comissao_base'        => $orc['comissao_base'] ?? 'servicos',
+                'itens'                => $itens,
+            ]);
+
+            if (!$resultado) {
+                $this->conn->rollBack();
+                error_log('[aprovar] Falha ao criar OS a partir do orçamento: ' . $id);
+                return false;
+            }
+
             $stmt = $this->conn->prepare("
                 UPDATE orcamentos
                 SET status             = 'aprovado',
@@ -167,60 +252,52 @@ class Orcamento
                     assinatura_cliente = COALESCE(?, assinatura_cliente)
                 WHERE id_orcamento = ?
             ");
-            return $stmt->execute([$assinatura, $id]);
+            $ok = $stmt->execute([$assinatura, $id]);
+            $ok ? $this->conn->commit() : $this->conn->rollBack();
+            return $ok;
+        } catch (\Throwable $e) {
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+            error_log('[aprovar] Exceção: ' . $e->getMessage());
+            return false;
         }
+    }
 
-        $itens   = $this->getItensByOrcamento($id);
+    /**
+     * Só permite recusar orçamentos ainda 'pendente' — impede que um
+     * orçamento já aprovado (com uma OS já criada a partir dele, estoque já
+     * baixado etc.) seja virado 'reprovado' por engano (duplo clique, aba
+     * antiga reenviando o form), o que deixaria o sistema num estado
+     * contraditório (orçamento "recusado" com uma OS viva por trás).
+     */
+    public function recusar($id, $motivo = null)
+    {
+        $stmt = $this->conn->prepare("SELECT status FROM orcamentos WHERE id_orcamento = ? LIMIT 1");
+        $stmt->execute([$id]);
+        $statusAtual = $stmt->fetchColumn();
 
-        error_log('[aprovar] itens do orçamento ' . $id . ': ' . json_encode($itens));
-
-        $osModel = new OrdemServico();
-
-        $resultado = $osModel->create([
-            'orcamento_id'         => $id,
-            'status'               => 'EM_ANDAMENTO',
-            'data_abertura'        => date('Y-m-d H:i:s'),
-            'cliente_id'           => $orc['cliente_id'],
-            'veiculo_id'           => $orc['veiculo_id'],
-            'km_veiculo'           => $orc['km_veiculo'],
-            'defeito_relatado'     => $orc['defeito_relatado'],
-            'diagnostico'          => $orc['diagnostico'],
-            'observacoes'          => $orc['observacoes'],
-            'valor_total_pecas'    => $orc['valor_total_pecas'],
-            'valor_total_servicos' => $orc['valor_total_servicos'],
-            'valor_total_os'       => $orc['valor_total_orcamento'],
-            'mecanico_id'          => $orc['mecanico_id'],
-            'valor_mao_obra'       => $orc['valor_mao_obra'],
-            'comissao_pct'         => $orc['comissao_pct'],
-            'comissao_base'        => $orc['comissao_base'] ?? 'servicos',
-            'itens'                => $itens,
-        ]);
-
-        if (!$resultado) {
-            error_log('[aprovar] Falha ao criar OS a partir do orçamento: ' . $id);
+        if ($statusAtual === false) {
+            error_log('[recusar] Orçamento não encontrado: ' . $id);
             return false;
         }
 
-        $stmt = $this->conn->prepare("
-            UPDATE orcamentos
-            SET status             = 'aprovado',
-                data_aprovacao     = NOW(),
-                assinatura_cliente = COALESCE(?, assinatura_cliente)
-            WHERE id_orcamento = ?
-        ");
-        return $stmt->execute([$assinatura, $id]);
-    }
+        if ($statusAtual !== 'pendente') {
+            error_log('[recusar] Transição inválida para orçamento ' . $id . ': status atual = ' . $statusAtual);
+            return false;
+        }
 
-    public function recusar($id, $motivo = null)
-    {
         $stmt = $this->conn->prepare("
             UPDATE orcamentos
             SET status        = 'reprovado',
                 data_recusa   = NOW(),
                 motivo_recusa = ?
             WHERE id_orcamento = ?
+              AND status       = 'pendente'
         ");
-        return $stmt->execute([$motivo, $id]);
+        $stmt->execute([$motivo, $id]);
+
+        return $stmt->rowCount() > 0;
     }
 
     private function salvarItens($orcamentoId, array $itens)
@@ -296,7 +373,7 @@ class Orcamento
             ':comissao_base'         => $this->normalizarComissaoBase($post['comissao_base'] ?? null),
             ':data_validade'         => $post['data_validade']         ?? null,
             ':prazo_execucao'        => $post['prazo_execucao']        ?? null,
-            ':status'                => $post['status']                ?? 'pendente',
+            ':status'                => $this->normalizarStatus($post['status'] ?? null),
         ]);
     }
 

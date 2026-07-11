@@ -9,19 +9,57 @@ class User
         $this->conn = new Database();
     }
 
-    public function login($data)
+    /** Quantas tentativas erradas seguidas até bloquear temporariamente a conta. */
+    private const MAX_TENTATIVAS_LOGIN = 5;
+
+    /** Duração do bloqueio temporário após exceder MAX_TENTATIVAS_LOGIN. */
+    private const BLOQUEIO_MINUTOS = 15;
+
+    /**
+     * True se a conta está no período de bloqueio temporário por excesso de
+     * tentativas de login erradas (ver registrarTentativaFalha()).
+     */
+    public function estaBloqueado(array $usuario): bool
     {
-        if (empty($data['email']) || empty($data['senha'])) {
-            return false;
+        return !empty($usuario['bloqueado_ate']) && strtotime($usuario['bloqueado_ate']) > time();
+    }
+
+    /**
+     * Minutos restantes de bloqueio, arredondado pra cima (pra mensagem de erro).
+     */
+    public function minutosBloqueioRestante(array $usuario): int
+    {
+        if (!$this->estaBloqueado($usuario)) {
+            return 0;
         }
 
-        $sql = "SELECT * FROM usuarios WHERE email = ?";
+        return (int) ceil((strtotime($usuario['bloqueado_ate']) - time()) / 60);
+    }
+
+    /**
+     * Incrementa o contador de tentativas erradas; ao atingir o limite,
+     * bloqueia a conta por BLOQUEIO_MINUTOS a partir de agora.
+     */
+    public function registrarTentativaFalha(int $id): void
+    {
+        $sql = "UPDATE usuarios
+                SET tentativas_login = tentativas_login + 1,
+                    bloqueado_ate = CASE
+                        WHEN tentativas_login + 1 >= ? THEN NOW() + INTERVAL ? MINUTE
+                        ELSE bloqueado_ate
+                    END
+                WHERE id_usuario = ?";
+
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$data['email']]);
+        $stmt->execute([self::MAX_TENTATIVAS_LOGIN, self::BLOQUEIO_MINUTOS, $id]);
+    }
 
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        return $user && password_verify($data['senha'], $user['senha']);
+    /** Zera o contador de tentativas e qualquer bloqueio ativo após login bem-sucedido. */
+    public function resetarTentativas(int $id): void
+    {
+        $sql = "UPDATE usuarios SET tentativas_login = 0, bloqueado_ate = NULL WHERE id_usuario = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$id]);
     }
 
     /**

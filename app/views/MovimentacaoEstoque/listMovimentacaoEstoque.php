@@ -41,6 +41,7 @@
             <option value="">Tipo: Todos</option>
             <option value="ENTRADA" <?= (($_GET['tipo'] ?? '') === 'ENTRADA') ? 'selected' : '' ?>>Entrada</option>
             <option value="SAIDA"   <?= (($_GET['tipo'] ?? '') === 'SAIDA')   ? 'selected' : '' ?>>Saída</option>
+            <option value="AJUSTE"  <?= (($_GET['tipo'] ?? '') === 'AJUSTE')  ? 'selected' : '' ?>>Ajuste</option>
         </select>
 
         <button type="submit" class="btn btn--ghost">Filtrar</button>
@@ -59,7 +60,9 @@
                     <th>Produto</th>
                     <th>Tipo</th>
                     <th>Quantidade</th>
+                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                     <th>Custo Unitário</th>
+                    <?php endif; ?>
                     <th>Criado em</th>
                     <th>Ações</th>
                 </tr>
@@ -70,13 +73,32 @@
                         <tr>
                             <!-- Produto -->
                             <td>
-                                <?php $isEntrada = ($mov['tipo'] === 'ENTRADA'); ?>
+                                <?php
+                                // AJUSTE = correção manual de estoque feita direto na tela de
+                                // editar produto (auditoria automática, ver Produtos::update()) —
+                                // não é Entrada nem Saída, tem cor/ícone própria.
+                                $tipoMov = $mov['tipo'] ?? 'SAIDA';
+                                $corIcone = match ($tipoMov) {
+                                    'ENTRADA' => ['bg' => 'var(--color-success-soft)', 'fg' => 'var(--color-success)'],
+                                    'AJUSTE'  => ['bg' => 'var(--color-primary-soft)', 'fg' => 'var(--color-primary)'],
+                                    default   => ['bg' => 'var(--color-warning-soft)', 'fg' => 'var(--color-warning)'],
+                                };
+                                $tituloIcone = match ($tipoMov) {
+                                    'ENTRADA' => 'Entrada de estoque',
+                                    'AJUSTE'  => 'Ajuste manual de estoque',
+                                    default   => 'Saída de estoque',
+                                };
+                                ?>
                                 <div class="user-cell">
-                                    <div style="width:34px;height:34px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:<?= $isEntrada ? 'var(--color-success-soft)' : 'var(--color-warning-soft)' ?>;color:<?= $isEntrada ? 'var(--color-success)' : 'var(--color-warning)' ?>;"
-                                        title="<?= $isEntrada ? 'Entrada de estoque' : 'Saída de estoque' ?>">
-                                        <?php if ($isEntrada): ?>
+                                    <div style="width:34px;height:34px;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;background:<?= $corIcone['bg'] ?>;color:<?= $corIcone['fg'] ?>;"
+                                        title="<?= $tituloIcone ?>">
+                                        <?php if ($tipoMov === 'ENTRADA'): ?>
                                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M12 3v12" /><path d="m7 11 5 5 5-5" /><path d="M5 21h14" />
+                                            </svg>
+                                        <?php elseif ($tipoMov === 'AJUSTE'): ?>
+                                            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
                                             </svg>
                                         <?php else: ?>
                                             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -93,9 +115,13 @@
 
                             <!-- Tipo -->
                             <td>
-                                <?php if ($mov['tipo'] === 'ENTRADA'): ?>
+                                <?php if ($tipoMov === 'ENTRADA'): ?>
                                     <span class="badge badge--success">
                                         <span class="badge__dot"></span>Entrada
+                                    </span>
+                                <?php elseif ($tipoMov === 'AJUSTE'): ?>
+                                    <span class="badge badge--info">
+                                        <span class="badge__dot"></span>Ajuste
                                     </span>
                                 <?php else: ?>
                                     <span class="badge badge--warning">
@@ -105,16 +131,19 @@
                             </td>
 
                             <!-- Quantidade -->
-                           <!-- Quantidade -->
 <td style="font-weight:500;">
     <?php
+    // Mostra até 3 casas (coluna é DECIMAL(10,3), produtos por litro/kg
+    // usam fração) sem zeros à direita — "2.5", não "2.500"; "5", não "5.000".
     $quantidade = isset($mov['quantidade']) ? (float) $mov['quantidade'] : 0;
-
-    echo number_format($quantidade, 0, ',', '.');
+    $qtdFormatada = rtrim(rtrim(number_format($quantidade, 3, ',', '.'), '0'), ',');
+    $prefixo = ($tipoMov === 'AJUSTE' && $quantidade > 0) ? '+' : '';
+    echo $prefixo . $qtdFormatada;
     ?>
 </td>
 
                             <!-- Custo Unitário -->
+                            <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                             <td style="font-weight:500;">
                                 <?php
                                 $custo = $mov['custo_unitario'] ?? null;
@@ -123,6 +152,7 @@
                                     : '-';
                                 ?>
                             </td>
+                            <?php endif; ?>
 
                             <!-- Criado em -->
                             <td class="text-muted">
@@ -143,15 +173,18 @@
                                         </svg>
                                     </a>
 
-                                    <a href="./deleteMovimentacaoEstoque&id=<?= $mov['id_movimentacao'] ?>"
-                                        class="row-action-btn danger"
-                                        title="Excluir"
-                                        onclick="return confirm('Deseja excluir esta movimentação? O estoque do produto será revertido.')">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        </svg>
-                                    </a>
+                                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
+                                    <form method="post" action="./deleteMovimentacaoEstoque" style="display:inline;"
+                                        onsubmit="return confirm('Deseja excluir esta movimentação? O estoque do produto será revertido.')">
+                                        <input type="hidden" name="id" value="<?= $mov['id_movimentacao'] ?>">
+                                        <button type="submit" class="row-action-btn danger" title="Excluir">
+                                            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    </form>
+                                    <?php endif; ?>
                                 </div>
                             </td>
                         </tr>

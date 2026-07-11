@@ -158,12 +158,16 @@
     <!-- FOOTER DE AÇÕES -->
     <div class="cat-edit-footer">
 
-        <a href="./deleteCategoria&id=<?= $categoria['id_categoria'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja realmente excluir esta categoria?')">
-            <i class="bi bi-trash"></i>
-            Excluir Categoria
-        </a>
+        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
+        <form method="post" action="./deleteCategoria" style="display:inline;"
+            onsubmit="return confirm('Deseja realmente excluir esta categoria?')">
+            <input type="hidden" name="id" value="<?= $categoria['id_categoria'] ?>">
+            <button type="submit" class="btn btn--danger-ghost">
+                <i class="bi bi-trash"></i>
+                Excluir Categoria
+            </button>
+        </form>
+        <?php endif; ?>
 
         <div class="cat-edit-footer__right">
             <a href="./listCategoria" class="btn btn--ghost">

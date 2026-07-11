@@ -15,7 +15,7 @@ class Relatorio
 
         return [
             'faturamentoMensal'       => $this->faturamentoMensal(),
-            'faturamentoPorcentagem'  => 0,
+            'faturamentoPorcentagem'  => $this->faturamentoPorcentagem(),
             'statusConcluidas'        => $status['CONCLUIDA'] ?? 0,
             'ticketMedio'             => $this->ticketMedio(),
             'estoqueBaixo'            => $this->estoqueBaixo(),
@@ -23,7 +23,6 @@ class Relatorio
             'labelsGrafico'           => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
             'graficoOS'               => $this->graficoOSSemana(),
             'graficoReceita'          => $this->graficoReceitaSemana(),
-            'graficoDespesas'         => $this->graficoDespesasSemana(),
 
             'graficoStatus' => [
                 'concluidas'      => $status['CONCLUIDA'] ?? 0,
@@ -66,6 +65,40 @@ class Relatorio
         ";
 
         return (float)$this->conn->query($sql)->fetchColumn();
+    }
+
+    /**
+     * Faturamento do mês anterior (mesma base de faturamentoMensal(), um mês
+     * antes) — usado só pra calcular a variação percentual real.
+     */
+    private function faturamentoMesAnterior()
+    {
+        $sql = "
+            SELECT COALESCE(SUM(valor_total_os), 0)
+            FROM ordens_servico
+            WHERE status = 'CONCLUIDA'
+            AND MONTH(data_conclusao) = MONTH(CURDATE() - INTERVAL 1 MONTH)
+            AND YEAR(data_conclusao) = YEAR(CURDATE() - INTERVAL 1 MONTH)
+        ";
+
+        return (float) $this->conn->query($sql)->fetchColumn();
+    }
+
+    /**
+     * Variação % do faturamento do mês atual em relação ao mês anterior —
+     * antes disso era um valor fixo em 0 (não calculado, embora os dados pra
+     * calcular já existissem), mostrado como se fosse real na tela de Relatórios.
+     */
+    private function faturamentoPorcentagem(): float
+    {
+        $atual    = $this->faturamentoMensal();
+        $anterior = $this->faturamentoMesAnterior();
+
+        if ($anterior <= 0) {
+            return $atual > 0 ? 100.0 : 0.0;
+        }
+
+        return round((($atual - $anterior) / $anterior) * 100, 1);
     }
 
     private function ticketMedio()
@@ -126,15 +159,6 @@ class Relatorio
         }
 
         return $dados;
-    }
-
-    /**
-     * Ajuste aqui caso você tenha uma tabela financeira.
-     * Enquanto não existir, retorna tudo zerado.
-     */
-    private function graficoDespesasSemana()
-    {
-        return [0, 0, 0, 0, 0, 0, 0];
     }
 
     private function clientesAtendidos()

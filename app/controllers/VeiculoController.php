@@ -16,16 +16,23 @@ class VeiculoController extends Controller
         $cliente = $this->model('Cliente');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $sucesso = $veiculo->create($_POST);
+            $validator = new Validator($_POST);
+            $validator
+                ->required('cliente_id', 'Cliente')
+                ->required('marca_id', 'Marca')
+                ->required('modelo_id', 'Modelo')
+                ->required('placa', 'Placa');
+
+            $sucesso = !$validator->fails() && $veiculo->create($_POST);
 
             if ($sucesso) {
                 header('Location: ./listVeiculos');
                 exit;
             }
 
-            $erroDetalhado = method_exists($veiculo, 'getLastError')
-                ? $veiculo->getLastError()
-                : '';
+            $erroDetalhado = $validator->fails()
+                ? $validator->firstError()
+                : (method_exists($veiculo, 'getLastError') ? $veiculo->getLastError() : '');
 
             $dados = [
                 'clientes' => $cliente->listarAtivos(),
@@ -172,16 +179,23 @@ class VeiculoController extends Controller
                 exit;
             }
 
-            $sucesso = $veiculo->update($id, $_POST);
+            $validator = new Validator($_POST);
+            $validator
+                ->required('cliente_id', 'Cliente')
+                ->required('marca_id', 'Marca')
+                ->required('modelo_id', 'Modelo')
+                ->required('placa', 'Placa');
+
+            $sucesso = !$validator->fails() && $veiculo->update($id, $_POST);
 
             if ($sucesso) {
                 header('Location: ./listVeiculos');
                 exit;
             }
 
-            $erroDetalhado = method_exists($veiculo, 'getLastError')
-                ? $veiculo->getLastError()
-                : '';
+            $erroDetalhado = $validator->fails()
+                ? $validator->firstError()
+                : (method_exists($veiculo, 'getLastError') ? $veiculo->getLastError() : '');
 
             $dados = [
                 'veiculo'  => array_merge(
@@ -225,6 +239,8 @@ class VeiculoController extends Controller
 
     public function delete()
     {
+        $this->requireRole(['ADMIN']);
+
         $id = $_GET['id'] ?? null;
 
         if (!$id) {

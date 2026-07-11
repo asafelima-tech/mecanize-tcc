@@ -61,7 +61,13 @@ class Caixa
      * Fecha a sessão de caixa aberta, registrando quem fechou, quando e o valor.
      * Retorna true em sucesso, false se não houver caixa aberto.
      */
-    public function fechar($usuarioId, $valorFechamento, $observacao = null)
+    /**
+     * $valorEsperado: o que o resumoSessao() calculava (abertura + entradas em
+     * dinheiro − saídas) NO MOMENTO do fechamento — guardado pra o histórico
+     * poder mostrar "contado − esperado" depois (a real diferença de caixa),
+     * em vez de só "fechamento − abertura" (variação líquida do dia).
+     */
+    public function fechar($usuarioId, $valorFechamento, $observacao = null, $valorEsperado = null)
     {
         $aberto = $this->getCaixaAberto();
 
@@ -73,6 +79,7 @@ class Caixa
                 SET usuario_fechamento_id = :usuario_id,
                     data_fechamento       = NOW(),
                     valor_fechamento      = :valor,
+                    valor_esperado        = :esperado,
                     observacao_fechamento = :obs,
                     status                = 'FECHADO'
                 WHERE id_caixa = :id
@@ -83,6 +90,7 @@ class Caixa
         return $stmt->execute([
             ':usuario_id' => $usuarioId,
             ':valor'      => $this->parseMoney($valorFechamento),
+            ':esperado'   => $valorEsperado !== null ? $this->parseMoney($valorEsperado) : null,
             ':obs'        => ($observacao !== null && trim($observacao) !== '') ? trim($observacao) : null,
             ':id'         => $aberto['id_caixa'],
         ]);
@@ -181,7 +189,8 @@ class Caixa
         return $this->fechar(
             $aberto['usuario_abertura_id'],
             $resumo['caixa_atual'],
-            'Fechado automaticamente — aba do navegador foi fechada'
+            'Fechado automaticamente — aba do navegador foi fechada',
+            $resumo['caixa_atual']
         );
     }
 }

@@ -36,6 +36,8 @@ class Veiculo
 
     public function getResumo($filtros = [])
     {
+        $totalResultados = $this->contarVeiculosFiltrados($filtros);
+
         return [
             'totalVeiculos'    => $this->totalVeiculos(),
             'novosMes'         => $this->novosMes(),
@@ -43,7 +45,76 @@ class Veiculo
             'marcas_veiculos'  => $this->listarMarcas(),
             'modelos_veiculos' => $this->listarModelos(),
             'veiculos'         => $this->listarVeiculos($filtros),
+            'totalResultados'  => $totalResultados,
+            'paginaAtual'      => max(1, (int) ($filtros['pagina'] ?? 1)),
+            'totalPaginas'     => max(1, (int) ceil($totalResultados / 10)),
         ];
+    }
+
+    /**
+     * Monta a cláusula WHERE + parâmetros a partir dos filtros de busca —
+     * usada tanto por listarVeiculos() quanto por contarVeiculosFiltrados(),
+     * pra manter a contagem (e, por tabela, a paginação) sempre consistente
+     * com a listagem de fato.
+     */
+    private function buildFiltroVeiculos(array $filtros): array
+    {
+        $where  = '';
+        $params = [];
+
+        if (!empty($filtros['busca'])) {
+            $where .= " AND (
+                v.placa                LIKE ?
+                OR v.placa_normalizada LIKE ?
+                OR c.nome              LIKE ?
+                OR ma.nome             LIKE ?
+                OR mo.nome             LIKE ?
+            )";
+
+            $busca = '%' . $filtros['busca'] . '%';
+            $params[] = $busca;
+            $params[] = $busca;
+            $params[] = $busca;
+            $params[] = $busca;
+            $params[] = $busca;
+        }
+
+        if (!empty($filtros['marca'])) {
+            $where   .= ' AND v.marca_id = ?';
+            $params[] = $filtros['marca'];
+        }
+
+        if (!empty($filtros['modelo'])) {
+            $where   .= ' AND v.modelo_id = ?';
+            $params[] = $filtros['modelo'];
+        }
+
+        if (!empty($filtros['cliente'])) {
+            $where   .= ' AND v.cliente_id = ?';
+            $params[] = $filtros['cliente'];
+        }
+
+        return [$where, $params];
+    }
+
+    /** Conta quantos veículos batem com os filtros — base do total de páginas. */
+    public function contarVeiculosFiltrados(array $filtros = []): int
+    {
+        [$where, $params] = $this->buildFiltroVeiculos($filtros);
+
+        $sql = "
+            SELECT COUNT(*)
+            FROM veiculos v
+            INNER JOIN clientes c          ON c.id_cliente  = v.cliente_id
+            INNER JOIN marcas_veiculos ma  ON ma.id_marca   = v.marca_id
+            INNER JOIN modelos_veiculos mo ON mo.id_modelo  = v.modelo_id
+            WHERE 1 = 1 $where
+        ";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /** Lista veículos cadastrados neste mês, para o painel de "Novos este Mês" */
@@ -117,6 +188,12 @@ class Veiculo
 
     public function listarVeiculos($filtros = [])
     {
+        [$where, $params] = $this->buildFiltroVeiculos($filtros);
+
+        $pagina    = max(1, (int) ($filtros['pagina'] ?? 1));
+        $porPagina = 10;
+        $offset    = ($pagina - 1) * $porPagina;
+
         $sql = "
             SELECT
                 v.id_veiculo,
@@ -136,47 +213,24 @@ class Veiculo
                 ON ma.id_marca = v.marca_id
             INNER JOIN modelos_veiculos mo
                 ON mo.id_modelo = v.modelo_id
-            WHERE 1 = 1
+            WHERE 1 = 1 $where
+            ORDER BY c.nome ASC, v.placa ASC
+            LIMIT ? OFFSET ?
         ";
 
-        $params = [];
-
-        if (!empty($filtros['busca'])) {
-            $sql .= " AND (
-                v.placa                LIKE ?
-                OR v.placa_normalizada LIKE ?
-                OR c.nome              LIKE ?
-                OR ma.nome             LIKE ?
-                OR mo.nome             LIKE ?
-            )";
-
-            $busca = '%' . $filtros['busca'] . '%';
-            $params[] = $busca;
-            $params[] = $busca;
-            $params[] = $busca;
-            $params[] = $busca;
-            $params[] = $busca;
-        }
-
-        if (!empty($filtros['marca'])) {
-            $sql .= " AND v.marca_id = ?";
-            $params[] = $filtros['marca'];
-        }
-
-        if (!empty($filtros['modelo'])) {
-            $sql .= " AND v.modelo_id = ?";
-            $params[] = $filtros['modelo'];
-        }
-
-        if (!empty($filtros['cliente'])) {
-            $sql .= " AND v.cliente_id = ?";
-            $params[] = $filtros['cliente'];
-        }
-
-        $sql .= " ORDER BY c.nome ASC, v.placa ASC LIMIT 10";
+        $params[] = $porPagina;
+        $params[] = $offset;
 
         $stmt = $this->conn->prepare($sql);
-        $stmt->execute($params);
+
+        // LIMIT/OFFSET precisam ser bindados como inteiro — com execute($array)
+        // o PDO manda tudo como string e o MySQL rejeita em modo estrito.
+        foreach ($params as $i => $valor) {
+            $tipo = (($i === count($params) - 1) || ($i === count($params) - 2)) ? PDO::PARAM_INT : PDO::PARAM_STR;
+            $stmt->bindValue($i + 1, $valor, $tipo);
+        }
+
+        $stmt->execute();
 
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }

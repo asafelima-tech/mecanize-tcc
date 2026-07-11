@@ -261,6 +261,7 @@ if (session_status() === PHP_SESSION_NONE) {
                     </div>
 
                     <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px 18px;">
+                        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                         <div class="form-field">
                             <label>Preço de Custo (R$)</label>
                             <input
@@ -270,6 +271,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 id="preco_custo"
                                 value="<?= htmlspecialchars($old['preco_custo'] ?? '0.00') ?>">
                         </div>
+                        <?php endif; ?>
 
                         <div class="form-field">
                             <label>Preço de Venda (R$)</label>
@@ -281,6 +283,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 value="<?= htmlspecialchars($old['preco_venda'] ?? '0.00') ?>">
                         </div>
 
+                        <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                         <div class="form-field">
                             <label>Margem de Lucro (%)</label>
                             <div style="position:relative;">
@@ -297,6 +300,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 ">%</span>
                             </div>
                         </div>
+                        <?php endif; ?>
                     </div>
                 </div>
 
@@ -388,6 +392,8 @@ if (session_status() === PHP_SESSION_NONE) {
 </div>
 
 <script>
+    // preco_custo/margem_lucro só existem no DOM pra ADMIN (ocultos pra
+    // outros papéis — ver PHP acima).
     const inputCusto = document.getElementById('preco_custo');
     const inputVenda = document.getElementById('preco_venda');
     const inputMargem = document.getElementById('margem_lucro');
@@ -404,63 +410,74 @@ if (session_status() === PHP_SESSION_NONE) {
         min: 0
     };
 
-    const mCusto = IMask(inputCusto, moneyOpts);
     const mVenda = IMask(inputVenda, moneyOpts);
-
-    // Valores iniciais chegam com ponto decimal (ex.: "1234.56")
-    mCusto.typedValue = parseFloat(String(inputCusto.value).replace(',', '.')) || 0;
     mVenda.typedValue = parseFloat(String(inputVenda.value).replace(',', '.')) || 0;
 
-    let ultimoCampoEditado = null;
-    let travaVenda = false;
+    inputVenda.addEventListener('focus', function () { setTimeout(() => this.select(), 0); });
+    inputVenda.addEventListener('click', function () { setTimeout(() => this.select(), 0); });
 
-    const somenteNumeros = valor => String(valor || '').replace(/\D/g, '');
-
-    function calcularMargem() {
-        const custo = mCusto.typedValue || 0;
-        const venda = mVenda.typedValue || 0;
-        inputMargem.value = custo > 0 ? Math.round(((venda - custo) / custo) * 100) : 0;
-    }
-
-    function calcularVendaPelaMargem() {
-        const custo = mCusto.typedValue || 0;
-        const margem = parseInt(somenteNumeros(inputMargem.value), 10) || 0;
-        const venda = custo > 0 ? +(custo + (custo * margem / 100)).toFixed(2) : 0;
-        travaVenda = true;          // evita que o 'accept' do venda recalcule a margem
-        mVenda.typedValue = venda;
-        travaVenda = false;
-    }
-
-    mCusto.on('accept', function () {
-        if (ultimoCampoEditado === 'margem') calcularVendaPelaMargem();
-        else calcularMargem();
-    });
-
-    mVenda.on('accept', function () {
-        if (travaVenda) return;
-        ultimoCampoEditado = 'venda';
-        calcularMargem();
-    });
-
-    inputMargem.addEventListener('input', function () {
-        ultimoCampoEditado = 'margem';
-        this.value = somenteNumeros(this.value);
-        calcularVendaPelaMargem();
-    });
-
-    [inputCusto, inputVenda, inputMargem].forEach(input => {
-        input.addEventListener('focus', function () { setTimeout(() => this.select(), 0); });
-        input.addEventListener('click', function () { setTimeout(() => this.select(), 0); });
-    });
-
-    calcularMargem();
-
-    // Desmascara no envio: manda o valor cru (1234.56) pro back-end, sem alterá-lo
-    if (inputCusto.form) {
-        inputCusto.form.addEventListener('submit', function () {
-            inputCusto.value = String(mCusto.typedValue || 0);
+    if (inputVenda.form) {
+        inputVenda.form.addEventListener('submit', function () {
             inputVenda.value = String(mVenda.typedValue || 0);
         });
+    }
+
+    if (inputCusto && inputMargem) {
+        const mCusto = IMask(inputCusto, moneyOpts);
+
+        // Valores iniciais chegam com ponto decimal (ex.: "1234.56")
+        mCusto.typedValue = parseFloat(String(inputCusto.value).replace(',', '.')) || 0;
+
+        let ultimoCampoEditado = null;
+        let travaVenda = false;
+
+        const somenteNumeros = valor => String(valor || '').replace(/\D/g, '');
+
+        function calcularMargem() {
+            const custo = mCusto.typedValue || 0;
+            const venda = mVenda.typedValue || 0;
+            inputMargem.value = custo > 0 ? Math.round(((venda - custo) / custo) * 100) : 0;
+        }
+
+        function calcularVendaPelaMargem() {
+            const custo = mCusto.typedValue || 0;
+            const margem = parseInt(somenteNumeros(inputMargem.value), 10) || 0;
+            const venda = custo > 0 ? +(custo + (custo * margem / 100)).toFixed(2) : 0;
+            travaVenda = true;          // evita que o 'accept' do venda recalcule a margem
+            mVenda.typedValue = venda;
+            travaVenda = false;
+        }
+
+        mCusto.on('accept', function () {
+            if (ultimoCampoEditado === 'margem') calcularVendaPelaMargem();
+            else calcularMargem();
+        });
+
+        mVenda.on('accept', function () {
+            if (travaVenda) return;
+            ultimoCampoEditado = 'venda';
+            calcularMargem();
+        });
+
+        inputMargem.addEventListener('input', function () {
+            ultimoCampoEditado = 'margem';
+            this.value = somenteNumeros(this.value);
+            calcularVendaPelaMargem();
+        });
+
+        [inputCusto, inputMargem].forEach(input => {
+            input.addEventListener('focus', function () { setTimeout(() => this.select(), 0); });
+            input.addEventListener('click', function () { setTimeout(() => this.select(), 0); });
+        });
+
+        calcularMargem();
+
+        // Desmascara no envio: manda o valor cru (1234.56) pro back-end, sem alterá-lo
+        if (inputCusto.form) {
+            inputCusto.form.addEventListener('submit', function () {
+                inputCusto.value = String(mCusto.typedValue || 0);
+            });
+        }
     }
 
     // Fechar modal clicando fora

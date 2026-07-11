@@ -1,3 +1,7 @@
+# Sobrescreve o "Require all denied" da raiz do projeto — esta pasta
+# precisa continuar acessível via HTTP normalmente.
+Require all granted
+
 RewriteEngine On
 
 RewriteCond %{REQUEST_FILENAME} !-f

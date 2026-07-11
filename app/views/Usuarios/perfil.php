@@ -179,64 +179,6 @@ $iniciais = strtoupper(
     </div>
 </section>
 
-<!-- ── Notificações ── -->
-<section class="card mt-24">
-    <div class="card__header">
-        <div class="card__title">
-            <span class="ico-wrap ico">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                    <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                </svg>
-            </span>
-            Notificações
-        </div>
-        <span class="text-secondary fs-12">Escolha o que você quer ser avisado</span>
-    </div>
-
-    <div class="card__body">
-        <form method="POST" action="./updateNotificacoes">
-
-            <label class="notif-row">
-                <div>
-                    <div class="notif-row__title">Ordens de Serviço</div>
-                    <div class="notif-row__desc">Avisos de abertura, aprovação e conclusão de OS</div>
-                </div>
-                <span class="toggle-switch">
-                    <input type="checkbox" name="notif_ordens" <?= !empty($usuario['notificacoes']['ordens']) ? 'checked' : '' ?>>
-                    <span class="toggle-switch__track"></span>
-                </span>
-            </label>
-
-            <label class="notif-row">
-                <div>
-                    <div class="notif-row__title">Atualizações do Sistema</div>
-                    <div class="notif-row__desc">Novidades, correções e manutenções programadas</div>
-                </div>
-                <span class="toggle-switch">
-                    <input type="checkbox" name="notif_atualizacoes" <?= !empty($usuario['notificacoes']['atualizacoes']) ? 'checked' : '' ?>>
-                    <span class="toggle-switch__track"></span>
-                </span>
-            </label>
-
-            <label class="notif-row notif-row--last">
-                <div>
-                    <div class="notif-row__title">Orçamentos</div>
-                    <div class="notif-row__desc">Avisos de aprovação, recusa ou expiração</div>
-                </div>
-                <span class="toggle-switch">
-                    <input type="checkbox" name="notif_orcamentos" <?= !empty($usuario['notificacoes']['orcamentos']) ? 'checked' : '' ?>>
-                    <span class="toggle-switch__track"></span>
-                </span>
-            </label>
-
-            <div class="text-right mt-16">
-                <button type="submit" class="btn btn--primary">Salvar Preferências</button>
-            </div>
-        </form>
-    </div>
-</section>
-
 <!-- ── Estilos específicos desta tela ──
      Se preferir, mova este bloco para global.css junto dos outros
      estilos de tela — deixei aqui isolado pra facilitar a revisão. -->
