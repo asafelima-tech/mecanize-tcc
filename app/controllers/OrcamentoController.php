@@ -29,6 +29,18 @@ class OrcamentoController extends Controller
 
         $orcamento = $this->model('Orcamento');
 
+        $validator = (new Validator($_POST))
+            ->required('cliente_id', 'Cliente')
+            ->required('veiculo_id', 'Veículo');
+
+        if ($validator->fails()) {
+            $dadosForm          = $orcamento->getDadosFormulario();
+            $dadosForm['error'] = $validator->firstError();
+            $dadosForm['old']   = $_POST;
+            $this->view('Orcamento/saveOrcamento', $dadosForm);
+            exit;
+        }
+
         $dados = [
             'numero_orcamento'      => $_POST['numero_orcamento']      ?? '',
             'status'                => $_POST['status']                ?? 'PENDENTE',
@@ -212,6 +224,19 @@ class OrcamentoController extends Controller
             if (!$id) {
                 header('Location: ./listOrcamentos');
                 exit;
+            }
+
+            $validator = (new Validator($_POST))
+                ->required('cliente_id', 'Cliente')
+                ->required('veiculo_id', 'Veículo');
+
+            if ($validator->fails()) {
+                $dados              = $orcamento->getDadosFormulario();
+                $dados['orcamento'] = array_merge($orcamento->getById($id) ?: [], $_POST);
+                $dados['itens']     = $orcamento->getItensByOrcamento($id);
+                $dados['error']     = $validator->firstError();
+                $this->view('Orcamento/editOrcamento', $dados);
+                return;
             }
 
             if ($orcamento->atualizar($id, $_POST)) {

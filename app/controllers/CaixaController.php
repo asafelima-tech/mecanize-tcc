@@ -33,6 +33,17 @@ class CaixaController extends Controller
                 exit;
             }
 
+            $validator = (new Validator($_POST))->required('valor_abertura', 'Valor de abertura');
+
+            if ($validator->fails()) {
+                $this->view('Caixa/abrirCaixa', [
+                    'error'         => $validator->firstError(),
+                    'old'           => $_POST,
+                    'saldoAnterior' => $saldoAnterior,
+                ]);
+                return;
+            }
+
             $sucesso = $caixa->abrir(
                 $usuarioId,
                 $_POST['valor_abertura'] ?? 0,
@@ -89,6 +100,18 @@ class CaixaController extends Controller
             if (!$usuarioId) {
                 header('Location: ./logout');
                 exit;
+            }
+
+            $validator = (new Validator($_POST))->required('valor_fechamento', 'Valor de fechamento');
+
+            if ($validator->fails()) {
+                $this->view('Caixa/fecharCaixa', [
+                    'caixa'  => $caixaAberto,
+                    'resumo' => $resumo,
+                    'error'  => $validator->firstError(),
+                    'old'    => $_POST,
+                ]);
+                return;
             }
 
             $sucesso = $caixa->fechar(

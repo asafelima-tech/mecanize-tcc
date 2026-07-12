@@ -16,6 +16,21 @@
         $produto = $this->model('Produtos');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $validator = (new Validator($_POST))
+                ->required('categorias_produtos_id', 'Categoria')
+                ->required('nome', 'Nome')
+                ->required('localizacao', 'Localização');
+
+            if ($validator->fails()) {
+                $this->view('Produtos/saveProduto', [
+                    'categorias' => $produto->getCategorias(),
+                    'proximoCodigoInterno' => $produto->getProximoCodigoInterno(),
+                    'error' => $validator->firstError(),
+                    'old'   => $_POST,
+                ]);
+                return;
+            }
+
             $sucesso = $produto->create($_POST);
 
             if ($sucesso) {
@@ -58,6 +73,20 @@
             if (!$id) {
                 header('Location: ./listProduto');
                 exit;
+            }
+
+            $validator = (new Validator($_POST))
+                ->required('categorias_produtos_id', 'Categoria')
+                ->required('nome', 'Nome')
+                ->required('localizacao', 'Localização');
+
+            if ($validator->fails()) {
+                $this->view('Produtos/editProduto', [
+                    'categorias' => $produto->getCategorias(),
+                    'produto'    => array_merge($produto->getById($id) ?: [], $_POST),
+                    'error'      => $validator->firstError(),
+                ]);
+                return;
             }
 
             $sucesso = $produto->update($id, $_POST);

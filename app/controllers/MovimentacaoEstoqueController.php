@@ -29,6 +29,22 @@ class MovimentacaoEstoqueController extends Controller
         $model = $this->model('MovimentacaoEstoque');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $validator = (new Validator($_POST))
+                ->required('produto_id', 'Produto')
+                ->required('tipo', 'Tipo')
+                ->in('tipo', ['ENTRADA', 'SAIDA'], 'Tipo')
+                ->required('quantidade', 'Quantidade')
+                ->numeric('quantidade', 'Quantidade');
+
+            if ($validator->fails()) {
+                $this->view('MovimentacaoEstoque/saveMovimentacaoEstoque', [
+                    'produtos' => $model->getProdutosAtivos(),
+                    'error'    => $validator->firstError(),
+                    'old'      => $_POST,
+                ]);
+                return;
+            }
+
             $sucesso = $model->save($_POST);
 
             if ($sucesso) {
@@ -67,6 +83,23 @@ public function edit()
         if (!$id) {
             header('Location: ./listMovimentacaoEstoque');
             exit;
+        }
+
+        $validator = (new Validator($_POST))
+            ->required('produto_id', 'Produto')
+            ->required('tipo', 'Tipo')
+            ->in('tipo', ['ENTRADA', 'SAIDA'], 'Tipo')
+            ->required('quantidade', 'Quantidade')
+            ->numeric('quantidade', 'Quantidade');
+
+        if ($validator->fails()) {
+            $this->view('MovimentacaoEstoque/editMovimentacaoEstoque', [
+                'movimentacao' => array_merge($model->findById($id) ?: [], $_POST),
+                'produtos'     => $model->getProdutosAtivos(),
+                'error'        => $validator->firstError(),
+                'old'          => $_POST,
+            ]);
+            return;
         }
 
         $sucesso = $model->update($id, $_POST);

@@ -145,6 +145,18 @@ class OrdemServicoController extends Controller
         $ordemServico = $this->model('OrdemServico');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $validator = (new Validator($_POST))
+                ->required('cliente_id', 'Cliente')
+                ->required('veiculo_id', 'Veículo');
+
+            if ($validator->fails()) {
+                $dados          = $this->dadosFormularioOS($ordemServico);
+                $dados['error'] = $validator->firstError();
+                $dados['old']   = $_POST;
+                $this->view('Ordens_Servico/saveOrdemServico', $dados);
+                return;
+            }
+
             try {
                 $sucesso = $ordemServico->create($_POST);
             } catch (\Throwable $e) {
@@ -182,6 +194,24 @@ class OrdemServicoController extends Controller
         if (!$id) {
             header('Location: ./listOrdemServico');
             exit;
+        }
+
+        $validator = (new Validator($_POST))
+            ->required('numero', 'Número da OS')
+            ->required('status', 'Status')
+            ->in('status', ['ABERTA', 'EM_ANDAMENTO', 'AGUARDANDO_PECA', 'CONCLUIDA', 'CANCELADA'], 'Status')
+            ->required('cliente_id', 'Cliente')
+            ->required('veiculo_id', 'Veículo');
+
+        if ($validator->fails()) {
+            $dados = $this->dadosFormularioOS($ordemServico);
+            $dados['ordem_servico'] = array_merge($ordemServico->getById($id) ?: [], $_POST);
+            $dados['itens_os']      = $ordemServico->getItensByOS($id);
+            $dados['mao_obra_os']   = $ordemServico->getMaoObraByOS($id);
+            $dados['error']         = $validator->firstError();
+            $dados['old']           = $_POST;
+            $this->view('Ordens_Servico/editOrdemServico', $dados);
+            return;
         }
 
         $sucesso = $ordemServico->update($_POST);
