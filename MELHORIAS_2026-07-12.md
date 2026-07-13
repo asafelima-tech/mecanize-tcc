@@ -108,6 +108,32 @@ ainda nem existe) — pular essa etapa pra "destravar rápido" seria
 exatamente o tipo de atalho que o plano foi escrito pra evitar, numa
 mudança que mexe com isolamento de dados entre oficinas.
 
+## 3. Checklist final de prontidão pra uso com uma única oficina
+
+Depois de confirmar que o sistema estava saudável de novo, o dono do
+projeto perguntou se já está "pronto" pra uso real (uma oficina só, sem
+multi-tenant). Duas pendências reais, corrigidas:
+
+- **`APP_DEBUG=true` no `.env` de produção** → trocado pra `false`. Essa
+  flag (criada na auditoria de 07/10) controla se um erro fatal mostra o
+  stack trace cru (caminho de arquivo, DSN do banco) ou uma página 500
+  genérica. Em produção tem que ser `false` — estava configurada do jeito
+  inseguro. Confirmado que o site continua respondendo normalmente depois
+  da troca (login e redirecionamento de sessão testados).
+- **Suíte de testes não passava limpa** (12 erros/falhas) — causa
+  confirmada: `mecanize_db_test` ainda tinha o schema do multi-tenant
+  (coluna `empresa_id` NOT NULL + FK) da sessão pausada, enquanto o código
+  já tinha voltado ao normal (via stash). Recriado do zero
+  (`DROP DATABASE` + `mysqldump --no-data` do `mecanize_db` de produção
+  pro `mecanize_db_test`, com confirmação explícita do dono do sistema
+  antes de rodar o DROP) — **28 testes, 49 asserções, tudo verde.**
+
+Com isso: pra uma única oficina, o sistema está num estado sólido —
+auditoria de segurança completa, validação em todos os formulários, CSRF,
+backup automático, testes passando, e nenhuma pendência conhecida bloqueando
+uso real. O trabalho multi-tenant (não relacionado ao uso atual) continua
+guardado no `git stash`, sem pressa pra decidir quando retomar.
+
 ## O que fica pendente
 
 - Terminar a fundação multi-tenant (guardada no stash) — auditoria dos
