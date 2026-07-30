@@ -509,10 +509,35 @@ class UserController extends Controller
             exit;
         }
 
-        $usuario = $this->model('User');
-        $usuario->delete($_GET['id']);
+        $id = (int) $_GET['id'];
 
-        header('Location: ./listUsuarios');
+        // Excluir a si mesmo deixaria a sessão apontando pra um usuário que
+        // não existe mais — todo request seguinte quebraria.
+        if ($id === (int) ($_SESSION['user_id_usuario'] ?? 0)) {
+            header('Location: ./listUsuarios?erro=proprio');
+            exit;
+        }
+
+        $usuario = $this->model('User');
+
+        // Usuário com histórico não pode ser apagado: as foreign keys barram
+        // (e é o certo — apagá-lo destruiria a autoria de caixas, lançamentos
+        // e serviços). Antes isso virava PDOException não tratada e tela 500;
+        // agora vira uma mensagem dizendo o que impede, com a desativação
+        // como caminho alternativo.
+        $vinculos = $usuario->vinculos($id);
+
+        if (!empty($vinculos)) {
+            header('Location: ./listUsuarios?erro=vinculos&detalhe=' . urlencode(implode(', ', $vinculos)));
+            exit;
+        }
+
+        if (!$usuario->delete($id)) {
+            header('Location: ./listUsuarios?erro=exclusao');
+            exit;
+        }
+
+        header('Location: ./listUsuarios?ok=excluido');
         exit;
     }
 

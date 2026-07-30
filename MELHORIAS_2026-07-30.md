@@ -169,6 +169,73 @@ agendamento, que já está gravado.
 - **PDF do relatório** gerado de fato pelo Dompdf (7 KB) e conferido pelo
   conteúdo.
 
+## 7. Três telas de erro 500 relatadas depois — duas causas
+
+Reportados: o modal "Documento gerado" do `listDocumentos`, o botão "Baixar
+PDF" e a exclusão de usuário, todos com erro 500. O log do Apache
+(`C:/xampp/apache/logs/error.log`) tinha as duas causas registradas — o
+`APP_DEBUG=false` escondia da tela, não do log.
+
+### 7.1 — PDF: extensão GD desabilitada
+
+`Exception: The PHP GD extension is required, but is not installed` em
+`vendor/dompdf/dompdf/lib/Cpdf.php:6226`. O `extension=gd` estava comentado
+no `php.ini` (linha 931).
+
+Os três sintomas de PDF eram **um só bug**: o iframe do modal, o "Imprimir"
+e o "Baixar PDF" apontam todos pra `exportOrdemServicoPdf`
+(`listDocumentos.php:598,613,618`). O PDF de OS embute a assinatura do
+cliente como `<img>` (PNG de 6.638 bytes na OS-0003) e o Dompdf precisa de
+GD pra processar imagem. O PDF de caixa que eu tinha testado antes passava
+porque não tem imagem nenhuma — foi o que mascarou o problema pra mim.
+
+Corrigido habilitando `extension=gd` no `php.ini` (backup em
+`php.ini.bak-20260730-1331`) e reiniciando o Apache.
+
+**Atenção:** isso é configuração da máquina, **fora do repositório** — numa
+instalação nova de XAMPP o problema volta. Por isso a dependência virou
+explícita no `composer.json` (`"ext-gd": "*"`, `"ext-pdo": "*"`,
+`"php": ">=8.0"`): agora `composer install` falha com mensagem clara em vez
+de o sistema quebrar só na hora de gerar um PDF com imagem.
+
+**De brinde:** com o GD ligado, o pipeline de imagem do Dompdf passou a ser
+exercitado de verdade — e o `composer audit` acusou 6 advisories (médias,
+todas de 22/07/2026) em Dompdf < 3.1.6, justamente sobre processamento de
+imagem (SVG, BMP, bitmaps grandes). Atualizado 3.1.5 → 3.1.6 dentro do
+`^3.1` já declarado; `composer audit` limpo depois.
+
+### 7.2 — Exclusão de usuário: foreign key sem tratamento
+
+`PDOException: ... 1451 Cannot delete or update a parent row: a foreign key
+constraint fails (mecanize_db.caixa, CONSTRAINT fk_caixa_usuario_abertura)`
+em `User.php:346`.
+
+`User::delete()` era um `DELETE` cru sem nenhum tratamento. Seis tabelas
+referenciam `usuarios` (`caixa` em duas colunas, `movimentacoes_caixa`,
+`orcamentos`, `agendamentos`, `password_resets`), então qualquer usuário
+que já tenha operado o sistema é impossível de apagar — e a exceção subia
+até o handler global virando tela 500. O usuário 11 tinha 2 aberturas e 2
+fechamentos de caixa.
+
+**O banco está certo — quem estava errado era o código.** Apagar um usuário
+com histórico destruiria a autoria de caixas, lançamentos e serviços; a FK
+existe pra impedir isso. O que faltava era o sistema explicar em vez de
+quebrar:
+
+- `User::vinculos($id)` descreve o que impede a exclusão, por extenso
+  ("2 aberturas de caixa, 1 orçamento").
+- `User::delete()` captura a `PDOException` e devolve `false`.
+- O controller checa os vínculos antes, e a listagem mostra a mensagem
+  apontando a **desativação** como caminho — que já existia no botão de
+  status da própria tela.
+- `password_resets` é apagado junto: token descartável não é histórico e
+  não podia barrar a exclusão de um usuário limpo.
+- Também passou a bloquear a exclusão da **própria conta** — a sessão
+  ficaria apontando pra um usuário inexistente e todo request seguinte
+  quebraria.
+
+Coberto por `tests/UsuarioExclusaoTest.php` (5 testes).
+
 ## O que fica pendente
 
 - **Nada disso foi testado no navegador de verdade.** A verificação foi por
@@ -187,3 +254,16 @@ agendamento, que já está gravado.
 - A tabela `agendamentos` foi criada **no banco de produção** (`mecanize_db`)
   além do de teste, já que o módulo precisa dela pra rodar. É uma tabela
   nova, isolada: nada de existente foi alterado.
+- O `php.ini` foi alterado nesta máquina (GD) e o Apache reiniciado por
+  linha de comando — ele tinha sido iniciado pelo painel do XAMPP, então o
+  painel pode continuar exibindo "stopped" mesmo com o servidor no ar. Um
+  Stop/Start pelo painel resolve a exibição.
+- As correções da seção 7 foram validadas por teste automatizado e gerando
+  os PDFs pelo mesmo caminho de código do controller, **mas não foram
+  clicadas no navegador** — vale repetir os três fluxos relatados.
+- Os botões de excluir usam link `GET` (`<a href="./deleteUsuario&id=...">`),
+  padrão repetido em vários módulos. Não é explorável hoje: o guarda de
+  "URL inerte" do `public/index.php` exige navegação same-origin em GET, o
+  que barra requisição vinda de fora. Fica registrado porque a proteção é
+  indireta — se aquele guarda mudar, vira CSRF destrutivo. Converter para
+  POST deve ser feito de uma vez em todos os módulos, não pela metade.

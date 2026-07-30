@@ -338,11 +338,78 @@ class User
         return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 
+    /**
+     * Tabelas que referenciam um usuário e representam histórico da oficina.
+     * Enquanto existir qualquer uma dessas linhas, o usuário não pode ser
+     * apagado — apagá-lo destruiria a autoria de um caixa, de um lançamento
+     * ou de um serviço. `password_resets` fica de fora de propósito: são
+     * tokens descartáveis, não histórico (ver delete()).
+     */
+    private const VINCULOS = [
+        ['tabela' => 'caixa',                  'coluna' => 'usuario_abertura_id',    'rotulo' => 'aberturas de caixa'],
+        ['tabela' => 'caixa',                  'coluna' => 'usuario_fechamento_id',  'rotulo' => 'fechamentos de caixa'],
+        ['tabela' => 'movimentacoes_caixa',    'coluna' => 'usuario_id',             'rotulo' => 'lançamentos de caixa'],
+        ['tabela' => 'orcamentos',             'coluna' => 'mecanico_id',            'rotulo' => 'orçamentos'],
+        ['tabela' => 'ordem_servico_mao_obra', 'coluna' => 'tecnico_id',             'rotulo' => 'ordens de serviço'],
+        ['tabela' => 'agendamentos',           'coluna' => 'mecanico_id',            'rotulo' => 'agendamentos'],
+    ];
+
+    /**
+     * Descreve o histórico que impede a exclusão do usuário, por extenso
+     * ("2 aberturas de caixa, 1 orçamento"). Array vazio = pode excluir.
+     *
+     * Os nomes de tabela/coluna vêm só da constante acima, nunca do usuário.
+     */
+    public function vinculos($id): array
+    {
+        $id    = (int) $id;
+        $achados = [];
+
+        foreach (self::VINCULOS as $vinculo) {
+            $sql = "SELECT COUNT(*) FROM `{$vinculo['tabela']}` WHERE `{$vinculo['coluna']}` = :id";
+
+            try {
+                $stmt = $this->conn->prepare($sql);
+                $stmt->execute([':id' => $id]);
+                $qtd = (int) $stmt->fetchColumn();
+            } catch (\PDOException $e) {
+                // Tabela ainda não criada nesta instalação (ex.: agendamentos
+                // antes da migração) não pode derrubar a checagem.
+                continue;
+            }
+
+            if ($qtd > 0) {
+                $achados[] = $qtd . ' ' . $vinculo['rotulo'];
+            }
+        }
+
+        return $achados;
+    }
+
+    /**
+     * Exclui o usuário. Retorna false — em vez de estourar uma PDOException
+     * que virava tela de erro 500 — quando ele tem histórico na oficina e as
+     * foreign keys barram a exclusão.
+     *
+     * Os tokens de recuperação de senha são apagados junto: são descartáveis
+     * e a FK deles bloquearia a exclusão de um usuário que, fora isso, não
+     * tem nenhum histórico.
+     */
     public function delete($id)
     {
-        $sql = "DELETE FROM usuarios WHERE id_usuario = ?";
-        $stmt = $this->conn->prepare($sql);
+        $id = (int) $id;
 
-        return $stmt->execute([$id]);
+        try {
+            $this->conn->prepare("DELETE FROM password_resets WHERE usuario_id = ?")->execute([$id]);
+
+            $stmt = $this->conn->prepare("DELETE FROM usuarios WHERE id_usuario = ?");
+            $stmt->execute([$id]);
+
+            return $stmt->rowCount() > 0;
+        } catch (\PDOException $e) {
+            error_log('[User delete] ' . $e->getMessage());
+
+            return false;
+        }
     }
 }

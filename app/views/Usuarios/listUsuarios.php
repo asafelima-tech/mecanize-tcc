@@ -22,7 +22,29 @@ $buscaAtual  = $_GET['busca'] ?? '';
 $tipoAtual   = $_GET['tipo'] ?? '';
 $statusAtual = $_GET['status'] ?? '';
 $temFiltro   = ($buscaAtual !== '' || $tipoAtual !== '' || $statusAtual !== '');
+
+// Retorno das ações de exclusão (UserController::delete)
+$flashErro = [
+    'vinculos' => 'Este usuário não pode ser excluído porque tem histórico na oficina'
+        . (!empty($_GET['detalhe']) ? ' (' . htmlspecialchars($_GET['detalhe']) . ')' : '')
+        . '. Apagá-lo destruiria a autoria desses registros — use o botão de status para desativá-lo.',
+    'proprio'  => 'Você não pode excluir a sua própria conta.',
+    'exclusao' => 'Não foi possível excluir este usuário.',
+][$_GET['erro'] ?? ''] ?? null;
+
+$flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
 ?>
+
+<?php if ($flashErro !== null): ?>
+    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
+        <?= $flashErro ?>
+    </div>
+<?php endif; ?>
+<?php if ($flashOk !== null): ?>
+    <div style="background:var(--color-success-soft);color:#166534;border:1px solid #BBF7D0;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
+        <?= $flashOk ?>
+    </div>
+<?php endif; ?>
 
 <!-- ── Page Header ── -->
 <div class="page-header">
