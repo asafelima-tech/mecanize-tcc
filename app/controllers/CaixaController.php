@@ -208,6 +208,147 @@ class CaixaController extends Controller
     }
 
     /**
+     * Relatório do livro-caixa por período (diário/semanal/mensal/anual).
+     *
+     * Pedido do cliente registrado em ERROS.MD: "quero saber o caixa de entrada
+     * e saída diário, semanal, mensal e anual. entradas e suas formas de
+     * pagamento... a saída, retirada para banco, retirada para peças etc".
+     *
+     * Restrito a ADMIN: é a visão financeira consolidada da oficina, não a
+     * operação do dia (essa é a tela de lançamentos, aberta a quem opera o caixa).
+     */
+    public function relatorio()
+    {
+        $this->requireRole(['ADMIN']);
+
+        $periodo = $this->resolverPeriodo();
+        $mov     = $this->model('MovimentacaoCaixa');
+
+        $this->view('Caixa/relatorioCaixa', [
+            'periodo'      => $periodo,
+            'resumo'       => $mov->resumoPeriodo($periodo['inicio'], $periodo['fim']),
+            'serie'        => $mov->seriePeriodo($periodo['inicio'], $periodo['fim'], $periodo['granularidade']),
+            'lancamentos'  => $mov->lancamentosPeriodo($periodo['inicio'], $periodo['fim']),
+        ]);
+    }
+
+    /**
+     * Mesmo relatório em PDF (para arquivar/enviar ao contador).
+     */
+    public function exportarRelatorioPdf()
+    {
+        $this->requireRole(['ADMIN']);
+
+        $periodo = $this->resolverPeriodo();
+        $mov     = $this->model('MovimentacaoCaixa');
+
+        $dados = [
+            'periodo'     => $periodo,
+            'resumo'      => $mov->resumoPeriodo($periodo['inicio'], $periodo['fim']),
+            'lancamentos' => $mov->lancamentosPeriodo($periodo['inicio'], $periodo['fim']),
+        ];
+
+        // Renderiza a view de PDF em buffer e entrega ao Dompdf.
+        extract($dados);
+        ob_start();
+        require __DIR__ . '/../views/Caixa/pdfRelatorioCaixa.php';
+        $html = ob_get_clean();
+
+        require_once __DIR__ . '/../core/Pdf.php';
+        Pdf::baixar($html, 'caixa_' . $periodo['inicio'] . '_a_' . $periodo['fim'] . '.pdf');
+    }
+
+    /**
+     * Traduz ?periodo=dia|semana|mes|ano|custom (+ ?inicio/&fim) num intervalo
+     * concreto. Qualquer valor fora da lista cai em 'mes' — o intervalo nunca
+     * chega ao SQL vindo direto do usuário, sempre reconstruído por date().
+     */
+    private function resolverPeriodo(): array
+    {
+        $tipo = $_GET['periodo'] ?? 'mes';
+        $hoje = date('Y-m-d');
+
+        switch ($tipo) {
+            case 'dia':
+                $inicio = $fim = $hoje;
+                $rotulo = 'Hoje — ' . date('d/m/Y');
+                $gran   = 'dia';
+                break;
+
+            case 'semana':
+                // Semana corrente começando na segunda-feira (date('N'): 1=seg).
+                $diaSemana = (int) date('N');
+                $inicio    = date('Y-m-d', strtotime("-" . ($diaSemana - 1) . " days"));
+                $fim       = date('Y-m-d', strtotime($inicio . ' +6 days'));
+                $rotulo    = 'Semana de ' . date('d/m', strtotime($inicio)) . ' a ' . date('d/m/Y', strtotime($fim));
+                $gran      = 'dia';
+                break;
+
+            case 'ano':
+                $inicio = date('Y-01-01');
+                $fim    = date('Y-12-31');
+                $rotulo = 'Ano de ' . date('Y');
+                $gran   = 'mes';
+                break;
+
+            case 'custom':
+                // Datas livres: valida o formato e ordena; formato inválido volta pro mês.
+                $ini = $_GET['inicio'] ?? '';
+                $f   = $_GET['fim'] ?? '';
+
+                if ($this->dataValida($ini) && $this->dataValida($f)) {
+                    $inicio = min($ini, $f);
+                    $fim    = max($ini, $f);
+                    $rotulo = date('d/m/Y', strtotime($inicio)) . ' a ' . date('d/m/Y', strtotime($fim));
+                    // Intervalo longo (> 92 dias) fica ilegível dia a dia no gráfico.
+                    $gran   = (strtotime($fim) - strtotime($inicio)) > (92 * 86400) ? 'mes' : 'dia';
+                    break;
+                }
+                $tipo = 'mes';
+                // sem break: cai no mês corrente
+
+            case 'mes':
+            default:
+                $tipo   = 'mes';
+                $inicio = date('Y-m-01');
+                $fim    = date('Y-m-t');
+                $rotulo = 'Mês de ' . $this->nomeMes((int) date('m')) . '/' . date('Y');
+                $gran   = 'dia';
+                break;
+        }
+
+        return [
+            'tipo'          => $tipo,
+            'inicio'        => $inicio,
+            'fim'           => $fim,
+            'rotulo'        => $rotulo,
+            'granularidade' => $gran,
+        ];
+    }
+
+    /** Aceita apenas 'YYYY-MM-DD' que exista de fato no calendário. */
+    private function dataValida($data): bool
+    {
+        if (!is_string($data) || !preg_match('/^\d{4}-\d{2}-\d{2}$/', $data)) {
+            return false;
+        }
+
+        [$a, $m, $d] = explode('-', $data);
+
+        return checkdate((int) $m, (int) $d, (int) $a);
+    }
+
+    private function nomeMes(int $mes): string
+    {
+        $meses = [
+            1 => 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho',
+            'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro',
+        ];
+
+        return $meses[$mes] ?? '';
+    }
+
+    /**
      * Registra uma entrada/saída manual na sessão de caixa aberta (POST).
      * Padrão post/redirect/get: volta para a tela de lançamentos.
      */

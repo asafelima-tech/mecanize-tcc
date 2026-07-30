@@ -122,4 +122,8 @@ $routes = [
     'caixaMovimentacoes'         => ['controller' => 'CaixaController', 'method' => 'movimentacoes'],
     'registrarMovimentacaoCaixa' => ['controller' => 'CaixaController', 'method' => 'registrarMovimentacao'],
 
+    /* Caixa (relatório por período: diário/semanal/mensal/anual) */
+    'relatorioCaixa'    => ['controller' => 'CaixaController', 'method' => 'relatorio'],
+    'relatorioCaixaPdf' => ['controller' => 'CaixaController', 'method' => 'exportarRelatorioPdf'],
+
 ];
