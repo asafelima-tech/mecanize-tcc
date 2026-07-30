@@ -207,6 +207,29 @@
   font-weight: 600;
 }
 
+/* atalho para o perfil (avatar + nome/cargo) */
+.sidebar__profile {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  text-decoration: none;
+}
+
+.sidebar__profile-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3B82F6, #1E40AF);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 13px;
+  flex-shrink: 0;
+}
+
 /* =========================================================
    ESTADO COLAPSADO (mini-sidebar)
    ========================================================= */
@@ -273,6 +296,17 @@ body.sidebar-collapsed .sidebar__footer-sub {
 /* centraliza avatar */
 body.sidebar-collapsed .sidebar__footer a {
   justify-content: center;
+}
+
+/* sem o nome/cargo ao lado, o gap deslocava o avatar do eixo dos ícones */
+body.sidebar-collapsed .sidebar__profile-info {
+  display: none;
+}
+
+body.sidebar-collapsed .sidebar__profile {
+  gap: 0;
+  width: 34px;
+  margin: 0 auto;
 }
 
 /* esconde texto "Sair" e deixa só ícone */
@@ -817,6 +851,16 @@ body.sidebar-collapsed .sidebar__logout-label {
 
   body.sidebar-collapsed .sidebar__footer a {
     justify-content: flex-start;
+  }
+
+  body.sidebar-collapsed .sidebar__profile-info {
+    display: block;
+  }
+
+  body.sidebar-collapsed .sidebar__profile {
+    gap: 10px;
+    width: auto;
+    margin: 0;
   }
 
   body.sidebar-collapsed .sidebar__footer a[href="./logout"] {

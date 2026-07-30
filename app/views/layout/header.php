@@ -253,14 +253,14 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
           <span class="dark-toggle__track" aria-hidden="true"></span>
         </button>
 
-        <a href="./perfil" style="display:flex;align-items:center;gap:10px;text-decoration:none;padding:6px 0;">
-          <div style="width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#3B82F6,#1E40AF);color:white;display:inline-flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;flex-shrink:0;">
+        <a href="./perfil" class="sidebar__profile">
+          <div class="sidebar__profile-avatar">
             <?= strtoupper(
               substr($_SESSION['user_nome'] ?? 'U', 0, 1) .
                 substr($_SESSION['user_nome'] ?? 'U', -1)
             ) ?>
           </div>
-          <div>
+          <div class="sidebar__profile-info">
             <div class="sidebar__footer-title"><?= htmlspecialchars($_SESSION['user_nome'] ?? 'Usuário') ?></div>
             <div class="sidebar__footer-sub"><?= htmlspecialchars($_SESSION['user_tipo'] ?? '') ?></div>
           </div>

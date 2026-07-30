@@ -25,7 +25,7 @@ if (!(Test-Path $pastaBackup)) {
 $timestamp = Get-Date -Format "yyyy-MM-dd_HHmm"
 $arquivo   = Join-Path $pastaBackup "mecanize_$timestamp.sql"
 
-& $mysqldump --user=$usuario $banco > $arquivo
+& $mysqldump --user=$usuario --result-file=$arquivo $banco
 
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Falha ao gerar backup (mysqldump saiu com codigo $LASTEXITCODE)."
