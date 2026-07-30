@@ -18,10 +18,24 @@ $totalInativos = $totalInativos ?? count(array_filter($usuarios ?? [], fn($u) =>
 $totalAdmins   = $totalAdmins   ?? count(array_filter($usuarios ?? [], fn($u) => ($u['tipo'] ?? '') === 'ADMIN'));
 $totalNovos30d = $totalNovos30d ?? count(array_filter($usuarios ?? [], fn($u) => !empty($u['criado_em']) && strtotime($u['criado_em']) >= strtotime('-30 days')));
 
-$buscaAtual  = $_GET['busca'] ?? '';
-$tipoAtual   = $_GET['tipo'] ?? '';
-$statusAtual = $_GET['status'] ?? '';
-$temFiltro   = ($buscaAtual !== '' || $tipoAtual !== '' || $statusAtual !== '');
+$buscaAtual = $_GET['busca'] ?? '';
+$tipoAtual  = $_GET['tipo'] ?? '';
+
+// Aba visível (ativos por padrão). O recorte por status é da aba, não é mais
+// um filtro da toolbar — quem decide de verdade é UserController::abaAtual();
+// aqui é só o que a tela usa pra marcar a aba selecionada.
+$abaAtual = $aba ?? 'ativos';
+
+// Busca/tipo são os únicos filtros da toolbar agora.
+$temFiltro = ($buscaAtual !== '' || $tipoAtual !== '');
+
+// A exportação tem que sair igual ao que está na tela: mesma aba e mesmos
+// filtros (o controller usa filtrosDaTela() nos dois casos).
+$queryExport = array_filter([
+    'aba'   => $abaAtual,
+    'busca' => $buscaAtual,
+    'tipo'  => $tipoAtual,
+], fn($v) => $v !== '');
 
 // Retorno das ações de exclusão (UserController::delete)
 $flashErro = [
@@ -53,7 +67,7 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
         <p class="page-header__subtitle">Gerencie contas, permissões e status de acesso do sistema.</p>
     </div>
     <div class="page-header__actions">
-        <a href="./exportUsuarios<?= $temFiltro ? '?' . http_build_query($_GET) : '' ?>" class="btn btn--ghost">
+        <a href="./exportUsuarios?<?= htmlspecialchars(http_build_query($queryExport)) ?>" class="btn btn--ghost" id="usuarios-export">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="7 10 12 15 17 10" />
@@ -85,8 +99,8 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
                 </svg>
             </div>
         </div>
-        <div class="stat-card__value"><?= $totalUsuarios ?? 0 ?></div>
-        <span class="stat-card__delta neutral">Cadastrados no sistema</span>
+        <div class="stat-card__value"><?= $totalGeral ?? (($totalAtivos ?? 0) + ($totalInativos ?? 0)) ?></div>
+        <span class="stat-card__delta neutral">Ativos e inativos</span>
     </div>
 
     <div class="stat-card">
@@ -183,258 +197,96 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
     </div>
 </div>
 
+<!-- ── Abas: Ativos / Inativos ── -->
+<div class="usr-abas" role="tablist" aria-label="Visualização de usuários">
+    <a href="./listUsuarios?aba=ativos"
+       class="usr-aba<?= $abaAtual === 'ativos' ? ' usr-aba--ativa' : '' ?>"
+       role="tab" aria-selected="<?= $abaAtual === 'ativos' ? 'true' : 'false' ?>"
+       data-usuarios-aba="ativos">
+        Usuários Ativos
+        <span class="usr-aba__contador"><?= (int) ($totalAtivos ?? 0) ?></span>
+    </a>
+    <a href="./listUsuarios?aba=inativos"
+       class="usr-aba<?= $abaAtual === 'inativos' ? ' usr-aba--ativa' : '' ?>"
+       role="tab" aria-selected="<?= $abaAtual === 'inativos' ? 'true' : 'false' ?>"
+       data-usuarios-aba="inativos">
+        Usuários Inativos
+        <span class="usr-aba__contador"><?= (int) ($totalInativos ?? 0) ?></span>
+    </a>
+</div>
+
 <!-- ── Tabela ── -->
 <section class="card">
-
-    <!-- Toolbar / Filtros -->
-    <form method="GET" action="./listUsuarios" class="table-toolbar">
-
-        <div class="search-wrap">
-            <input
-                type="text"
-                name="busca"
-                value="<?= htmlspecialchars($buscaAtual) ?>"
-                placeholder="Buscar por nome ou e-mail..." />
-        </div>
-
-        <select name="tipo" class="toolbar-select" onchange="this.form.submit()">
-            <option value="">Tipo: Todos</option>
-            <option value="ADMIN" <?= ($tipoAtual === 'ADMIN') ? 'selected' : '' ?>>Admin</option>
-            <option value="TECNICO" <?= ($tipoAtual === 'TECNICO') ? 'selected' : '' ?>>Técnico</option>
-            <option value="ATENDENTE" <?= ($tipoAtual === 'ATENDENTE') ? 'selected' : '' ?>>Atendente</option>
-        </select>
-
-        <select name="status" class="toolbar-select" onchange="this.form.submit()">
-            <option value="">Status: Todos</option>
-            <option value="1" <?= ($statusAtual === '1') ? 'selected' : '' ?>>Ativo</option>
-            <option value="0" <?= ($statusAtual === '0') ? 'selected' : '' ?>>Inativo</option>
-        </select>
-
-        <button type="submit" class="btn btn--ghost">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-            </svg>
-            Filtrar
-        </button>
-
-        <?php if ($temFiltro): ?>
-            <a href="./listUsuarios" class="btn btn--ghost" style="color:var(--color-danger);">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-                Limpar
-            </a>
-        <?php endif; ?>
-
-        <span style="margin-left:auto;font-size:12px;color:var(--color-text-muted);white-space:nowrap;">
-            <?= count($usuarios ?? []) ?> resultado(s)
-        </span>
-
-    </form>
-
-    <!-- Tabela de usuários -->
-    <div class="table-wrap">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Usuário</th>
-                    <th>Contato</th>
-                    <th>Tipo</th>
-                    <th>Status</th>
-                    <th>Criado em</th>
-                    <th class="text-right">Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($usuarios)): ?>
-                    <?php foreach ($usuarios as $usuario): ?>
-                        <?php
-                        $iniciais = strtoupper(implode('', array_map(
-                            fn($p) => $p[0],
-                            array_slice(explode(' ', trim($usuario['nome'] ?? '')), 0, 2)
-                        )));
-                        $ativo = (int)($usuario['ativo'] ?? 0);
-
-                        // Cor de avatar por tipo — reforça a hierarquia visual sem
-                        // sair da paleta azul monocromática do design system.
-                        $avatarStyle = match ($usuario['tipo'] ?? '') {
-                            'ADMIN'   => 'background:linear-gradient(135deg,#111826 0%,#1E293B 100%);',
-                            'TECNICO' => '',
-                            default   => 'background:linear-gradient(135deg,#F59E0B 0%,#D97706 100%);',
-                        };
-                        ?>
-                        <tr>
-                            <!-- Usuário -->
-                            <td>
-                                <div class="user-cell">
-                                    <div class="avatar avatar--sm" style="<?= $avatarStyle ?>"><?= htmlspecialchars($iniciais) ?></div>
-                                    <div>
-                                        <div class="user-cell__name"><?= htmlspecialchars($usuario['nome'] ?? '-') ?></div>
-                                        <div class="user-cell__sub">#<?= htmlspecialchars($usuario['id_usuario'] ?? '') ?></div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- Contato -->
-                            <td>
-                                <div style="display:flex;align-items:center;gap:6px;font-size:13px;color:var(--color-text-muted);">
-                                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" />
-                                        <polyline points="22,6 12,13 2,6" />
-                                    </svg>
-                                    <?= htmlspecialchars($usuario['email'] ?? '-') ?>
-                                </div>
-                            </td>
-
-                            <!-- Tipo -->
-                            <td>
-                                <?php if (($usuario['tipo'] ?? '') === 'ADMIN'): ?>
-                                    <span class="badge badge--info">
-                                        <span class="badge__dot"></span>Admin
-                                    </span>
-                                <?php elseif (($usuario['tipo'] ?? '') === 'TECNICO'): ?>
-                                    <span class="badge badge--secondary">
-                                        <span class="badge__dot"></span>Técnico
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge badge--warning">
-                                        <span class="badge__dot"></span>Atendente
-                                    </span>
-                                <?php endif; ?>
-                            </td>
-
-                            <!-- Status (clicável, sem sair da página) -->
-                            <td>
-                                <a href="./toggleStatusUsuario&id=<?= $usuario['id_usuario'] ?>"
-                                    title="Clique para <?= $ativo === 1 ? 'desativar' : 'ativar' ?>"
-                                    onclick="return confirm('<?= $ativo === 1 ? 'Desativar' : 'Ativar' ?> este usuário?')"
-                                    style="text-decoration:none;">
-                                    <?php if ($ativo === 1): ?>
-                                        <span class="badge badge--success">
-                                            <span class="badge__dot"></span>Ativo
-                                        </span>
-                                    <?php else: ?>
-                                        <span class="badge badge--danger">
-                                            <span class="badge__dot"></span>Inativo
-                                        </span>
-                                    <?php endif; ?>
-                                </a>
-                            </td>
-
-                            <!-- Criado em -->
-                            <td class="text-muted">
-                                <?= !empty($usuario['criado_em'])
-                                    ? date('d/m/Y', strtotime($usuario['criado_em']))
-                                    : '--' ?>
-                            </td>
-
-                            <!-- Ações -->
-                            <td>
-                                <div class="row-actions" style="justify-content:flex-end;">
-                                    <a href="./viewUsuario&id=<?= $usuario['id_usuario'] ?>"
-                                        class="row-action-btn primary"
-                                        title="Visualizar">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                            <circle cx="12" cy="12" r="3" />
-                                        </svg>
-                                    </a>
-
-                                    <a href="./editUsuario&id=<?= $usuario['id_usuario'] ?>"
-                                        class="row-action-btn"
-                                        title="Editar">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                        </svg>
-                                    </a>
-
-                                    <a href="./deleteUsuario&id=<?= $usuario['id_usuario'] ?>"
-                                        class="row-action-btn danger"
-                                        title="Excluir"
-                                        onclick="return confirm('Deseja excluir este usuário? Esta ação não pode ser desfeita.')">
-                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        </svg>
-                                    </a>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" style="text-align:center;padding:56px 20px;color:var(--color-text-muted);">
-                            <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.4;">
-                                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                            <div style="font-weight:600;color:var(--color-text-secondary);margin-bottom:4px;">
-                                Nenhum usuário encontrado
-                            </div>
-                            <div style="font-size:12px;margin-bottom:16px;">
-                                <?= $temFiltro
-                                    ? 'Tente ajustar os filtros de busca.'
-                                    : 'Comece cadastrando o primeiro usuário do sistema.' ?>
-                            </div>
-                            <?php if ($temFiltro): ?>
-                                <a href="./listUsuarios" class="btn btn--ghost btn--sm">Limpar filtros</a>
-                            <?php else: ?>
-                                <a href="./saveUsuario" class="btn btn--primary btn--sm">Novo Usuário</a>
-                            <?php endif; ?>
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
+    <div id="usuarios-conteudo" aria-busy="false">
+        <?php require __DIR__ . '/_tabelaUsuarios.php'; ?>
     </div>
-
-    <!-- Paginação -->
-    <div class="pagination table-footer">
-        <span>
-            Mostrando <?= count($usuarios ?? []) ?> de <?= $totalUsuarios ?? 0 ?> resultados
-        </span>
-
-        <?php if (!empty($totalPaginas) && $totalPaginas > 1): ?>
-            <div class="pagination__pages">
-                <button
-                    class="pagination__btn"
-                    <?= ($paginaAtual <= 1) ? 'disabled' : '' ?>
-                    onclick="window.location='?<?= http_build_query(array_merge($_GET, ['pagina' => ($paginaAtual - 1)])) ?>'">‹</button>
-
-                <?php
-                // Paginação compacta: mostra sempre a 1ª, a última, a atual e
-                // vizinhas próximas — evita uma lista infinita de botões
-                // quando há muitas páginas.
-                $janela = 1;
-                $ultimaImpressa = 0;
-                for ($p = 1; $p <= $totalPaginas; $p++):
-                    $exibir = ($p === 1 || $p === $totalPaginas || abs($p - $paginaAtual) <= $janela);
-                    if (!$exibir) continue;
-                    if ($ultimaImpressa && $p - $ultimaImpressa > 1): ?>
-                        <span class="pagination__btn" style="border:none;cursor:default;">…</span>
-                    <?php endif; ?>
-                    <button
-                        class="pagination__btn <?= ($p == $paginaAtual) ? 'is-active' : '' ?>"
-                        onclick="window.location='?<?= http_build_query(array_merge($_GET, ['pagina' => $p])) ?>'"><?= $p ?></button>
-                <?php $ultimaImpressa = $p;
-                endfor; ?>
-
-                <button
-                    class="pagination__btn"
-                    <?= ($paginaAtual >= $totalPaginas) ? 'disabled' : '' ?>
-                    onclick="window.location='?<?= http_build_query(array_merge($_GET, ['pagina' => ($paginaAtual + 1)])) ?>'">›</button>
-            </div>
-        <?php endif; ?>
-    </div>
-
 </section>
 
 <style>
+    /* ===== Abas Ativos / Inativos ===== */
+    .usr-abas {
+        display: inline-flex;
+        gap: 4px;
+        background: var(--color-bg-subtle, #F1F5F9);
+        border-radius: var(--radius-md);
+        padding: 4px;
+        margin-bottom: 16px;
+    }
+
+    .usr-aba {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        padding: 8px 16px;
+        border-radius: calc(var(--radius-md) - 2px);
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--color-text-muted);
+        text-decoration: none;
+        transition: background .12s ease, color .12s ease;
+        white-space: nowrap;
+    }
+
+    .usr-aba:hover { color: var(--color-text); }
+
+    .usr-aba--ativa {
+        background: var(--color-surface, #FFF);
+        color: var(--color-primary, #094FE4);
+        box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+    }
+
+    .usr-aba__contador {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 20px;
+        height: 20px;
+        padding: 0 6px;
+        border-radius: 99px;
+        background: var(--color-border, #E2E8F0);
+        color: var(--color-text-muted);
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .usr-aba--ativa .usr-aba__contador {
+        background: var(--color-primary, #094FE4);
+        color: #fff;
+    }
+
+    /* Enquanto o fetch da aba/página não volta, o conteúdo antigo esmaece
+       em vez de sumir — evita o "pulo" de altura da tabela. */
+    #usuarios-conteudo[aria-busy="true"] {
+        opacity: .5;
+        pointer-events: none;
+        transition: opacity .12s ease;
+    }
+
+    @media (max-width: 560px) {
+        .usr-abas { display: flex; width: 100%; }
+        .usr-aba { flex: 1; justify-content: center; }
+    }
+
     .stat-card--clickable {
         position: relative;
         cursor: pointer;
@@ -868,6 +720,148 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
 
         document.addEventListener('keydown', (e) => {
             if (e.key === 'Escape') fecharPainel();
+        });
+    })();
+</script>
+<script>
+    /**
+     * Troca entre "Usuários Ativos" e "Usuários Inativos" sem sair da página.
+     *
+     * Busca/paginação continuam server-side (é o banco que filtra e pagina),
+     * então a troca não pode ser só esconder linhas no DOM: o navegador só
+     * tem a página atual. A aba pede o miolo da tabela à MESMA rota
+     * (./listUsuarios com ?fragmento=1) e substitui só o #usuarios-conteudo.
+     *
+     * Tudo é progressivo: abas, paginação e "limpar" são <a> de verdade e o
+     * filtro é um <form> GET normal — sem JS, a tela funciona recarregando.
+     */
+    (function () {
+        const conteudo = document.getElementById('usuarios-conteudo');
+        const abas     = Array.from(document.querySelectorAll('[data-usuarios-aba]'));
+        const exportar = document.getElementById('usuarios-export');
+
+        if (!conteudo || !abas.length) return;
+
+        let requisicaoAtual = 0;
+
+        function abaDaUrl(url) {
+            return new URL(url, window.location.href).searchParams.get('aba') === 'inativos'
+                ? 'inativos'
+                : 'ativos';
+        }
+
+        function marcarAba(aba) {
+            abas.forEach(function (a) {
+                const ehEsta = a.dataset.usuariosAba === aba;
+                a.classList.toggle('usr-aba--ativa', ehEsta);
+                a.setAttribute('aria-selected', ehEsta ? 'true' : 'false');
+            });
+        }
+
+        // O CSV tem que sair igual ao que está na tela (mesma aba e filtros).
+        function sincronizarExport(url) {
+            if (!exportar) return;
+
+            const origem  = new URL(url, window.location.href).searchParams;
+            const destino = new URLSearchParams();
+
+            ['aba', 'busca', 'tipo'].forEach(function (chave) {
+                const valor = origem.get(chave);
+                if (valor) destino.set(chave, valor);
+            });
+
+            exportar.href = './exportUsuarios?' + destino.toString();
+        }
+
+        async function carregar(url, comHistorico) {
+            const id = ++requisicaoAtual;
+
+            conteudo.setAttribute('aria-busy', 'true');
+
+            try {
+                const alvo = new URL(url, window.location.href);
+                alvo.searchParams.set('fragmento', '1');
+
+                const resposta = await fetch(alvo, {
+                    headers: { 'X-Requested-With': 'fetch' },
+                    credentials: 'same-origin',
+                });
+
+                if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+
+                // O front-controller redireciona (302) quando a sessão caiu ou
+                // o caixa foi fechado em outra aba. O fetch segue o redirect
+                // calado, e sem isto a tela de login/abertura de caixa acabaria
+                // injetada dentro da tabela. Recarrega de verdade nesses casos.
+                if (resposta.redirected && !/[?&]fragmento=1/.test(resposta.url)) {
+                    window.location.href = resposta.url;
+                    return;
+                }
+
+                const html = await resposta.text();
+
+                // Uma resposta antiga não pode sobrescrever uma mais nova
+                // (cliques rápidos entre as abas).
+                if (id !== requisicaoAtual) return;
+
+                conteudo.innerHTML = html;
+                marcarAba(abaDaUrl(url));
+                sincronizarExport(url);
+
+                if (comHistorico) {
+                    // URL sem "fragmento": recarregar a página na mão tem que
+                    // devolver a tela inteira na mesma aba.
+                    history.pushState({ usuarios: true }, '', url);
+                }
+            } catch (erro) {
+                if (id !== requisicaoAtual) return;
+                // Falhou o fetch (offline, sessão expirada): cai na navegação
+                // normal em vez de deixar a tela travada.
+                window.location.href = url;
+            } finally {
+                if (id === requisicaoAtual) {
+                    conteudo.setAttribute('aria-busy', 'false');
+                }
+            }
+        }
+
+        // ── Abas ──
+        abas.forEach(function (aba) {
+            aba.addEventListener('click', function (e) {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                carregar(aba.getAttribute('href'), true);
+            });
+        });
+
+        // ── Paginação e "limpar filtros" (vêm dentro do fragmento trocado,
+        //    por isso delegação em vez de listener por elemento) ──
+        conteudo.addEventListener('click', function (e) {
+            const link = e.target.closest('[data-usuarios-link]');
+            if (!link) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+
+            e.preventDefault();
+            carregar(link.getAttribute('href'), true);
+        });
+
+        // ── Formulário de busca/tipo ──
+        conteudo.addEventListener('submit', function (e) {
+            const form = e.target.closest('[data-usuarios-filtro]');
+            if (!form) return;
+
+            e.preventDefault();
+
+            const dados = new URLSearchParams(new FormData(form));
+            // Filtro novo recomeça da primeira página.
+            dados.delete('pagina');
+
+            carregar('./listUsuarios?' + dados.toString(), true);
+        });
+
+        // ── Voltar/avançar do navegador ──
+        window.addEventListener('popstate', function () {
+            carregar(window.location.href, false);
         });
     })();
 </script>

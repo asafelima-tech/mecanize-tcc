@@ -42,7 +42,10 @@ class Controller
 
         // Views que não usam o layout padrão (sem sidebar/topbar)
         // Comparação sensível a maiúsculas: inclui as variações usadas pelos controllers.
-        $noLayout = ['auth/login', 'user/login', 'Usuarios/login', 'Site/termos', 'Site/privacidade', 'Site/painel', 'Site/rastreio', 'Site/rastreioNaoEncontrado'];
+        // Views sem sidebar/topbar. Além das telas de tela cheia, entram aqui
+        // os fragmentos carregados por fetch (prefixo _), que substituem só um
+        // pedaço de uma página já renderizada.
+        $noLayout = ['auth/login', 'user/login', 'Usuarios/login', 'Site/termos', 'Site/privacidade', 'Site/painel', 'Site/rastreio', 'Site/rastreioNaoEncontrado', 'Usuarios/_tabelaUsuarios'];
 
         if (in_array($view, $noLayout)) {
             require_once __DIR__ . "/../views/{$view}.php";

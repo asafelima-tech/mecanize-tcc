@@ -211,12 +211,8 @@ class UserController extends Controller
 
         $usuario = $this->model('User');
 
-        // ── Lê os filtros vindos do formulário da view (name="busca"/"tipo"/"status") ──
-        $filtros = [
-            'busca'  => trim($_GET['busca'] ?? ''),
-            'tipo'   => trim($_GET['tipo'] ?? ''),
-            'status' => ($_GET['status'] ?? '') !== '' ? (int) $_GET['status'] : null,
-        ];
+        $aba     = $this->abaAtual();
+        $filtros = $this->filtrosDaTela();
 
         // ── Paginação ──
         $paginaAtual = isset($_GET['pagina']) ? (int) $_GET['pagina'] : 1;
@@ -244,16 +240,53 @@ class UserController extends Controller
             'totalUsuarios' => $totalUsuarios,
             'paginaAtual'   => $paginaAtual,
             'totalPaginas'  => $totalPaginas,
+            'aba'           => $aba,
 
             // Cards de estatística: sempre globais (visão geral do sistema),
-            // independentes do filtro aplicado na tabela abaixo.
+            // independentes da aba e do filtro aplicados na tabela abaixo.
+            // $totalUsuarios acima conta só a aba atual (é o que alimenta a
+            // paginação); o card "Total de usuários" precisa do geral.
+            'totalGeral'    => $usuario->countFiltrado([]),
             'totalAtivos'   => $usuario->countAtivos(),
             'totalInativos' => $usuario->countInativos(),
             'totalAdmins'   => $usuario->countAdmins(),
             'totalNovos30d' => $usuario->countNovos30d(),
         ];
 
+        // Troca de aba / paginação / busca chegam por fetch e só precisam do
+        // miolo da tela. É a MESMA rota — o que muda é devolver só o pedaço
+        // que vai ser trocado, em vez da página inteira com layout.
+        if (!empty($_GET['fragmento'])) {
+            $this->view('Usuarios/_tabelaUsuarios', $dados);
+            return;
+        }
+
         $this->view('Usuarios/listUsuarios', $dados);
+    }
+
+    /**
+     * Aba visível da tela de usuários: 'ativos' (padrão) ou 'inativos'.
+     * Qualquer outro valor cai em 'ativos' — a aba decide o recorte da
+     * listagem, então não pode aceitar entrada arbitrária.
+     */
+    private function abaAtual(): string
+    {
+        return (($_GET['aba'] ?? '') === 'inativos') ? 'inativos' : 'ativos';
+    }
+
+    /**
+     * Filtros da tela de usuários. O status NÃO vem de um campo próprio: é a
+     * aba que decide se a listagem mostra ativos ou inativos. Compartilhado
+     * entre list() e exportar() pra exportação sair sempre igual ao que está
+     * na tela.
+     */
+    private function filtrosDaTela(): array
+    {
+        return [
+            'busca'  => trim($_GET['busca'] ?? ''),
+            'tipo'   => trim($_GET['tipo'] ?? ''),
+            'status' => $this->abaAtual() === 'inativos' ? 0 : 1,
+        ];
     }
 
     /**
@@ -266,13 +299,7 @@ class UserController extends Controller
 
         $usuario = $this->model('User');
 
-        $filtros = [
-            'busca'  => trim($_GET['busca'] ?? ''),
-            'tipo'   => trim($_GET['tipo'] ?? ''),
-            'status' => ($_GET['status'] ?? '') !== '' ? (int) $_GET['status'] : null,
-        ];
-
-        $usuarios = $usuario->listAll($filtros);
+        $usuarios = $usuario->listAll($this->filtrosDaTela());
 
         header('Content-Type: text/csv; charset=UTF-8');
         header('Content-Disposition: attachment; filename="usuarios_' . date('Y-m-d_His') . '.csv"');
