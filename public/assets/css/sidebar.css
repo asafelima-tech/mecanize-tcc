@@ -235,10 +235,25 @@
    ========================================================= */
 body.sidebar-collapsed {
   --sidebar-width: 72px;
+
+  /* Medida única da "caixa" de cada item recolhido. Nav, perfil, sair e o
+     botão de recolher usam todos esta mesma largura/altura — é o que faz a
+     coluna ler como um eixo só, em vez de quatro tamanhos diferentes
+     empilhados (antes: 32px na nav, 34px no avatar, 36px no sair e largura
+     total no botão de recolher). */
+  --sidebar-item: 36px;
 }
 
 body.sidebar-collapsed .sidebar__brand {
   padding: 18px 8px 12px;
+}
+
+/* A logo é a primeira coisa do eixo: sem isto ela herda o tamanho natural
+   da imagem e desalinha do resto da coluna. */
+body.sidebar-collapsed .sidebar__logo-icon {
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
+  margin-inline: auto;
 }
 
 /* Troca de logo: esconde completa, mostra ícone M */
@@ -252,16 +267,28 @@ body.sidebar-collapsed .sidebar__logo-icon {
 
 /* reverte a nav pro padding simétrico no colapsado */
 body.sidebar-collapsed .sidebar__nav {
-  padding: 8px 8px;
+  padding: 8px 4px;
+
+  /* A nav rola, e a barra de rolagem come largura SÓ do lado direito: a
+     caixa de conteúdo encolhia e tudo que era centralizado dentro dela
+     ficava meia-barra à esquerda (5px, medido). Como brand, rodapé e botão
+     de recolher ficam FORA da nav, eles seguiam no centro real — e a coluna
+     saía torta. `both-edges` reserva a mesma calha dos dois lados, então o
+     eixo é o mesmo com ou sem barra visível.
+     Safari não suporta a propriedade, mas lá a barra é overlay e não ocupa
+     largura nenhuma — o alinhamento já sai certo sem ela. */
+  scrollbar-gutter: stable both-edges;
 }
 
-/* estreita a caixa de hover/clique, mantendo o ícone centralizado */
+/* caixa quadrada e centralizada: mesmo alvo de clique em todos os itens */
 body.sidebar-collapsed .sidebar__nav li a {
   justify-content: center;
-  padding: 10px 0;
+  align-items: center;
+  padding: 0;
   gap: 0;
-  width: 32px;
-  margin: 0 auto;
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
+  margin-inline: auto;
 }
 
 body.sidebar-collapsed .sidebar__nav .label {
@@ -270,9 +297,14 @@ body.sidebar-collapsed .sidebar__nav .label {
   pointer-events: none;
 }
 
-/* No modo recolhido, o título de seção vira uma linha divisória */
+/* No modo recolhido, o título de seção vira uma linha divisória.
+   A largura acompanha a caixa dos itens (antes era o que sobrasse de
+   `margin: 10px 14px`, dando 17px contra 32px dos ícones — a linha ficava
+   visivelmente mais curta e fora do eixo). */
 body.sidebar-collapsed .sidebar__section {
-  margin: 10px 14px;
+  width: var(--sidebar-item);
+  margin: 10px auto;
+  padding: 0;
   height: 1px;
   font-size: 0;
   letter-spacing: 0;
@@ -305,8 +337,19 @@ body.sidebar-collapsed .sidebar__profile-info {
 
 body.sidebar-collapsed .sidebar__profile {
   gap: 0;
-  width: 34px;
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
+  padding: 0;
   margin: 0 auto;
+  justify-content: center;
+  align-items: center;
+}
+
+/* o avatar preenche a caixa, em vez de ficar 34px dentro de um box de outra
+   medida — assim o círculo fica no mesmo eixo e no mesmo tamanho do resto */
+body.sidebar-collapsed .sidebar__profile-avatar {
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
 }
 
 /* esconde texto "Sair" e deixa só ícone */
@@ -320,16 +363,23 @@ body.sidebar-collapsed .sidebar__footer a[href="./logout"] svg {
   height: 16px;
 }
 
-/* indicador ativo continua aparecendo */
+/* Indicador de item ativo. Encostado na borda esquerda da própria caixa: a
+   distância até a borda da sidebar depende da calha da barra de rolagem, que
+   varia por navegador — ancorar na caixa mantém o traço no mesmo lugar em
+   todos os itens, que é o que importa pro alinhamento. */
 body.sidebar-collapsed .sidebar__nav li.is-active a::before {
-  left: -8px;
+  left: -6px;
+  height: var(--sidebar-item);
 }
 
-/* botão de recolher quando o sidebar está colapsado */
+/* botão de recolher: mesma caixa dos demais itens da coluna */
 body.sidebar-collapsed .sidebar__collapse {
   justify-content: center;
-  padding: 9px 0;
-  margin: 6px 8px 10px;
+  align-items: center;
+  padding: 0;
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
+  margin: 6px auto 10px;
 }
 
 body.sidebar-collapsed .sidebar__collapse-icon {
@@ -468,8 +518,8 @@ body.sidebar-collapsed .sidebar__logout {
   justify-content: center;
   align-items: center;
   gap: 0;
-  width: 36px;
-  height: 36px;
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
   padding: 0;
   margin: 8px auto 0;
   border-radius: 50%;
@@ -826,10 +876,31 @@ body.sidebar-collapsed .sidebar__logout-label {
     display: none;
   }
 
+  body.sidebar-collapsed .sidebar__nav {
+    padding: 8px 12px;
+    scrollbar-gutter: auto;
+  }
+
   body.sidebar-collapsed .sidebar__nav li a {
     justify-content: flex-start;
     padding: 9px 14px;
     gap: 12px;
+    width: auto;
+    height: auto;
+    margin-inline: 0;
+  }
+
+  /* volta a ser um título de seção, não a linha divisória do modo estreito */
+  body.sidebar-collapsed .sidebar__section {
+    width: auto;
+    margin: 18px 14px 6px;
+  }
+
+  body.sidebar-collapsed .sidebar__collapse {
+    width: auto;
+    height: auto;
+    padding: 9px 12px;
+    margin: 6px 12px 10px;
   }
 
   body.sidebar-collapsed .sidebar__nav .label {
@@ -860,7 +931,15 @@ body.sidebar-collapsed .sidebar__logout-label {
   body.sidebar-collapsed .sidebar__profile {
     gap: 10px;
     width: auto;
+    height: auto;
+    padding: 6px 0;
     margin: 0;
+    justify-content: flex-start;
+  }
+
+  body.sidebar-collapsed .sidebar__profile-avatar {
+    width: 34px;
+    height: 34px;
   }
 
   body.sidebar-collapsed .sidebar__footer a[href="./logout"] {
@@ -871,6 +950,9 @@ body.sidebar-collapsed .sidebar__logout-label {
   body.sidebar-collapsed .sidebar__logout {
     justify-content: flex-start;
     padding: 10px 12px;
+    width: auto;
+    height: auto;
+    border-radius: var(--radius-md);
   }
 
   body.sidebar-collapsed .sidebar__logout-label {
