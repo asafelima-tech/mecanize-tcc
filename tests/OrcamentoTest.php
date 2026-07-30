@@ -27,7 +27,7 @@ final class OrcamentoTest extends TestCase
 
         // orcamentos.cliente_id/veiculo_id têm FK de verdade (diferente de
         // clientes/produtos, que não têm) — precisa de linhas reais.
-        $this->pdo->exec("INSERT INTO clientes (tipo_pessoa, nome, ativo) VALUES ('FISICA', 'Cliente Teste PHPUnit', 1)");
+        $this->pdo->exec("INSERT INTO clientes (tipo_pessoa, nome, ativo) VALUES ('PF', 'Cliente Teste PHPUnit', 1)");
         $this->clienteId = (int) $this->pdo->lastInsertId();
 
         $this->pdo->exec("
