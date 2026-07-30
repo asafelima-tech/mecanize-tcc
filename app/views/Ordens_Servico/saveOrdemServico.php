@@ -10,6 +10,14 @@ $produtos        = $produtos        ?? [];
 $servicos        = $servicos        ?? [];
 $proximoNumeroOS = $proximoNumeroOS ?? 'OS-0042';
 $error           = $error           ?? '';
+
+// Pré-preenchimento vindo da agenda ("Gerar OS" num agendamento). Só chega
+// aqui pelo GET montado em AgendamentoController::gerarOrdemServico();
+// aberto direto, o formulário continua em branco como sempre.
+$preCliente     = $preCliente     ?? '';
+$preVeiculo     = $preVeiculo     ?? '';
+$preDefeito     = $preDefeito     ?? '';
+$preAgendamento = $preAgendamento ?? '';
 ?>
 
 <!-- ============================================================
@@ -52,6 +60,12 @@ $error           = $error           ?? '';
         <!-- FORM envolve BODY + FOOTER -->
         <form action="./saveOrdemServico" method="POST" id="formCriarOS" onsubmit="return prepararSubmit()"
             style="display:flex; flex-direction:column; flex:1; min-height:0; overflow:hidden;">
+
+            <?php if ($preAgendamento !== ''): ?>
+                <!-- Marca a OS como originada de um agendamento, pra agenda saber
+                     que aquele horário virou serviço (ver AgendamentoController). -->
+                <input type="hidden" name="agendamento_id" value="<?= htmlspecialchars($preAgendamento) ?>">
+            <?php endif; ?>
 
             <!-- BODY -->
             <div class="modal__body">
@@ -110,7 +124,8 @@ $error           = $error           ?? '';
                             <select name="cliente_id" id="cliente_id" required>
                                 <option value="">Selecione o cliente</option>
                                 <?php foreach ($clientes as $cliente): ?>
-                                    <option value="<?= htmlspecialchars($cliente['id_cliente']) ?>">
+                                    <option value="<?= htmlspecialchars($cliente['id_cliente']) ?>"
+                                        <?= (string) $preCliente === (string) $cliente['id_cliente'] ? 'selected' : '' ?>>
                                         <?= htmlspecialchars($cliente['nome']) ?>
                                     </option>
                                 <?php endforeach; ?>
@@ -297,7 +312,7 @@ $error           = $error           ?? '';
                     <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
                         <div class="form-field">
                             <label>Defeito Relatado</label>
-                            <textarea name="defeito_relatado" rows="4" placeholder="Descreva o problema relatado pelo cliente..."></textarea>
+                            <textarea name="defeito_relatado" rows="4" placeholder="Descreva o problema relatado pelo cliente..."><?= htmlspecialchars($preDefeito) ?></textarea>
                         </div>
                         <div class="form-field">
                             <label>Diagnóstico Técnico</label>
@@ -1329,5 +1344,20 @@ $error           = $error           ?? '';
 
     /* Init */
     filtrarVeiculosPorCliente();
+
+    // Veículo vindo da agenda: só dá pra selecionar depois que
+    // filtrarVeiculosPorCliente() repovoou a lista com os veículos do cliente.
+    (function () {
+        const preVeiculo = <?= json_encode((string) $preVeiculo) ?>;
+        if (!preVeiculo || !veiculoSelect) return;
+
+        const ts = getTS(veiculoSelect);
+        if (ts) {
+            ts.setValue(preVeiculo, true);
+        } else {
+            veiculoSelect.value = preVeiculo;
+        }
+    })();
+
     recalcular();
 </script>

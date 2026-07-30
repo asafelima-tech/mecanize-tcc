@@ -100,6 +100,14 @@ $routes = [
     /* Relatórios */
     'listRel' => ['controller' => 'RelatorioController', 'method' => 'listRelatorio'],
 
+    /* Agenda de serviços */
+    'listAgendamentos'   => ['controller' => 'AgendamentoController', 'method' => 'list'],
+    'saveAgendamento'    => ['controller' => 'AgendamentoController', 'method' => 'save'],
+    'editAgendamento'    => ['controller' => 'AgendamentoController', 'method' => 'edit'],
+    'statusAgendamento'  => ['controller' => 'AgendamentoController', 'method' => 'status'],
+    'deleteAgendamento'  => ['controller' => 'AgendamentoController', 'method' => 'delete'],
+    'gerarOsAgendamento' => ['controller' => 'AgendamentoController', 'method' => 'gerarOrdemServico'],
+
     /* Senha */
     'recuperar-senha' => ['controller' => 'UserController', 'method' => 'recuperarSenha'],
     'redefinir-senha' => ['controller' => 'UserController', 'method' => 'redefinirSenha'],

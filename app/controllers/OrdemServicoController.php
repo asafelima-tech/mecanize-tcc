@@ -165,6 +165,13 @@ class OrdemServicoController extends Controller
             }
 
             if ($sucesso) {
+                // OS aberta a partir da agenda: marca o agendamento como
+                // convertido. create() devolve o id da OS criada.
+                if (!empty($_POST['agendamento_id'])) {
+                    $this->model('Agendamento')
+                        ->vincularOrdemServico((int) $_POST['agendamento_id'], (int) $sucesso);
+                }
+
                 header('Location: ./listOrdemServico');
                 exit;
             }
@@ -180,6 +187,13 @@ class OrdemServicoController extends Controller
         }
 
         $dados = $this->dadosFormularioOS($ordemServico);
+
+        // Pré-preenchimento quando a OS vem de um agendamento (botão "Gerar OS").
+        $dados['preCliente']     = $_GET['cliente_id']     ?? '';
+        $dados['preVeiculo']     = $_GET['veiculo_id']     ?? '';
+        $dados['preDefeito']     = $_GET['defeito']        ?? '';
+        $dados['preAgendamento'] = $_GET['agendamento_id'] ?? '';
+
         $this->view('Ordens_Servico/saveOrdemServico', $dados);
     }
 

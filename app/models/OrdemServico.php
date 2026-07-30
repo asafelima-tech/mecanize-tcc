@@ -531,7 +531,12 @@ class OrdemServico
             }
 
             $this->conn->commit();
-            return true;
+
+            // Devolve o id (em vez de só true) pra quem criou a OS conseguir
+            // referenciá-la depois — é o que permite a agenda vincular o
+            // agendamento à OS gerada. Continua sendo um valor "verdadeiro",
+            // então os callers que só testam sucesso não mudam.
+            return (int) $id;
         } catch (Throwable $e) {
             if ($this->conn->inTransaction()) {
                 $this->conn->rollBack();
