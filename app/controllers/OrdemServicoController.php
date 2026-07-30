@@ -418,6 +418,13 @@ class OrdemServicoController extends Controller
                 . "<p>Seu veículo (placa " . htmlspecialchars($ordem['placa'] ?? '') . "), referente à OS nº "
                 . htmlspecialchars($ordem['numero_os'] ?? '') . ", está pronto para retirada.</p>";
 
+            // Link de rastreio público (sem login) — a página já existe e o
+            // token já é gerado pra tela de detalhe da OS; sem isso o cliente
+            // recebia o aviso e não tinha como ver o serviço pela internet.
+            $link = $this->urlAbsoluta('rastrear?token=' . $ordemServico->getOuCriarToken((int) $id));
+            $corpo .= '<p>Acompanhe os detalhes do serviço em: <a href="' . htmlspecialchars($link) . '">'
+                . htmlspecialchars($link) . '</a></p>';
+
             require_once __DIR__ . '/../core/Mailer.php';
             (new Mailer())->enviar($cliente['email'], 'Seu veículo está pronto - Mecanize', $corpo);
         } catch (\Throwable $e) {

@@ -137,6 +137,13 @@ class OrcamentoController extends Controller
                 . "<p>Seu orçamento nº " . htmlspecialchars($orc['numero']) . " foi aprovado, no valor de R$ {$valor}.</p>"
                 . "<p>Em breve entraremos em contato para dar andamento ao serviço.</p>";
 
+            // Link de rastreio público (sem login) — mesma página já usada na
+            // tela de detalhe do orçamento; o cliente passa a conseguir
+            // reabrir o documento pelo próprio e-mail.
+            $link = $this->urlAbsoluta('rastrear?token=' . $orcamento->getOuCriarToken((int) $id));
+            $corpo .= '<p>Consulte o orçamento em: <a href="' . htmlspecialchars($link) . '">'
+                . htmlspecialchars($link) . '</a></p>';
+
             require_once __DIR__ . '/../core/Mailer.php';
             (new Mailer())->enviar($cliente['email'], 'Orçamento aprovado - Mecanize', $corpo);
         } catch (\Throwable $e) {
