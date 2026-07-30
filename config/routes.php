@@ -29,6 +29,7 @@ $routes = [
     'saveUsuario'   => ['controller' => 'UserController', 'method' => 'save'],
     'editUsuario'   => ['controller' => 'UserController', 'method' => 'edit'],
     'deleteUsuario' => ['controller' => 'UserController', 'method' => 'delete'],
+    'toggleStatusUsuario' => ['controller' => 'UserController', 'method' => 'toggleStatus'],
     'listUsuariosNovos30d' => ['controller' => 'UserController', 'method' => 'novos30dList'],
     'usuarioPerfilJson'    => ['controller' => 'UserController', 'method' => 'perfilJson'],
 

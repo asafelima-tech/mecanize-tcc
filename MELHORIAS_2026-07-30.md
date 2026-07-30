@@ -236,6 +236,31 @@ quebrar:
 
 Coberto por `tests/UsuarioExclusaoTest.php` (5 testes).
 
+### 7.3 — Desativar usuário caía em 404: rota nunca registrada
+
+Relatado logo depois: clicar no badge de status na listagem de usuários
+levava a `./toggleStatusUsuario&id=11` e caía na tela 404.
+
+O método `UserController::toggleStatus()` existia e estava completo, o
+`User::toggleStatus()` também, e o link estava na tela
+(`listUsuarios.php:309`) — **só a rota nunca foi registrada** em
+`config/routes.php`. Sem entrada na tabela, `public/index.php` cai no
+`ErrorController::erro404()`. Uma linha resolveu.
+
+**O que isso revelou de mais útil:** a checagem de integridade que eu tinha
+feito ia só num sentido (toda rota aponta pra um método que existe) — e
+passava. O sentido que faltava era o inverso: **todo link de tela aponta pra
+uma rota que existe**. É exatamente onde esse bug morava, e é um bug
+silencioso: não quebra teste, não quebra build, não aparece em log; só
+aparece quando alguém clica.
+
+Virou `tests/RotasTest.php`, com as duas direções mais uma checagem de
+chave duplicada em `routes.php` (que o PHP sobrescreveria calado). O teste
+foi validado ao contrário: com a rota removida, ele falha apontando
+`Usuarios/listUsuarios.php:309`; com ela, passa. Varrendo todas as views e
+todo o JS de `public/assets/js`, `toggleStatusUsuario` era o **único** link
+morto do sistema.
+
 ## O que fica pendente
 
 - **Nada disso foi testado no navegador de verdade.** A verificação foi por
@@ -260,7 +285,9 @@ Coberto por `tests/UsuarioExclusaoTest.php` (5 testes).
   Stop/Start pelo painel resolve a exibição.
 - As correções da seção 7 foram validadas por teste automatizado e gerando
   os PDFs pelo mesmo caminho de código do controller, **mas não foram
-  clicadas no navegador** — vale repetir os três fluxos relatados.
+  clicadas no navegador** — vale repetir os fluxos relatados. (O 404 do
+  7.3 apareceu justamente aí: eu tinha avisado que nada fora clicado, e
+  era um caso que só clicando dava pra ver. Agora está coberto por teste.)
 - Os botões de excluir usam link `GET` (`<a href="./deleteUsuario&id=...">`),
   padrão repetido em vários módulos. Não é explorável hoje: o guarda de
   "URL inerte" do `public/index.php` exige navegação same-origin em GET, o
