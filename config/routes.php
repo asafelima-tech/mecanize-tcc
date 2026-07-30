@@ -41,7 +41,6 @@ $routes = [
     'listOrcamentos'    => ['controller' => 'OrcamentoController', 'method' => 'list'],
     'saveOrcamento'     => ['controller' => 'OrcamentoController', 'method' => 'saveOrcamento'],
     'novoOrcamento'     => ['controller' => 'OrcamentoController', 'method' => 'save'],
-    'storeOrcamento'    => ['controller' => 'OrcamentoController', 'method' => 'store'],
     'viewOrcamento'     => ['controller' => 'OrcamentoController', 'method' => 'visualizar'],
     'editOrcamento'     => ['controller' => 'OrcamentoController', 'method' => 'edit'],
     'aprovarOrcamento'  => ['controller' => 'OrcamentoController', 'method' => 'aprovarOrcamento'],

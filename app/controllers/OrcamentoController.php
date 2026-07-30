@@ -169,26 +169,6 @@ class OrcamentoController extends Controller
         exit;
     }
 
-    public function store()
-    {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ./listOrcamentos');
-            exit;
-        }
-
-        $orcamento = $this->model('Orcamento');
-
-        if ($orcamento->criar($_POST)) {
-            header('Location: ./listOrcamentos');
-            exit;
-        }
-
-        $dados = $orcamento->getDadosFormulario();
-        $dados['error'] = 'Erro ao salvar o orçamento.';
-
-        $this->view('Orcamento/saveOrcamento', $dados);
-    }
-
     public function visualizar()
     {
         if (empty($_GET['id'])) {
