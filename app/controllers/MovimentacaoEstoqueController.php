@@ -26,6 +26,8 @@ class MovimentacaoEstoqueController extends Controller
     // ── SAVE: GET abre formulário / POST registra movimentação ───────
     public function save()
     {
+        $this->requireRole(['ADMIN', 'TECNICO']);
+
         $model = $this->model('MovimentacaoEstoque');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -75,6 +77,8 @@ class MovimentacaoEstoqueController extends Controller
     // ── EDIT: GET abre edição / POST atualiza ───────────────────────────
 public function edit()
 {
+    $this->requireRole(['ADMIN', 'TECNICO']);
+
     $model = $this->model('MovimentacaoEstoque');
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

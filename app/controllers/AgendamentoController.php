@@ -37,6 +37,8 @@ class AgendamentoController extends Controller
      */
     public function save()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $agendamento = $this->model('Agendamento');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -100,6 +102,8 @@ class AgendamentoController extends Controller
      */
     public function edit()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $agendamento = $this->model('Agendamento');
 
         $id = (int) ($_POST['id_agendamento'] ?? $_GET['id'] ?? 0);
@@ -155,6 +159,8 @@ class AgendamentoController extends Controller
      */
     public function status()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listAgendamentos');
             exit;
@@ -195,6 +201,8 @@ class AgendamentoController extends Controller
      */
     public function gerarOrdemServico()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listAgendamentos');
             exit;

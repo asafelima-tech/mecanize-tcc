@@ -1,4 +1,4 @@
-    <?php
+<?php
 
     class ProdutoController extends Controller
     {
@@ -13,6 +13,8 @@
 
         public function save()
     {
+            $this->requireRole(['ADMIN']);
+
         $produto = $this->model('Produtos');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -65,6 +67,8 @@
 
     public function edit()
     {
+        $this->requireRole(['ADMIN']);
+
         $produto = $this->model('Produtos');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -129,8 +133,7 @@
         ];
 
         if (!$dados['produto']) {
-            header('Location: ./listProduto');
-            exit;
+            $this->naoEncontrado('Produto', './listProduto');
         }
 
         $this->view('Produtos/editProduto', $dados);
@@ -151,8 +154,7 @@
             ];
 
             if (!$dados['produto']) {
-                header('Location: ./listProduto');
-                exit;
+                $this->naoEncontrado('Produto', './listProduto');
             }
 
             $this->view('Produtos/viewProduto', $dados);

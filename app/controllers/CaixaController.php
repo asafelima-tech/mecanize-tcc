@@ -11,6 +11,8 @@ class CaixaController extends Controller
      */
     public function abrir()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -81,6 +83,8 @@ class CaixaController extends Controller
      */
     public function fechar()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -147,6 +151,8 @@ class CaixaController extends Controller
      */
     public function list()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -185,6 +191,8 @@ class CaixaController extends Controller
      */
     public function movimentacoes()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -249,7 +257,8 @@ class CaixaController extends Controller
         ];
 
         // Renderiza a view de PDF em buffer e entrega ao Dompdf.
-        extract($dados);
+        // EXTR_SKIP: uma chave do array não pode sobrescrever $dados ou $html.
+        extract($dados, EXTR_SKIP);
         ob_start();
         require __DIR__ . '/../views/Caixa/pdfRelatorioCaixa.php';
         $html = ob_get_clean();
@@ -354,6 +363,8 @@ class CaixaController extends Controller
      */
     public function registrarMovimentacao()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./caixaMovimentacoes');
             exit;

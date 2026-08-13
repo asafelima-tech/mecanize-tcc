@@ -91,8 +91,7 @@ class OrdemServicoController extends Controller
         $ordem        = $ordemServico->getById($id);
 
         if (!$ordem) {
-            header('Location: ./listOrdemServico');
-            exit;
+            $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
         }
 
         $tokenRastreio = $ordemServico->getOuCriarToken((int) $id);
@@ -123,8 +122,7 @@ class OrdemServicoController extends Controller
         $os           = $ordemServico->getById($id);
 
         if (!$os) {
-            header('Location: ./listOrdemServico');
-            exit;
+            $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
         }
 
         $itens = $ordemServico->getItensByOS($id);
@@ -142,6 +140,8 @@ class OrdemServicoController extends Controller
 
     public function save()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $ordemServico = $this->model('OrdemServico');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -269,8 +269,7 @@ class OrdemServicoController extends Controller
     $ordem = $ordemServico->getById($id);
 
     if (!$ordem) {
-        header('Location: ./listOrdemServico');
-        exit;
+        $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
     }
 
     $dados = $this->dadosFormularioOS($ordemServico);
@@ -296,6 +295,12 @@ class OrdemServicoController extends Controller
 
     public function delete()
     {
+        // Era a única exclusão do sistema sem restrição de papel: qualquer
+        // técnico ou atendente apagava uma OS em definitivo (não é desativação,
+        // é DELETE). Todas as outras — cliente, veículo, categoria, usuário,
+        // agendamento — já exigiam ADMIN.
+        $this->requireRole(['ADMIN']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listOrdemServico');
             exit;
@@ -309,14 +314,30 @@ class OrdemServicoController extends Controller
         }
 
         $ordemServico = $this->model('OrdemServico');
-        $ordemServico->delete($id);
 
-        header('Location: ./listOrdemServico');
+        // OS com agendamento vinculado é barrada pela foreign key. Antes isso
+        // virava PDOException não tratada e tela 500; agora vira uma mensagem
+        // dizendo o que impede.
+        $vinculos = $ordemServico->vinculos($id);
+
+        if (!empty($vinculos)) {
+            header('Location: ./listOrdemServico?erro=vinculos&detalhe=' . urlencode(implode(', ', $vinculos)));
+            exit;
+        }
+
+        if (!$ordemServico->delete($id)) {
+            header('Location: ./listOrdemServico?erro=exclusao');
+            exit;
+        }
+
+        header('Location: ./listOrdemServico?ok=excluido');
         exit;
     }
 
     public function concluir()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listOrdemServico');
             exit;

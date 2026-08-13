@@ -18,6 +18,8 @@ class CategoriaController extends Controller
 
     public function save()
     {
+        $this->requireRole(['ADMIN']);
+
         $categoria = $this->model('Categoria');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -48,6 +50,8 @@ class CategoriaController extends Controller
 
    public function edit()
 {
+       $this->requireRole(['ADMIN']);
+
     $categoria = $this->model('Categoria');
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {

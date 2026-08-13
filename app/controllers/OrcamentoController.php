@@ -14,6 +14,8 @@ class OrcamentoController extends Controller
     // Exibe o formulário (GET)
     public function save()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $orcamento = $this->model('Orcamento');
         $dados = $orcamento->getDadosFormulario();
         $this->view('Orcamento/saveOrcamento', $dados);
@@ -22,6 +24,8 @@ class OrcamentoController extends Controller
     // Processa o POST e salva (chamado pelo action="./saveOrcamento")
     public function saveOrcamento()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listOrcamentos');
             exit;
@@ -79,6 +83,8 @@ class OrcamentoController extends Controller
 
     public function aprovarOrcamento()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listOrcamentos');
             exit;
@@ -153,6 +159,8 @@ class OrcamentoController extends Controller
 
     public function recusarOrcamento()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listOrcamentos');
             exit;
@@ -191,8 +199,7 @@ class OrcamentoController extends Controller
         ];
 
         if (!$dados['orcamento']) {
-            header('Location: ./listOrcamentos');
-            exit;
+            $this->naoEncontrado('Orçamento', './listOrcamentos');
         }
 
         $tokenRastreio = $orcamento->getOuCriarToken((int) $_GET['id']);
@@ -203,6 +210,8 @@ class OrcamentoController extends Controller
 
     public function edit()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $orcamento = $this->model('Orcamento');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -250,8 +259,7 @@ class OrcamentoController extends Controller
         $dados['itens']     = $orcamento->getItensByOrcamento($_GET['id']);
 
         if (!$dados['orcamento']) {
-            header('Location: ./listOrcamentos');
-            exit;
+            $this->naoEncontrado('Orçamento', './listOrcamentos');
         }
 
         $this->view('Orcamento/editOrcamento', $dados);
@@ -300,8 +308,7 @@ class OrcamentoController extends Controller
 
         $orc = $orcamento->getById($_GET['id']);
         if (!$orc) {
-            header('Location: ./listOrcamentos');
-            exit;
+            $this->naoEncontrado('Orçamento', './listOrcamentos');
         }
 
         $itens = $orcamento->getItensByOrcamento($_GET['id']);
@@ -328,8 +335,7 @@ class OrcamentoController extends Controller
 
         $orc = $orcamento->getById($_GET['id']);
         if (!$orc) {
-            header('Location: ./listOrcamentos');
-            exit;
+            $this->naoEncontrado('Orçamento', './listOrcamentos');
         }
 
         $itens = $orcamento->getItensByOrcamento($_GET['id']);
