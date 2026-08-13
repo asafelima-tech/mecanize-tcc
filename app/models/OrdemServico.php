@@ -817,12 +817,101 @@ class OrdemServico
         ]);
     }
 
+    /**
+     * Registros de OUTROS fluxos que apontam para a OS. Enquanto existirem, a
+     * exclusão é barrada: eles têm vida própria e apagá-los junto destruiria
+     * informação que não é da OS.
+     *
+     * `agendamentos` tem foreign key RESTRICT no banco, então sem esta
+     * checagem a exclusão estourava uma PDOException não tratada e o usuário
+     * recebia uma tela de erro 500 sem entender o que impediu.
+     */
+    private const VINCULOS = [
+        ['tabela' => 'agendamentos', 'coluna' => 'ordem_servico_id', 'rotulo' => 'agendamentos'],
+    ];
+
+    /**
+     * Itens que SÃO a OS e saem junto com ela.
+     *
+     * Nenhuma dessas tabelas tem foreign key para ordens_servico, então o
+     * banco não removia nada sozinho: excluir uma OS deixava produtos,
+     * serviços, mão de obra e anexos para trás, apontando para um id que não
+     * existe mais — sem erro e sem aviso.
+     */
+    private const ITENS = [
+        'ordem_servico_produtos',
+        'ordem_servico_servicos',
+        'ordem_servico_mao_obra',
+        'anexos_ordem_servico',
+    ];
+
+    /**
+     * Descreve o que impede a exclusão da OS, por extenso ("1 agendamentos").
+     * Array vazio = pode excluir.
+     *
+     * Os nomes de tabela/coluna vêm só da constante acima, nunca da requisição.
+     */
+    public function vinculos($id): array
+    {
+        $id      = (int) $id;
+        $achados = [];
+
+        foreach (self::VINCULOS as $vinculo) {
+            $sql = "SELECT COUNT(*) FROM `{$vinculo['tabela']}` WHERE `{$vinculo['coluna']}` = :id";
+
+            try {
+                $stmt = $this->conn->prepare($sql);
+                $stmt->execute([':id' => $id]);
+                $qtd = (int) $stmt->fetchColumn();
+            } catch (\PDOException $e) {
+                // Tabela ainda não criada nesta instalação (ex.: agendamentos
+                // antes da migração) não pode derrubar a checagem.
+                continue;
+            }
+
+            if ($qtd > 0) {
+                $achados[] = $qtd . ' ' . $vinculo['rotulo'];
+            }
+        }
+
+        return $achados;
+    }
+
+    /**
+     * Exclui a OS e os itens que pertencem a ela, tudo numa transação: ou some
+     * o conjunto inteiro, ou não some nada. Sem isso, uma falha no meio deixava
+     * a OS apagada e os itens vivos (ou o contrário).
+     *
+     * Retorna false — em vez de estourar PDOException, que virava tela 500 —
+     * quando algo impede a exclusão.
+     */
     public function delete($id)
     {
-        $stmt = $this->conn->prepare(
-            "DELETE FROM ordens_servico WHERE id_ordem_servico = ?"
-        );
-        return $stmt->execute([$id]);
+        $id = (int) $id;
+
+        try {
+            $this->conn->beginTransaction();
+
+            foreach (self::ITENS as $tabela) {
+                $this->conn->prepare("DELETE FROM `{$tabela}` WHERE ordem_servico_id = ?")->execute([$id]);
+            }
+
+            $stmt = $this->conn->prepare("DELETE FROM ordens_servico WHERE id_ordem_servico = ?");
+            $stmt->execute([$id]);
+            $removidas = $stmt->rowCount();
+
+            $this->conn->commit();
+
+            return $removidas > 0;
+        } catch (\PDOException $e) {
+            if ($this->conn->inTransaction()) {
+                $this->conn->rollBack();
+            }
+
+            error_log('[OrdemServico delete] ' . $e->getMessage());
+
+            return false;
+        }
     }
 
     private function money($valor)

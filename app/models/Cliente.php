@@ -220,6 +220,13 @@ class Cliente
     public function getResumo($filtros = [])
     {
         $totalResultados = $this->contarClientesFiltrados($filtros);
+        $totalPaginas    = max(1, (int)ceil($totalResultados / 10));
+
+        // Se o filtro/aba mudou e a página pedida ficou fora do intervalo
+        // (ex.: estava na página 5 e agora só há 2), reposiciona na última
+        // válida em vez de devolver uma lista vazia.
+        $pagina = min(max(1, (int)($filtros['pagina'] ?? 1)), $totalPaginas);
+        $filtros['pagina'] = $pagina;
 
         return [
             'totalClientes'   => $this->totalClientes(),
@@ -227,9 +234,24 @@ class Cliente
             'clientesVip'     => $this->clientesVipRecorrentes(),
             'clientes'        => $this->listarClientes($filtros),
             'totalResultados' => $totalResultados,
-            'paginaAtual'     => max(1, (int)($filtros['pagina'] ?? 1)),
-            'totalPaginas'    => max(1, (int)ceil($totalResultados / 10)),
+            'paginaAtual'     => $pagina,
+            'totalPaginas'    => $totalPaginas,
+
+            // Contadores das abas: sempre globais, independentes da busca —
+            // são o total de cada recorte, não do resultado filtrado.
+            'totalAtivos'     => $this->countAtivos(),
+            'totalInativos'   => $this->countInativos(),
         ];
+    }
+
+    public function countAtivos(): int
+    {
+        return (int) $this->conn->query("SELECT COUNT(*) FROM clientes WHERE ativo = 1")->fetchColumn();
+    }
+
+    public function countInativos(): int
+    {
+        return (int) $this->conn->query("SELECT COUNT(*) FROM clientes WHERE ativo = 0")->fetchColumn();
     }
 
     private function totalClientes()
@@ -283,6 +305,7 @@ class Cliente
             c.telefone,
             c.ativo,
             c.criado_em,
+            c.desativado_em,
             COALESCE(NULLIF(c.cpf, ''), NULLIF(c.cnpj, ''), '') AS cpf_cnpj,
 
             CASE
@@ -343,12 +366,19 @@ class Cliente
             c.telefone,
             c.ativo,
             c.criado_em,
+            c.desativado_em,
             c.cpf,
             c.cnpj
-
-        ORDER BY (c.nome = 'Cliente Balcão') DESC, c.nome ASC
-        LIMIT ? OFFSET ?
     ";
+
+        // Na aba de inativos o que importa é o que saiu por último — mesma
+        // ordenação que a tela separada de desativados usava. Nos ativos,
+        // ordem alfabética com o Cliente Balcão fixo no topo.
+        $sql .= ($status === 'inativo')
+            ? " ORDER BY c.desativado_em DESC, c.nome ASC"
+            : " ORDER BY (c.nome = 'Cliente Balcão') DESC, c.nome ASC";
+
+        $sql .= " LIMIT ? OFFSET ?";
 
         $stmt = $this->conn->prepare($sql);
 
@@ -421,75 +451,6 @@ class Cliente
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function getDesativados(string $busca = '', int $pagina = 1): array
-    {
-        $porPagina = 10;
-        $offset    = ($pagina - 1) * $porPagina;
-        $like      = '%' . $busca . '%';
-
-        $sqlTotal = "
-            SELECT COUNT(*)
-            FROM clientes
-            WHERE ativo = 0
-              AND (nome LIKE ? OR telefone LIKE ? OR email LIKE ?)
-        ";
-        $stmtTotal = $this->conn->prepare($sqlTotal);
-        $stmtTotal->execute([$like, $like, $like]);
-        $total = (int) $stmtTotal->fetchColumn();
-
-        $sql = "
-            SELECT
-                c.id_cliente,
-                c.nome,
-                c.email,
-                c.telefone,
-                c.desativado_em,
-                c.criado_em,
-
-                COUNT(DISTINCT v.id_veiculo) AS total_veiculos,
-                MAX(os.data_abertura)        AS ultima_visita,
-
-                (
-                    SELECT CONCAT(mv.nome, ' ', mo.nome, ' ', COALESCE(v2.ano, ''))
-                    FROM veiculos v2
-                    INNER JOIN marcas_veiculos mv ON mv.id_marca  = v2.marca_id
-                    INNER JOIN modelos_veiculos mo ON mo.id_modelo = v2.modelo_id
-                    WHERE v2.cliente_id = c.id_cliente
-                    ORDER BY v2.id_veiculo ASC
-                    LIMIT 1
-                ) AS veiculo_principal
-
-            FROM clientes c
-            LEFT JOIN veiculos v        ON v.cliente_id  = c.id_cliente
-            LEFT JOIN ordens_servico os ON os.cliente_id = c.id_cliente
-
-            WHERE c.ativo = 0
-              AND (c.nome LIKE ? OR c.telefone LIKE ? OR c.email LIKE ?)
-
-            GROUP BY
-                c.id_cliente, c.nome, c.email,
-                c.telefone, c.desativado_em, c.criado_em
-
-            ORDER BY c.desativado_em DESC
-
-            LIMIT ? OFFSET ?
-        ";
-
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(1, $like,      PDO::PARAM_STR);
-        $stmt->bindValue(2, $like,      PDO::PARAM_STR);
-        $stmt->bindValue(3, $like,      PDO::PARAM_STR);
-        $stmt->bindValue(4, $porPagina, PDO::PARAM_INT);
-        $stmt->bindValue(5, $offset,    PDO::PARAM_INT);
-        $stmt->execute();
-
-        return [
-            'clientesDesativados' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-            'totalDesativados'    => $total,
-            'paginaAtual'         => $pagina,
-        ];
     }
 
     public function reativar(int $id): bool
@@ -571,7 +532,7 @@ class Cliente
         // Mantém desativado_em coerente com o "Ativo" da tela de Editar, do
         // mesmo jeito que delete()/reativar() já fazem — sem isso, alternar
         // esse campo por aqui deixava a data de desativação desatualizada,
-        // bagunçando a ordenação de listClientesDesativados (ORDER BY
+        // bagunçando a ordenação da aba de inativos (ORDER BY
         // desativado_em DESC).
         $ativo = (int) ($dados['ativo'] ?? 1);
 

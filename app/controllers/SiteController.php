@@ -41,7 +41,7 @@ class SiteController extends Controller
 
     public function erro404()
     {
-        $this->view('site/404');
+        Erro::exibir('nao-encontrado');
     }
 
     public function termos()

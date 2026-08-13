@@ -1,7 +1,31 @@
 <?php
 // Variáveis esperadas do controller:
 // $ordensAbertas, $ordens, $ordensConcluidas, $ordensArquivadas
+
+// Excluir uma OS é DELETE definitivo, não desativação — restrito a ADMIN no
+// OrdemServicoController::delete(). Esconder o botão aqui é só coerência
+// visual; o que de fato impede a ação é o requireRole() lá.
+$podeExcluir = ($_SESSION['user_tipo'] ?? '') === 'ADMIN';
+
+// Retorno das ações de exclusão (OrdemServicoController::delete)
+$flashErro = [
+    'vinculos' => 'Esta ordem de serviço não pode ser excluída porque está vinculada a outros registros'
+        . (!empty($_GET['detalhe']) ? ' (' . $_GET['detalhe'] . ')' : '')
+        . '. Remova o vínculo antes de excluí-la.',
+    'exclusao' => 'Não foi possível excluir esta ordem de serviço.',
+][$_GET['erro'] ?? ''] ?? null;
+
+$flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Ordem de serviço excluída.' : null;
 ?>
+
+<?php if ($flashErro !== null): ?>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $flashErro;
+          require __DIR__ . '/../layout/_alerta.php'; ?>
+<?php endif; ?>
+<?php if ($flashOk !== null): ?>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = $flashOk;
+          require __DIR__ . '/../layout/_alerta.php'; ?>
+<?php endif; ?>
 
 <!-- ── Page Header ─────────────────────────────────────────── -->
 <div class="page-header">
@@ -94,8 +118,9 @@
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                             </svg>
                                         </a>
+                                        <?php if ($podeExcluir): ?>
                                         <form method="post" action="./deleteOrdemServico" style="display:inline;"
-                                            onsubmit="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
+                                            onsubmit="return confirm('Excluir esta Ordem de Serviço? Os produtos, serviços e mão de obra lançados nela são apagados junto, em definitivo.')">
                                             <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
                                             <button type="submit" class="row-action-btn danger" title="Excluir">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -104,6 +129,7 @@
                                                 </svg>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -193,8 +219,9 @@
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                             </svg>
                                         </a>
+                                        <?php if ($podeExcluir): ?>
                                         <form method="post" action="./deleteOrdemServico" style="display:inline;"
-                                            onsubmit="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
+                                            onsubmit="return confirm('Excluir esta Ordem de Serviço? Os produtos, serviços e mão de obra lançados nela são apagados junto, em definitivo.')">
                                             <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
                                             <button type="submit" class="row-action-btn danger" title="Excluir">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -203,6 +230,7 @@
                                                 </svg>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>

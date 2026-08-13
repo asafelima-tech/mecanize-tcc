@@ -15,9 +15,8 @@ $ehEdicao = false;
 </div>
 
 <?php if (!empty($error)): ?>
-    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= htmlspecialchars($error) ?>
-    </div>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 
 <section class="card">

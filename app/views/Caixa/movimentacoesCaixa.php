@@ -44,14 +44,12 @@ $brl = fn($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
 </div>
 
 <?php if (!empty($ok)): ?>
-    <div style="background:var(--color-success-soft);color:#166534;border:1px solid #BBF7D0;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        Movimentação registrada com sucesso.
-    </div>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = 'Movimentação registrada com sucesso.';
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= htmlspecialchars($error) ?>
-    </div>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 
 <!-- Sessão atual + Caixa atual -->

@@ -6,8 +6,12 @@ $routes = [
     'home'      => ['controller' => 'SiteController', 'method' => 'index'],
     'painel'    => ['controller' => 'SiteController', 'method' => 'painel'],
 
-    /* Erro 404 */
-    'erro404' => ['controller' => 'ErrorController', 'method' => 'erro404'],
+    /* Telas de erro com endereço próprio (as demais são disparadas pelo fluxo) */
+    'erro404'         => ['controller' => 'ErrorController', 'method' => 'erro404'],
+    'erroPermissao'   => ['controller' => 'ErrorController', 'method' => 'semPermissao'],
+    'erroIndisponivel' => ['controller' => 'ErrorController', 'method' => 'indisponivel'],
+    'erroConexao'     => ['controller' => 'ErrorController', 'method' => 'semConexao'],
+    'erroTempo'       => ['controller' => 'ErrorController', 'method' => 'tempoEsgotado'],
 
     /* Páginas públicas (rodapé do login) */
     'termos'      => ['controller' => 'SiteController', 'method' => 'termos'],

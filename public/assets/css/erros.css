@@ -1,0 +1,667 @@
+/* =========================================================
+   MECANIZE — Telas de erro (erros.css)
+
+   Usado em dois contextos, por isso todo token tem fallback:
+     - dentro do app, com global.css carregado (usa as variáveis reais);
+     - em página autônoma embutida via <style>, quando a infraestrutura
+       falhou e nem dá pra confiar que um <link> externo será servido.
+
+   Três arquétipos, para as categorias não terem todas a mesma cara:
+     .erro--bussola  → o usuário se perdeu (404, registro inexistente)
+     .erro--acesso   → barreira de identidade (403, 401, sessão expirada)
+     .erro--sistema  → falha nossa (500, 503, conexão, timeout)
+   ========================================================= */
+
+.erro {
+  --erro-acento: var(--color-primary, #003BDD);
+  --erro-acento-suave: var(--color-primary-soft, #DBEAFE);
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 62px);
+  padding: 40px 20px;
+  font-family: var(--font-sans, "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif);
+  color: var(--color-text, #111826);
+}
+
+/* Autônoma: não existe topbar descontando altura. */
+.erro--autonomo {
+  min-height: 100vh;
+}
+
+/* ---- Tons por categoria ---- */
+.erro--info {
+  --erro-acento: var(--color-info, #3B82F6);
+  --erro-acento-suave: var(--color-info-soft, #DBEAFE);
+}
+
+.erro--warning {
+  --erro-acento: var(--color-warning, #F59E0B);
+  --erro-acento-suave: var(--color-warning-soft, #FEF3C7);
+}
+
+.erro--danger {
+  --erro-acento: var(--color-danger, #EF4444);
+  --erro-acento-suave: var(--color-danger-soft, #FEE2E2);
+}
+
+/* ---- Cartão base ---- */
+.erro__cartao {
+  width: 100%;
+  background: var(--color-surface, #FFFFFF);
+  border: 1px solid var(--color-border, #E2E8F0);
+  border-radius: var(--radius-xl, 16px);
+  box-shadow: var(--shadow-md, 0 4px 10px rgba(17, 24, 38, .07), 0 10px 28px rgba(17, 24, 38, .07));
+  overflow: hidden;
+  animation: erro-entrada .34s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+@keyframes erro-entrada {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* ---- Tipografia comum ---- */
+.erro__titulo {
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -.02em;
+  line-height: 1.25;
+  margin: 0 0 8px;
+  color: var(--color-text, #111826);
+}
+
+.erro__resumo {
+  font-size: 14px;
+  line-height: 1.65;
+  color: var(--color-text-secondary, #1E293B);
+  margin: 0 0 18px;
+}
+
+.erro__porque {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  padding: 12px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-alt, #F8FAFC);
+  border: 1px solid var(--color-border, #E2E8F0);
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-secondary, #1E293B);
+  margin-bottom: 22px;
+}
+
+.erro__porque svg {
+  flex-shrink: 0;
+  width: 15px;
+  height: 15px;
+  margin-top: 1px;
+  color: var(--erro-acento);
+}
+
+.erro__detalhe {
+  font-size: 12.5px;
+  line-height: 1.6;
+  color: var(--color-text-muted, #94A3B8);
+  margin: -8px 0 18px;
+}
+
+/* ---- Ações ---- */
+.erro__acoes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.erro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  height: 40px;
+  padding: 0 18px;
+  border-radius: var(--radius-md, 8px);
+  border: 1.5px solid transparent;
+  font-size: 13px;
+  font-weight: 600;
+  font-family: inherit;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease, color .15s ease, transform .12s ease;
+}
+
+.erro-btn:active { transform: translateY(1px); }
+
+.erro-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+
+.erro-btn--principal {
+  background: var(--erro-acento);
+  color: #fff;
+}
+
+.erro-btn--principal:hover { filter: brightness(1.08); }
+
+.erro-btn--secundario {
+  background: transparent;
+  border-color: var(--color-border-strong, #CBD5E1);
+  color: var(--color-text-secondary, #1E293B);
+}
+
+.erro-btn--secundario:hover {
+  background: var(--color-bg-alt, #F8FAFC);
+  border-color: var(--erro-acento);
+  color: var(--erro-acento);
+}
+
+.erro-btn--discreto {
+  background: transparent;
+  color: var(--color-text-muted, #94A3B8);
+  padding: 0 6px;
+  font-weight: 500;
+}
+
+.erro-btn--discreto:hover { color: var(--erro-acento); }
+
+/* Estado de carregamento dos botões que refazem a ação */
+.erro-btn[data-carregando="1"] {
+  pointer-events: none;
+  opacity: .75;
+}
+
+.erro-btn[data-carregando="1"] .erro-btn__spin {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: erro-girar .6s linear infinite;
+}
+
+@keyframes erro-girar {
+  to { transform: rotate(360deg); }
+}
+
+.erro-btn__spin { display: none; }
+
+/* =========================================================
+   ARQUÉTIPO 1 — BÚSSOLA (404, registro inexistente)
+   Layout centrado e leve: o usuário não fez nada errado, só
+   precisa de um caminho de volta. Traz atalhos das áreas.
+   ========================================================= */
+.erro--bussola .erro__cartao {
+  max-width: 560px;
+  text-align: center;
+  padding: 44px 40px 36px;
+}
+
+.erro__bussola-arte {
+  width: 108px;
+  height: 108px;
+  margin: 0 auto 22px;
+  position: relative;
+}
+
+.erro__bussola-arte svg { width: 100%; height: 100%; }
+
+/* anel pulsando devagar: dá vida sem chamar atenção pra si */
+.erro__bussola-arte::after {
+  content: "";
+  position: absolute;
+  inset: -8px;
+  border-radius: 50%;
+  border: 1.5px solid var(--erro-acento);
+  opacity: .18;
+  animation: erro-pulso 2.6s ease-in-out infinite;
+}
+
+@keyframes erro-pulso {
+  0%, 100% { transform: scale(1);    opacity: .18; }
+  50%      { transform: scale(1.07); opacity: .05; }
+}
+
+/* a agulha gira suave, como uma bússola procurando o norte */
+.erro__agulha {
+  transform-origin: 50% 50%;
+  animation: erro-agulha 6s cubic-bezier(.5, 0, .5, 1) infinite;
+}
+
+@keyframes erro-agulha {
+  0%   { transform: rotate(0deg); }
+  25%  { transform: rotate(140deg); }
+  50%  { transform: rotate(75deg); }
+  75%  { transform: rotate(200deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.erro__codigo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--erro-acento);
+  background: var(--erro-acento-suave);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill, 999px);
+  margin-bottom: 16px;
+}
+
+.erro--bussola .erro__acoes { justify-content: center; }
+
+/* Atalhos para as áreas principais */
+.erro__atalhos {
+  margin-top: 30px;
+  padding-top: 22px;
+  border-top: 1px solid var(--color-border, #E2E8F0);
+}
+
+.erro__atalhos-titulo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #94A3B8);
+  margin-bottom: 14px;
+}
+
+.erro__atalhos-grade {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.erro__atalho {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 10px 12px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid var(--color-border, #E2E8F0);
+  background: var(--color-surface, #fff);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary, #1E293B);
+  text-decoration: none;
+  transition: border-color .15s ease, background .15s ease, transform .15s ease;
+}
+
+.erro__atalho:hover {
+  border-color: var(--erro-acento);
+  background: var(--color-bg-alt, #F8FAFC);
+  transform: translateY(-1px);
+}
+
+.erro__atalho svg {
+  width: 15px;
+  height: 15px;
+  color: var(--erro-acento);
+  flex-shrink: 0;
+}
+
+/* =========================================================
+   ARQUÉTIPO 2 — ACESSO (403, 401, sessão expirada)
+   Duas colunas: a barreira à esquerda, a explicação e quem
+   está logado à direita. A identidade importa aqui, porque a
+   saída costuma ser "entrar com outra conta" ou "pedir acesso".
+   ========================================================= */
+.erro--acesso .erro__cartao {
+  max-width: 720px;
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+}
+
+.erro__painel {
+  background:
+    radial-gradient(circle at 50% 34%, var(--erro-acento-suave) 0%, transparent 68%),
+    var(--color-bg-alt, #F8FAFC);
+  border-right: 1px solid var(--color-border, #E2E8F0);
+  padding: 40px 26px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 16px;
+}
+
+.erro__cadeado {
+  width: 92px;
+  height: 92px;
+  position: relative;
+}
+
+.erro__cadeado svg { width: 100%; height: 100%; }
+
+/* o arco do cadeado "assenta" ao abrir a tela */
+.erro__cadeado-arco {
+  transform-origin: 50% 62%;
+  animation: erro-trancar .5s cubic-bezier(.34, 1.56, .64, 1) .15s both;
+}
+
+@keyframes erro-trancar {
+  from { transform: translateY(-7px) scaleY(1.14); opacity: 0; }
+  to   { transform: none; opacity: 1; }
+}
+
+.erro__selo {
+  font-size: 44px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+  line-height: 1;
+  color: var(--erro-acento);
+}
+
+.erro__selo-texto {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #94A3B8);
+}
+
+.erro__conteudo {
+  padding: 38px 34px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+/* Quem está logado agora — evita o "mas eu tenho acesso!" */
+.erro__identidade {
+  display: flex;
+  align-items: center;
+  gap: 11px;
+  padding: 11px 13px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-alt, #F8FAFC);
+  border: 1px solid var(--color-border, #E2E8F0);
+  margin-bottom: 18px;
+}
+
+.erro__identidade-avatar {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: var(--color-primary-gradient, linear-gradient(135deg, #003BDD, #0030C4));
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.erro__identidade-nome {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text, #111826);
+  line-height: 1.3;
+}
+
+.erro__identidade-perfil {
+  font-size: 11.5px;
+  color: var(--color-text-muted, #94A3B8);
+}
+
+/* =========================================================
+   ARQUÉTIPO 3 — SISTEMA (500, 503, conexão, timeout)
+   Cara de painel de status: barra no topo, código de
+   ocorrência em monoespaçada e ação de repetir em destaque.
+   ========================================================= */
+.erro--sistema .erro__cartao {
+  max-width: 540px;
+  padding: 0;
+}
+
+.erro__barra {
+  height: 4px;
+  background: var(--erro-acento);
+  position: relative;
+  overflow: hidden;
+}
+
+/* brilho percorrendo a barra: sinaliza "ainda estamos vivos" */
+.erro__barra::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .85), transparent);
+  transform: translateX(-100%);
+  animation: erro-varrer 2.1s ease-in-out infinite;
+}
+
+@keyframes erro-varrer {
+  to { transform: translateX(100%); }
+}
+
+.erro__sistema-corpo {
+  padding: 34px 34px 30px;
+}
+
+.erro__sistema-topo {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 20px;
+}
+
+.erro__sistema-icone {
+  width: 52px;
+  height: 52px;
+  border-radius: var(--radius-lg, 12px);
+  background: var(--erro-acento-suave);
+  color: var(--erro-acento);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.erro__sistema-icone svg { width: 26px; height: 26px; }
+
+/* ondas do ícone de conexão perdida */
+.erro__onda { opacity: .25; }
+.erro__onda--1 { animation: erro-onda 1.8s ease-in-out infinite; }
+.erro__onda--2 { animation: erro-onda 1.8s ease-in-out .25s infinite; }
+
+@keyframes erro-onda {
+  0%, 100% { opacity: .2; }
+  50%      { opacity: 1; }
+}
+
+.erro__ocorrencia {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 14px;
+  border-radius: var(--radius-md, 8px);
+  background: var(--color-bg-alt, #F8FAFC);
+  border: 1px dashed var(--color-border-strong, #CBD5E1);
+  margin-bottom: 22px;
+}
+
+.erro__ocorrencia-rotulo {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: .07em;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #94A3B8);
+}
+
+.erro__ocorrencia-codigo {
+  font-family: ui-monospace, "Cascadia Mono", Consolas, monospace;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-text, #111826);
+  letter-spacing: .06em;
+}
+
+.erro__copiar {
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: var(--color-text-muted, #94A3B8);
+  padding: 4px;
+  border-radius: var(--radius-sm, 6px);
+  display: inline-flex;
+  transition: color .15s ease, background .15s ease;
+}
+
+.erro__copiar:hover {
+  color: var(--erro-acento);
+  background: var(--color-surface, #fff);
+}
+
+.erro__copiar svg { width: 14px; height: 14px; }
+
+/* Recontagem da tentativa automática */
+.erro__recontagem {
+  font-size: 12.5px;
+  color: var(--color-text-muted, #94A3B8);
+  margin-top: 14px;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.erro__recontagem-ponto {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--erro-acento);
+  animation: erro-piscar 1.4s ease-in-out infinite;
+}
+
+@keyframes erro-piscar {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: .25; }
+}
+
+/* =========================================================
+   ALERTA INLINE — erro de validação e retorno de ação
+
+   Validação NÃO vira tela cheia de propósito: tirar a pessoa do formulário
+   pra mostrar "o campo X é obrigatório" faria perder tudo que já tinha sido
+   digitado. O erro fica ao lado do que precisa ser corrigido, com o mesmo
+   vocabulário visual das telas de erro — mesma paleta, mesmo raio, mesma
+   tipografia.
+   ========================================================= */
+.alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px 15px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid;
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  animation: erro-entrada .26s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.alerta__icone {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+.alerta__titulo {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.alerta--erro {
+  background: var(--color-danger-soft, #FEE2E2);
+  border-color: #FECACA;
+  color: #991B1B;
+}
+
+.alerta--aviso {
+  background: var(--color-warning-soft, #FEF3C7);
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+.alerta--sucesso {
+  background: var(--color-success-soft, #EBF0FF);
+  border-color: #BBF7D0;
+  color: #166534;
+}
+
+.alerta--info {
+  background: var(--color-info-soft, #DBEAFE);
+  border-color: #BFDBFE;
+  color: #1E40AF;
+}
+
+/* No escuro, texto fixo escuro sobre fundo translúcido some — a cor passa a
+   vir do próprio token de estado. */
+:root[data-theme="dark"] .alerta { border-color: var(--color-border-strong, #30363D); }
+:root[data-theme="dark"] .alerta--erro    { color: var(--color-danger, #F85149); }
+:root[data-theme="dark"] .alerta--aviso   { color: var(--color-warning, #D29922); }
+:root[data-theme="dark"] .alerta--sucesso { color: var(--color-success, #4D94FF); }
+:root[data-theme="dark"] .alerta--info    { color: var(--color-info, #58A6FF); }
+
+/* =========================================================
+   RESPONSIVO
+   ========================================================= */
+@media (max-width: 700px) {
+  .erro { padding: 24px 16px; }
+
+  .erro--acesso .erro__cartao {
+    grid-template-columns: 1fr;
+  }
+
+  .erro__painel {
+    border-right: none;
+    border-bottom: 1px solid var(--color-border, #E2E8F0);
+    padding: 30px 20px;
+    flex-direction: row;
+    justify-content: flex-start;
+    text-align: left;
+    gap: 18px;
+  }
+
+  .erro__cadeado { width: 60px; height: 60px; flex-shrink: 0; }
+  .erro__selo { font-size: 32px; }
+
+  .erro__conteudo,
+  .erro__sistema-corpo { padding: 26px 22px; }
+
+  .erro--bussola .erro__cartao { padding: 34px 22px 28px; }
+
+  .erro__titulo { font-size: 19px; }
+
+  .erro__acoes { flex-direction: column; align-items: stretch; }
+  .erro-btn { width: 100%; }
+}
+
+/* =========================================================
+   ACESSIBILIDADE — quem pediu menos movimento não recebe
+   nenhuma animação decorativa.
+   ========================================================= */
+@media (prefers-reduced-motion: reduce) {
+  .erro__cartao,
+  .erro__bussola-arte::after,
+  .erro__agulha,
+  .erro__cadeado-arco,
+  .erro__barra::after,
+  .erro__onda--1,
+  .erro__onda--2,
+  .erro__recontagem-ponto,
+  .erro-btn[data-carregando="1"] .erro-btn__spin {
+    animation: none;
+  }
+
+  .erro-btn { transition: none; }
+}
