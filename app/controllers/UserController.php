@@ -4,6 +4,35 @@ class UserController extends Controller
 {
     const POR_PAGINA = 10;
 
+    /**
+     * Traduz o ?retorno= da tela de login numa rota interna segura.
+     *
+     * Só aceita rota registrada em config/routes.php: sem essa checagem, o
+     * parâmetro viraria um redirecionamento aberto — bastaria mandar pra
+     * alguém um link de login com retorno pra um site externo, e a pessoa
+     * sairia do sistema achando que continuava dentro dele.
+     */
+    private function destinoAposLogin(string $retorno): string
+    {
+        $retorno = trim($retorno);
+
+        if ($retorno === '') {
+            return './home';
+        }
+
+        // Separa a rota dos parâmetros e valida só a rota.
+        $partes = explode('&', $retorno, 2);
+        $rota   = $partes[0];
+
+        require __DIR__ . '/../../config/routes.php';
+
+        if (!isset($routes[$rota])) {
+            return './home';
+        }
+
+        return './' . $retorno;
+    }
+
     public function login()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -18,18 +47,22 @@ class UserController extends Controller
 
             $userData = ($email !== '' && $senha !== '') ? $userModel->getUserByEmail($email) : null;
 
-            // Checado ANTES de validar a senha: se a conta já está bloqueada por
-            // excesso de tentativas, nem vale a pena gastar um password_verify().
-            if ($userData && $userModel->estaBloqueado($userData)) {
-                $this->view('Usuarios/login', [
-                    'error' => 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em ' .
-                        $userModel->minutosBloqueioRestante($userData) . ' minuto(s).'
-                ]);
-                return;
-            }
-
             $senhaValida = $userData && password_verify($senha, $userData['senha']);
 
+            /*
+             * A senha é conferida ANTES do bloqueio de propósito.
+             *
+             * A ordem anterior era a inversa, e isso entregava informação a
+             * quem estivesse só sondando endereços: digitando qualquer senha,
+             * "Conta temporariamente bloqueada" confirmava que aquele e-mail
+             * existe no sistema, e "Login inválido" confirmava que não. Agora
+             * quem erra a senha recebe sempre a mesma frase, exista a conta ou
+             * não; o aviso de bloqueio (que é útil e específico) só aparece
+             * para quem provou ser o dono da conta acertando a senha.
+             *
+             * A proteção contra tentativa e erro continua igual: com a conta
+             * bloqueada, nem a senha certa entra.
+             */
             if (!$senhaValida) {
                 // Só incrementa o contador se o e-mail existir de verdade — não
                 // adianta "bloquear" uma conta que não existe.
@@ -39,6 +72,14 @@ class UserController extends Controller
 
                 $this->view('Usuarios/login', [
                     'error' => 'Login inválido.'
+                ]);
+                return;
+            }
+
+            if ($userModel->estaBloqueado($userData)) {
+                $this->view('Usuarios/login', [
+                    'error' => 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em ' .
+                        $userModel->minutosBloqueioRestante($userData) . ' minuto(s).'
                 ]);
                 return;
             }
@@ -83,11 +124,30 @@ class UserController extends Controller
 
             $_SESSION['logged'] = true;
 
-            foreach ($userData as $key => $value) {
-                $_SESSION["user_$key"] = $value;
-            }
+            /*
+             * Campos gravados um a um, e não com um foreach sobre o registro
+             * inteiro. O foreach copiava TODAS as colunas do usuário para a
+             * sessão — inclusive o hash da senha, que ficava guardado em disco
+             * no arquivo de sessão do servidor durante todo o expediente, sem
+             * nenhuma tela precisar dele. Estes são os únicos campos que as
+             * telas realmente leem.
+             */
+            $_SESSION['user_id_usuario'] = $userData['id_usuario'];
+            $_SESSION['user_nome']       = $userData['nome'];
+            $_SESSION['user_email']      = $userData['email'];
+            $_SESSION['user_tipo']       = $userData['tipo'];
 
-            header('Location: ./home');
+            // Marca do estado da conta no momento do login. O front-controller
+            // compara com o banco a cada requisição — ver "Conta alterada
+            // durante a sessão" em public/index.php.
+            $_SESSION['user_atualizado_em'] = $userData['atualizado_em'] ?? '';
+
+            // Início da contagem de inatividade.
+            $_SESSION['ultimo_acesso'] = time();
+
+            // Volta pra onde a pessoa tentou ir antes de cair na tela de login,
+            // em vez de largar no Início e obrigar a navegar tudo de novo.
+            header('Location: ' . $this->destinoAposLogin($_POST['retorno'] ?? ''));
             exit;
         }
 
@@ -96,7 +156,12 @@ class UserController extends Controller
             ? 'Seu horário de acesso foi encerrado. Atendentes têm acesso de segunda a sexta das 07:00 às 18:00 e aos sábados das 07:00 às 13:00.'
             : null;
 
-        $this->view('Usuarios/login', ['aviso' => $aviso]);
+        // Carregado no formulário pra sobreviver ao POST — é o que leva a
+        // pessoa de volta pra tela que ela tentou abrir antes de logar.
+        $this->view('Usuarios/login', [
+            'aviso'   => $aviso,
+            'retorno' => $_GET['retorno'] ?? '',
+        ]);
     }
 
     public function logout()
@@ -356,18 +421,49 @@ class UserController extends Controller
     {
         $this->requireRole(['ADMIN']);
 
-        $id = $_GET['id'] ?? null;
+        // POST em vez de GET: um link GET que muda dado pode ser disparado por
+        // um <img>/pré-carregamento em outra página só de o ADMIN estar logado,
+        // sem nenhum clique consciente. O gate de CSRF só cobre POST.
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ./listUsuarios');
+            exit;
+        }
+
+        $id = $_POST['id'] ?? null;
 
         if ($id !== null && ctype_digit((string) $id)) {
             $usuario = $this->model('User');
             $usuario->toggleStatus((int) $id);
         }
 
-        // Volta pra listagem preservando busca/tipo/status/página em que o
-        // usuário estava, em vez de sempre resetar pra página 1 sem filtro.
-        $destino = $_SERVER['HTTP_REFERER'] ?? './listUsuarios';
-        header('Location: ' . $destino);
+        header('Location: ' . $this->urlListagemUsuarios());
         exit;
+    }
+
+    /**
+     * Volta pra listagem preservando a aba/busca/tipo/página em que a pessoa
+     * estava, em vez de resetar tudo para a página 1 sem filtro.
+     *
+     * Os valores vêm de um campo oculto do próprio formulário e só as quatro
+     * chaves conhecidas são reaproveitadas. Antes o destino era o cabeçalho
+     * Referer, que quem envia a requisição escolhe livremente — bastava
+     * apontá-lo para outro site e o sistema mandava o usuário para lá,
+     * ainda por cima logo depois de uma ação bem-sucedida, que é justamente
+     * quando ninguém desconfia do redirecionamento.
+     */
+    private function urlListagemUsuarios(): string
+    {
+        parse_str($_POST['retorno'] ?? '', $parametros);
+
+        $query = [];
+
+        foreach (['aba', 'busca', 'tipo', 'pagina'] as $chave) {
+            if (!empty($parametros[$chave])) {
+                $query[$chave] = is_array($parametros[$chave]) ? '' : trim((string) $parametros[$chave]);
+            }
+        }
+
+        return './listUsuarios' . ($query ? '?' . http_build_query($query) : '');
     }
 
     public function visualizar()
@@ -386,8 +482,7 @@ class UserController extends Controller
         ];
 
         if (!$dados['dados_usuario']) {
-            header('Location: ./listUsuarios');
-            exit;
+            $this->naoEncontrado('Usuário', './listUsuarios');
         }
 
         $this->view('Usuarios/viewUsuario', $dados);
@@ -455,8 +550,7 @@ class UserController extends Controller
             $usuarioAtual = $usuario->findById($id);
 
             if (!$usuarioAtual) {
-                header('Location: ./listUsuarios');
-                exit;
+                $this->naoEncontrado('Usuário', './listUsuarios');
             }
 
             $validator = new Validator($_POST);
@@ -520,8 +614,7 @@ class UserController extends Controller
         ];
 
         if (!$dados['usuario']) {
-            header('Location: ./listUsuarios');
-            exit;
+            $this->naoEncontrado('Usuário', './listUsuarios');
         }
 
         $this->view('Usuarios/editUsuario', $dados);
@@ -531,12 +624,15 @@ class UserController extends Controller
     {
         $this->requireRole(['ADMIN']);
 
-        if (empty($_GET['id'])) {
+        // POST em vez de GET: um link GET que exclui pode ser disparado por um
+        // <img>/pré-carregamento em outra página só de o ADMIN estar logado,
+        // sem nenhum clique consciente. O gate de CSRF só cobre POST.
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id'])) {
             header('Location: ./listUsuarios');
             exit;
         }
 
-        $id = (int) $_GET['id'];
+        $id = (int) $_POST['id'];
 
         // Excluir a si mesmo deixaria a sessão apontando pra um usuário que
         // não existe mais — todo request seguinte quebraria.
@@ -636,6 +732,12 @@ class UserController extends Controller
 
                 $usuarioAtualizado = $userModel->findById($idUser);
 
+                // Editar o próprio perfil também mexe em atualizado_em. Sem
+                // reanotar aqui, a checagem do front-controller entenderia
+                // "alteraram esta conta" e derrubaria a pessoa logo depois de
+                // ela salvar os próprios dados.
+                $_SESSION['user_atualizado_em'] = $usuarioAtualizado['atualizado_em'] ?? '';
+
                 $this->view('Usuarios/perfil', [
                     'usuario' => $usuarioAtualizado,
                     'mensagemSucesso' => 'Perfil atualizado com sucesso.'
@@ -706,6 +808,10 @@ class UserController extends Controller
             $erro = 'Senha atual incorreta.';
         } elseif ($novaSenha !== $confirmar) {
             $erro = 'A nova senha e a confirmação não coincidem.';
+        } elseif (mb_strlen($novaSenha) < 6) {
+            // Mesmo mínimo exigido no cadastro de usuário — trocar a própria
+            // senha não pode ser a porta de entrada para uma senha de 1 letra.
+            $erro = 'A nova senha deve ter pelo menos 6 caracteres.';
         }
 
         if ($erro) {
@@ -726,8 +832,21 @@ class UserController extends Controller
         ];
 
         if ($userModel->update($dados)) {
+            $usuarioAtualizado = $userModel->findById($idUser);
+
+            // Trocar a senha mexe em atualizado_em, o mesmo campo que o
+            // front-controller usa para detectar "alteraram esta conta".
+            // Reanotar aqui mantém logada a pessoa que acabou de trocar a
+            // própria senha — e continua derrubando qualquer OUTRA sessão
+            // aberta com a senha antiga, que é justamente o que se quer.
+            $_SESSION['user_atualizado_em'] = $usuarioAtualizado['atualizado_em'] ?? '';
+
+            // Sessão antiga não deve continuar valendo depois de uma troca de
+            // senha: gera um identificador novo, como já se faz no login.
+            session_regenerate_id(true);
+
             $this->view('Usuarios/perfil', [
-                'usuario'         => $userModel->findById($idUser),
+                'usuario'         => $usuarioAtualizado,
                 'mensagemSucesso' => 'Senha atualizada com sucesso.',
             ]);
             return;
@@ -763,6 +882,16 @@ class UserController extends Controller
             if ($usuario && $usuario['ativo'] == 1) {
                 try {
                     $reset = $this->model('PasswordReset');
+
+                    // Passou do limite de pedidos na hora: não envia mais nada,
+                    // mas a tela responde exatamente igual. Quem tenta usar esta
+                    // página pra encher a caixa de entrada de alguém não recebe
+                    // nenhum sinal de que parou de funcionar.
+                    if ($reset->pedidosNaUltimaHora($usuario['id_usuario']) >= PasswordReset::LIMITE_POR_HORA) {
+                        $this->view('Usuarios/recuperarSenha', ['mensagem' => $mensagem]);
+                        return;
+                    }
+
                     $token = $reset->criar($usuario['id_usuario']);
 
                     $link = $this->urlAbsoluta('redefinir-senha?token=' . $token);
@@ -816,13 +945,21 @@ class UserController extends Controller
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $novaSenha = $_POST['nova_senha']      ?? '';
-            $confirmar = $_POST['confirmar_senha'] ?? '';
+            $novaSenha = $_POST['nova_senha'] ?? '';
 
-            if ($novaSenha === '' || $novaSenha !== $confirmar) {
+            // Mesma exigência de save() e edit(): este era o único caminho de
+            // troca de senha que aceitava qualquer coisa, inclusive um único
+            // caractere — logo o caminho menos vigiado, que chega por link de
+            // e-mail e não pede a senha antiga.
+            $validator = (new Validator($_POST))
+                ->required('nova_senha', 'Nova senha')
+                ->min('nova_senha', 6, 'Nova senha')
+                ->matches('nova_senha', 'confirmar_senha', 'A confirmação da senha');
+
+            if ($validator->fails()) {
                 $this->view('Usuarios/redefinirSenha', [
                     'token' => $token,
-                    'error' => 'As senhas não coincidem ou estão vazias.',
+                    'error' => $validator->firstError(),
                 ]);
                 return;
             }

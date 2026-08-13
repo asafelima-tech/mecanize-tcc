@@ -39,6 +39,14 @@ class User
     /**
      * Incrementa o contador de tentativas erradas; ao atingir o limite,
      * bloqueia a conta por BLOQUEIO_MINUTOS a partir de agora.
+     *
+     * O contador é por CONTA, não por origem da tentativa. Isso tem um efeito
+     * colateral conhecido e aceito: sabendo o e-mail de alguém, dá pra travar
+     * o acesso dessa pessoa por 15 minutos errando a senha cinco vezes de
+     * propósito. Contar por endereço de origem exigiria guardar cada tentativa
+     * numa tabela nova, e o ganho não compensa numa oficina onde a equipe
+     * inteira usa a mesma rede — do ponto de vista do servidor, seria tudo a
+     * mesma origem de qualquer forma.
      */
     public function registrarTentativaFalha(int $id): void
     {
