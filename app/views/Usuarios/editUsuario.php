@@ -46,10 +46,8 @@
     <input type="hidden" name="id_usuario" value="<?= $usuario['id_usuario'] ?>">
 
     <?php if (!empty($error)): ?>
-        <div style="background: var(--color-danger-soft); color: #991B1B; border: 1px solid #FECACA;
-                    border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; font-size: 13px;">
-            <?= htmlspecialchars($error) ?>
-        </div>
+        <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
     <?php endif; ?>
 
     <div class="usr-edit-grid">
@@ -205,12 +203,20 @@
     <!-- FOOTER DE AÇÕES -->
     <div class="os-edit-footer">
 
-        <a href="./deleteUsuario&id=<?= $usuario['id_usuario'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja realmente excluir este usuário? Esta ação não pode ser desfeita.')">
+        <!--
+          O botão fica aqui pelo layout, mas pertence ao formulário
+          "form-excluir-usuario", declarado depois do </form> desta tela — é
+          para isso que serve o atributo form= do HTML5. Sem ele, a alternativa
+          seria um <form> dentro de outro, que o navegador ignora.
+          Excluir é POST porque muda dado: assim entra no controle de CSRF,
+          que só vale para POST.
+        -->
+        <button type="submit"
+            form="form-excluir-usuario"
+            class="btn btn--danger-ghost">
             <i class="bi bi-person-x"></i>
             Excluir Usuário
-        </a>
+        </button>
 
         <div class="os-edit-footer__right">
             <a href="./listUsuarios" class="btn btn--ghost">
@@ -226,4 +232,10 @@
 
     </div>
 
+</form>
+
+<form method="post" action="./deleteUsuario" id="form-excluir-usuario"
+    onsubmit="return confirm('Deseja realmente excluir este usuário? Esta ação não pode ser desfeita.')">
+    <?= csrf_field() ?>
+    <input type="hidden" name="id" value="<?= (int) $usuario['id_usuario'] ?>">
 </form>

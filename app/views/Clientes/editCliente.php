@@ -342,12 +342,20 @@ if (session_status() === PHP_SESSION_NONE) {
     <div class="cliente-edit-footer">
 
         <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
-        <a href="./deleteCliente&id=<?= (int)$cliente['id_cliente'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja desativar este cliente?')">
+        <!--
+          O botão fica aqui dentro pelo layout, mas pertence ao formulário
+          "form-desativar-cliente", declarado depois do </form> desta tela — é
+          para isso que serve o atributo form= do HTML5. Sem ele, a alternativa
+          seria um <form> dentro de outro, que o navegador ignora.
+          Desativar é POST porque muda dado: assim entra no controle de CSRF,
+          que só vale para POST.
+        -->
+        <button type="submit"
+            form="form-desativar-cliente"
+            class="btn btn--danger-ghost">
             <i class="bi bi-person-x"></i>
             Desativar Cliente
-        </a>
+        </button>
         <?php endif; ?>
 
         <div class="cliente-edit-footer__right">
@@ -364,6 +372,14 @@ if (session_status() === PHP_SESSION_NONE) {
     </div>
 
 </form>
+
+<?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
+    <form method="post" action="./deleteCliente" id="form-desativar-cliente"
+        onsubmit="return confirm('Deseja desativar este cliente?')">
+        <?= csrf_field() ?>
+        <input type="hidden" name="id" value="<?= (int) $cliente['id_cliente'] ?>">
+    </form>
+<?php endif; ?>
 
 <script>
     function alternarTipoPessoa() {

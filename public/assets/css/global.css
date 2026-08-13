@@ -17,6 +17,13 @@
   /* Surface */
   --color-bg: #F1F5F9;
   --color-bg-alt: #F8FAFC;
+  /* Fundo rebaixado, mais escuro que a superfície: trilho de controles
+     segmentados (abas Ativos/Inativos, período da agenda, relatório do caixa),
+     onde a aba ativa sobe em --color-surface. */
+  --color-bg-subtle: #F1F5F9;
+  /* Preenchimento suave sobre uma superfície (área de soltar arquivo, caixa
+     pontilhada): distinto do card sem virar outra camada. */
+  --color-bg-soft: #F9FAFB;
   --color-surface: #FFFFFF;
   --color-border: #E2E8F0;
   --color-border-strong: #CBD5E1;
@@ -73,6 +80,12 @@
   /* ── Surface ── */
   --color-bg: #0D1117;
   --color-bg-alt: #161B22;
+  /* Mais escuro que a página (#0D1117) para o trilho continuar parecendo
+     rebaixado — no claro o efeito vem do trilho cinza sob a aba branca. */
+  --color-bg-subtle: #010409;
+  /* Um passo ACIMA da superfície (#161B22), não abaixo: no claro a área
+     pontilhada é mais escura que o card; no escuro, mais clara. */
+  --color-bg-soft: #1C2128;
   --color-surface: #161B22;
   --color-border: #21262D;
   --color-border-strong: #30363D;
@@ -914,6 +927,26 @@ img {
   height: 5px;
   border-radius: 50%;
   background: currentColor;
+}
+
+/* Badge que dispara uma ação (ex.: ativar/desativar usuário na listagem).
+   A ação virou POST, então o que era um <a> passou a ser um <button> — este
+   bloco só apaga a aparência que o navegador dá a botão (fundo cinza, borda,
+   padding), para o badge continuar exatamente igual ao de antes. */
+.badge-botao {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  line-height: 0;
+}
+
+.badge-botao:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+  border-radius: var(--radius-pill);
 }
 
 /* ====================== AVATAR ====================== */
@@ -2004,7 +2037,7 @@ select:not(.ts-hidden-accessible):focus {
   padding: 10px;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-soft, var(--color-bg-alt));
+  background: var(--color-bg-soft);
 }
 
 .novo-modelo-box__actions {
@@ -3587,4 +3620,78 @@ select.form-input {
 
 [data-theme="dark"] #orc-resumo-lucro {
   color: #3FB950 !important;
+}
+
+/* ==========================================================================
+   Abas de recorte (controle segmentado)
+   --------------------------------------------------------------------------
+   Alterna o RECORTE de uma listagem — Ativos / Inativos — sem ser um filtro
+   da toolbar: cada aba é uma URL própria (?aba=), então funciona sem JS e
+   pode ser compartilhada.
+
+   Usado por Usuários e Clientes. Estava duplicado em cada tela, o que já
+   custou um bug: uma cor claras "chumbada" como fallback aparecia no tema
+   escuro. Aqui é definido uma vez só.
+   ========================================================================== */
+.abas {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: background .12s ease, color .12s ease;
+  white-space: nowrap;
+}
+
+.aba:hover { color: var(--color-text); }
+
+.aba--ativa {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+.aba__contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aba--ativa .aba__contador {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* Enquanto o fetch da aba/página não volta, o conteúdo antigo esmaece em vez
+   de sumir — evita o "pulo" de altura da tabela. */
+[data-aba-conteudo][aria-busy="true"] {
+  opacity: .5;
+  pointer-events: none;
+  transition: opacity .12s ease;
+}
+
+@media (max-width: 560px) {
+  .abas { display: flex; width: 100%; }
+  .aba { flex: 1; justify-content: center; }
 }

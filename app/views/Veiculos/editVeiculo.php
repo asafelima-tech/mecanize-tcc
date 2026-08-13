@@ -239,12 +239,20 @@ foreach ($combustiveis as $tipoCombustivel) {
     <div class="veiculo-edit-footer">
 
         <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
-        <a href="./deleteVeiculo&id=<?= $veiculo['id_veiculo'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
+        <!--
+          O botão fica aqui pelo layout, mas pertence ao formulário
+          "form-excluir-veiculo", declarado depois do </form> desta tela — é
+          para isso que serve o atributo form= do HTML5. Sem ele, a alternativa
+          seria um <form> dentro de outro, que o navegador ignora.
+          Excluir é POST porque muda dado: assim entra no controle de CSRF,
+          que só vale para POST.
+        -->
+        <button type="submit"
+            form="form-excluir-veiculo"
+            class="btn btn--danger-ghost">
             <i class="bi bi-trash"></i>
             Excluir Veículo
-        </a>
+        </button>
         <?php endif; ?>
 
         <div class="veiculo-edit-footer__right">
@@ -262,10 +270,18 @@ foreach ($combustiveis as $tipoCombustivel) {
 
 </form>
 
+<?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
+    <form method="post" action="./deleteVeiculo" id="form-excluir-veiculo"
+        onsubmit="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
+        <?= csrf_field() ?>
+        <input type="hidden" name="id" value="<?= (int) $veiculo['id_veiculo'] ?>">
+    </form>
+<?php endif; ?>
+
 <script>
-    window.CORES_CARRO = <?= json_encode($coresCarro, JSON_UNESCAPED_UNICODE) ?>;
-    window.COMBUSTIVEIS = <?= json_encode($combustiveis, JSON_UNESCAPED_UNICODE) ?>;
-    window.COMBUSTIVEL_ATUAL = <?= json_encode($combustivelAtual, JSON_UNESCAPED_UNICODE) ?>;
+    window.CORES_CARRO = <?= json_para_script($coresCarro) ?>;
+    window.COMBUSTIVEIS = <?= json_para_script($combustiveis) ?>;
+    window.COMBUSTIVEL_ATUAL = <?= json_para_script($combustivelAtual) ?>;
 
     // Reconstrói o <select> de combustível mostrando só os tipos permitidos
     // para o modelo escolhido. Sem restrição → lista completa. Preserva o valor atual.

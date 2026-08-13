@@ -12,6 +12,8 @@ class VeiculoController extends Controller
 
     public function save()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $veiculo = $this->model('Veiculo');
         $cliente = $this->model('Cliente');
 
@@ -105,8 +107,7 @@ class VeiculoController extends Controller
         $dadosVeiculo = $veiculo->getById($_GET['id']);
 
         if (!$dadosVeiculo) {
-            header('Location: ./listVeiculos');
-            exit;
+            $this->naoEncontrado('Veículo', './listVeiculos');
         }
 
         $dados = [
@@ -168,6 +169,8 @@ class VeiculoController extends Controller
 
     public function edit()
     {
+        $this->requireRole(['ADMIN', 'ATENDENTE']);
+
         $veiculo = $this->model('Veiculo');
         $cliente = $this->model('Cliente');
 
@@ -230,8 +233,7 @@ class VeiculoController extends Controller
         ];
 
         if (!$dados['veiculo']) {
-            header('Location: ./listVeiculos');
-            exit;
+            $this->naoEncontrado('Veículo', './listVeiculos');
         }
 
         $this->view('Veiculos/editVeiculo', $dados);
@@ -241,7 +243,15 @@ class VeiculoController extends Controller
     {
         $this->requireRole(['ADMIN']);
 
-        $id = $_GET['id'] ?? null;
+        // POST em vez de GET: um link GET que exclui pode ser disparado por um
+        // <img>/pré-carregamento em outra página só de o ADMIN estar logado,
+        // sem nenhum clique consciente. O gate de CSRF só cobre POST.
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            header('Location: ./listVeiculos');
+            exit;
+        }
+
+        $id = $_POST['id'] ?? null;
 
         if (!$id) {
             header('Location: ./listVeiculos');
