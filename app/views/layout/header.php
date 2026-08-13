@@ -10,9 +10,14 @@ function menuAtivo($rota, $rotaAtual)
   return $rota === $rotaAtual ? 'is-active' : '';
 }
 
+// Quem opera o caixa: o indicador da topbar e o item "Caixa" no menu só
+// aparecem para esses papéis. O técnico não mexe com dinheiro, então mostrar
+// a ele um botão que leva a uma tela sem permissão seria só um beco sem saída.
+$operaCaixa = in_array($_SESSION['user_tipo'] ?? '', ['ADMIN', 'ATENDENTE'], true);
+
 // Estado atual do caixa (para o indicador da topbar / sidebar)
 $caixaStatus = null;
-if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
+if (isset($_SESSION['logged']) && $_SESSION['logged'] === true && $operaCaixa) {
   require_once __DIR__ . '/../../models/Caixa.php';
   try {
     $caixaStatus = (new Caixa())->getCaixaAberto();
@@ -29,19 +34,32 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES) ?>">
   <title>Mecanize</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
   <link rel="icon" type="image/ico" href="./assets/img/logo-branco.ico">
   <?php $v = '?v=' . time(); ?>
+  <!--
+    Bibliotecas servidas pelo próprio projeto (public/assets/vendor/), não mais
+    por CDN. Duas razões: um <script> apontando pra domínio de terceiro executa
+    na página com acesso total à sessão do usuário, e quem publica lá pode
+    trocar o conteúdo do arquivo a qualquer momento sem ninguém aqui saber
+    (o antigo "chart.js" vinha sem número de versão, então qualquer release
+    nova entrava sozinha no sistema). De quebra, o Mecanize passa a funcionar
+    sem internet.
+
+    Duas bibliotecas foram removidas em vez de baixadas, por não terem nenhum
+    uso no código: Font Awesome (nenhuma classe fa-* nas telas, os ícones são
+    SVG inline e Bootstrap Icons) e o bundle JS do Bootstrap (nenhum
+    data-bs-* e nenhum componente instanciado).
+  -->
+  <link rel="stylesheet" href="./assets/vendor/inter.css<?= $v ?>">
   <link rel="stylesheet" href="./assets/css/global.css<?= $v ?>">
   <link rel="stylesheet" href="./assets/css/sidebar.css<?= $v ?>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/imask@7/dist/imask.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <link rel="stylesheet" href="./assets/css/erros.css<?= $v ?>">
+  <link rel="stylesheet" href="./assets/vendor/bootstrap-icons/bootstrap-icons.css<?= $v ?>">
+  <link rel="stylesheet" href="./assets/vendor/tom-select.css<?= $v ?>">
+  <script src="./assets/vendor/chart.umd.min.js<?= $v ?>"></script>
+  <script src="./assets/vendor/imask.min.js<?= $v ?>"></script>
+  <script src="./assets/vendor/tom-select.complete.min.js<?= $v ?>"></script>
+  <script src="./assets/js/escape.js<?= $v ?>"></script>
   <script src="./assets/js/cor-select.js<?= $v ?>"></script>
   <script src="./assets/js/select-enhance.js<?= $v ?>"></script>
   <!-- Aplica o tema ANTES de renderizar — evita flash de tela branca -->
@@ -159,16 +177,18 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
           </a>
         </li>
 
-        <li class="<?= menuAtivo('listCaixa', $rotaAtual) ?>">
-          <a href="./listCaixa">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-              <circle cx="12" cy="14" r="2" />
-            </svg>
-            <span class="label">Caixa</span>
-          </a>
-        </li>
+        <?php if ($operaCaixa): ?>
+          <li class="<?= menuAtivo('listCaixa', $rotaAtual) ?>">
+            <a href="./listCaixa">
+              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="2" y="7" width="20" height="14" rx="2" />
+                <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
+                <circle cx="12" cy="14" r="2" />
+              </svg>
+              <span class="label">Caixa</span>
+            </a>
+          </li>
+        <?php endif; ?>
 
         <li>
           <a href="./painel" target="_blank" rel="noopener">
@@ -376,7 +396,9 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
         </button>
 
         <div class="topbar__right">
-          <?php if (!empty($caixaStatus)): ?>
+          <?php if (!$operaCaixa): ?>
+            <!-- Técnico não opera caixa: sem indicador e sem atalho. -->
+          <?php elseif (!empty($caixaStatus)): ?>
             <a href="./caixaMovimentacoes" title="Caixa aberto por <?= htmlspecialchars($caixaStatus['abertura_nome'] ?? '') ?> — clique para ver os lançamentos"
               style="display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--color-success,#16A34A);background:var(--color-success-soft);color:var(--color-success,#16A34A);text-decoration:none;font-size:12px;font-weight:600;white-space:nowrap;">
               <span style="width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;"></span>

@@ -6,10 +6,11 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES) ?>">
   <title>Mecanize · Entrar</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./assets/vendor/inter.css">
   <link rel="stylesheet" href="./assets/css/global.css">
+  <!-- Login roda fora do layout do app: sem este link, o alerta de erro de
+       credencial ficaria sem estilo nenhum na tela. -->
+  <link rel="stylesheet" href="./assets/css/erros.css">
 
   <script>
     // ── Favicon dinâmico (login) ──
@@ -70,15 +71,20 @@
 
       <form class="login-card" method="POST" action="./login" novalidate>
 
+        <?php if (!empty($retorno)): ?>
+          <!-- Tela que a pessoa tentou abrir antes de cair aqui. Validado
+               contra as rotas registradas no controller antes de redirecionar. -->
+          <input type="hidden" name="retorno" value="<?= htmlspecialchars($retorno) ?>">
+        <?php endif; ?>
+
         <div class="login-card__head">
           <h2 class="login-card__title">Entrar</h2>
           <p class="login-card__subtitle">Bem-vindo de volta ao Mecanize</p>
         </div>
 
         <?php if (!empty($error)): ?>
-          <div style="background:var(--color-danger-soft);color:#991B1B;border-radius:var(--radius-md);padding:10px 14px;font-size:13px;font-weight:500;">
-            <?= htmlspecialchars($error) ?>
-          </div>
+          <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
         <?php endif; ?>
 
         <?php if (!empty($aviso)): ?>
