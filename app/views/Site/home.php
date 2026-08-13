@@ -353,12 +353,12 @@
     // fora dessa mesma checagem antes, vazando receita diária pra quem não é ADMIN).
     $ehAdminDashboard = isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN';
     ?>
-    const dadosOS = <?= json_encode($graficoOS     ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
-    const dadosReceita = <?= json_encode($ehAdminDashboard ? ($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) : []) ?>;
-    const dadosStatus = <?= json_encode($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
+    const dadosOS = <?= json_para_script($graficoOS     ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
+    const dadosReceita = <?= json_para_script($ehAdminDashboard ? ($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) : []) ?>;
+    const dadosStatus = <?= json_para_script($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
     const totalOS = dadosStatus.reduce((a, b) => a + b, 0);
-    const labelsFaturamentoMes = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['labels']  ?? []) : []) ?>;
-    const dadosFaturamentoMes  = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['valores'] ?? []) : []) ?>;
+    const labelsFaturamentoMes = <?= json_para_script($ehAdminDashboard ? ($faturamentoPorMes['labels']  ?? []) : []) ?>;
+    const dadosFaturamentoMes  = <?= json_para_script($ehAdminDashboard ? ($faturamentoPorMes['valores'] ?? []) : []) ?>;
 
     function initCharts() {
         // ── Area chart: Fluxo OS × Receita ──────────────────────────────────────

@@ -243,8 +243,8 @@
     Chart.defaults.font.size = 11;
     Chart.defaults.color = "#64748B";
 
-    const labelsGrafico = <?= json_encode($labelsGrafico          ?? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul']) ?>;
-    const dadosReceita = <?= json_encode($graficoReceita         ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
+    const labelsGrafico = <?= json_para_script($labelsGrafico          ?? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul']) ?>;
+    const dadosReceita = <?= json_para_script($graficoReceita         ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
 
     function initCharts() {
         const el = document.getElementById("barChart");

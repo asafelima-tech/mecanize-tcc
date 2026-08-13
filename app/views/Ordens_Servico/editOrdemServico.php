@@ -15,6 +15,10 @@
 | $mao_obra_os    — array com tecnico_id e valor_mao_obra
 |--------------------------------------------------------------------------
 */
+
+// Excluir OS é DELETE definitivo e restrito a ADMIN (OrdemServicoController).
+// Esconder o botão é coerência visual; o requireRole() é o que impede a ação.
+$podeExcluir = ($_SESSION['user_tipo'] ?? '') === 'ADMIN';
 ?>
 
 <div class="page-header">
@@ -348,12 +352,18 @@
     <!-- FOOTER DE AÇÕES -->
     <div class="os-edit-footer">
 
-        <a href="./deleteOrdemServico&id=<?= $ordem_servico['id_ordem_servico'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja excluir esta ordem de serviço? Esta ação não pode ser desfeita.')">
-            <i class="bi bi-trash"></i>
-            Excluir Ordem
-        </a>
+        <?php if ($podeExcluir): ?>
+            <!-- Era um <a> GET, e o controller só aceita POST: o botão pedia
+                 confirmação, voltava pra listagem e não excluía nada. Agora
+                 envia o formulário logo abaixo do </form> principal (form não
+                 pode ser aninhado, daí o atributo form=""). -->
+            <button type="submit" form="formExcluirOS"
+                class="btn btn--danger-ghost"
+                onclick="return confirm('Excluir esta ordem de serviço? Os produtos, serviços e mão de obra lançados nela são apagados junto, em definitivo.')">
+                <i class="bi bi-trash"></i>
+                Excluir Ordem
+            </button>
+        <?php endif; ?>
 
         <div class="os-edit-footer__right">
             <a href="javascript:history.back()" class="btn btn--ghost">
@@ -369,6 +379,15 @@
     </div>
 
 </form>
+
+<?php if ($podeExcluir): ?>
+    <!-- Alvo do botão "Excluir Ordem" do rodapé. Fica fora do formulário de
+         edição porque HTML não permite <form> aninhado. O token CSRF é
+         injetado automaticamente no submit por public/assets/js/csrf.js. -->
+    <form method="post" action="./deleteOrdemServico" id="formExcluirOS" hidden>
+        <input type="hidden" name="id_ordem_servico" value="<?= (int) $ordem_servico['id_ordem_servico'] ?>">
+    </form>
+<?php endif; ?>
 
 
 <!-- ============================================================
@@ -576,19 +595,19 @@
    DADOS DE CATÁLOGO (PHP → JS)
 ---------------------------------------------------------------- */
     const CATALOGO = {
-        produto: <?= json_encode($produtos, JSON_UNESCAPED_UNICODE) ?>,
-        servico: <?= json_encode($servicos, JSON_UNESCAPED_UNICODE) ?>
+        produto: <?= json_para_script($produtos) ?>,
+        servico: <?= json_para_script($servicos) ?>
     };
 
-    const MECANICOS_DATA = <?= json_encode(array_map(fn($m) => [
+    const MECANICOS_DATA = <?= json_para_script(array_map(fn($m) => [
                                 'id'   => $m['id']   ?? null,
                                 'nome' => $m['nome'] ?? '',
-                            ], $mecanicos), JSON_UNESCAPED_UNICODE) ?>;
+                            ], $mecanicos)) ?>;
 
     /* ----------------------------------------------------------------
        ESTADO DA OS — pré-populado com itens existentes
     ---------------------------------------------------------------- */
-    let osItens = <?= json_encode(array_map(function ($it) {
+    let osItens = <?= json_para_script(array_map(function ($it) {
                         return [
                             'id'       => $it['id'],
                             'nome'     => $it['nome'],
@@ -599,7 +618,7 @@
                             'custom'   => (bool)($it['custom'] ?? false),
                             'pct'      => null,
                         ];
-                    }, $itens_os ?? []), JSON_UNESCAPED_UNICODE) ?>;
+                    }, $itens_os ?? [])) ?>;
 
     let tipoAtual = 'produto';
     let selTemp = {};

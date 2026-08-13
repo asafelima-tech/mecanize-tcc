@@ -534,8 +534,8 @@ $error              = $error              ?? '';
     (function() {
         /* ---- DADOS PHP → JS ---- */
         const ORC_CATALOGO = {
-            produto: <?= json_encode(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos), JSON_UNESCAPED_UNICODE) ?>,
-            servico: <?= json_encode(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos), JSON_UNESCAPED_UNICODE) ?>
+            produto: <?= json_para_script(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos)) ?>,
+            servico: <?= json_para_script(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos)) ?>
         };
 
         /* ---- ESTADO ---- */

@@ -50,14 +50,12 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
 ?>
 
 <?php if ($flashErro !== null): ?>
-    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= $flashErro ?>
-    </div>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $flashErro;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 <?php if ($flashOk !== null): ?>
-    <div style="background:var(--color-success-soft);color:#166534;border:1px solid #BBF7D0;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= $flashOk ?>
-    </div>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = $flashOk;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 
 <!-- ── Page Header ── -->
@@ -198,94 +196,33 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
 </div>
 
 <!-- ── Abas: Ativos / Inativos ── -->
-<div class="usr-abas" role="tablist" aria-label="Visualização de usuários">
+<div class="abas" role="tablist" aria-label="Visualização de usuários">
     <a href="./listUsuarios?aba=ativos"
-       class="usr-aba<?= $abaAtual === 'ativos' ? ' usr-aba--ativa' : '' ?>"
+       class="aba<?= $abaAtual === 'ativos' ? ' aba--ativa' : '' ?>"
        role="tab" aria-selected="<?= $abaAtual === 'ativos' ? 'true' : 'false' ?>"
        data-usuarios-aba="ativos">
         Usuários Ativos
-        <span class="usr-aba__contador"><?= (int) ($totalAtivos ?? 0) ?></span>
+        <span class="aba__contador"><?= (int) ($totalAtivos ?? 0) ?></span>
     </a>
     <a href="./listUsuarios?aba=inativos"
-       class="usr-aba<?= $abaAtual === 'inativos' ? ' usr-aba--ativa' : '' ?>"
+       class="aba<?= $abaAtual === 'inativos' ? ' aba--ativa' : '' ?>"
        role="tab" aria-selected="<?= $abaAtual === 'inativos' ? 'true' : 'false' ?>"
        data-usuarios-aba="inativos">
         Usuários Inativos
-        <span class="usr-aba__contador"><?= (int) ($totalInativos ?? 0) ?></span>
+        <span class="aba__contador"><?= (int) ($totalInativos ?? 0) ?></span>
     </a>
 </div>
 
 <!-- ── Tabela ── -->
 <section class="card">
-    <div id="usuarios-conteudo" aria-busy="false">
+    <div id="usuarios-conteudo" data-aba-conteudo aria-busy="false">
         <?php require __DIR__ . '/_tabelaUsuarios.php'; ?>
     </div>
 </section>
 
 <style>
-    /* ===== Abas Ativos / Inativos ===== */
-    .usr-abas {
-        display: inline-flex;
-        gap: 4px;
-        background: var(--color-bg-subtle, #F1F5F9);
-        border-radius: var(--radius-md);
-        padding: 4px;
-        margin-bottom: 16px;
-    }
-
-    .usr-aba {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        padding: 8px 16px;
-        border-radius: calc(var(--radius-md) - 2px);
-        font-size: 13px;
-        font-weight: 600;
-        color: var(--color-text-muted);
-        text-decoration: none;
-        transition: background .12s ease, color .12s ease;
-        white-space: nowrap;
-    }
-
-    .usr-aba:hover { color: var(--color-text); }
-
-    .usr-aba--ativa {
-        background: var(--color-surface, #FFF);
-        color: var(--color-primary, #094FE4);
-        box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
-    }
-
-    .usr-aba__contador {
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 20px;
-        height: 20px;
-        padding: 0 6px;
-        border-radius: 99px;
-        background: var(--color-border, #E2E8F0);
-        color: var(--color-text-muted);
-        font-size: 11px;
-        font-weight: 700;
-    }
-
-    .usr-aba--ativa .usr-aba__contador {
-        background: var(--color-primary, #094FE4);
-        color: #fff;
-    }
-
-    /* Enquanto o fetch da aba/página não volta, o conteúdo antigo esmaece
-       em vez de sumir — evita o "pulo" de altura da tabela. */
-    #usuarios-conteudo[aria-busy="true"] {
-        opacity: .5;
-        pointer-events: none;
-        transition: opacity .12s ease;
-    }
-
-    @media (max-width: 560px) {
-        .usr-abas { display: flex; width: 100%; }
-        .usr-aba { flex: 1; justify-content: center; }
-    }
+    /* As abas Ativos/Inativos agora vêm de .abas/.aba no global.css — mesmo
+       componente usado pela tela de Clientes. */
 
     .stat-card--clickable {
         position: relative;
@@ -544,9 +481,11 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
             ATENDENTE: 'linear-gradient(135deg,#F59E0B 0%,#D97706 100%)',
         };
 
+        // Escapa na saída porque as iniciais também vão parar no HTML: um nome
+        // começando com "<" devolveria "<" cru dentro da bolinha do avatar.
         function iniciais(nome) {
-            const partes = (nome || '').trim().split(/\s+/);
-            return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase();
+            const partes = String(nome || '').trim().split(/\s+/);
+            return escaparHtml(((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase());
         }
 
         function formatarData(d) {
@@ -559,15 +498,17 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
         }
 
         function labelTipo(tipo) {
-            return TIPO_LABEL[tipo] || (tipo || '—');
+            // O fallback mostra o valor cru do banco (caso apareça um tipo novo
+            // que ainda não está no mapa acima), então também precisa escapar.
+            return TIPO_LABEL[tipo] || escaparHtml(tipo) || '—';
         }
 
         function criarLinhaUsuario(u) {
             return `
-                <div class="usr-row" data-id="${u.id_usuario}">
+                <div class="usr-row" data-id="${parseInt(u.id_usuario, 10)}">
                     <div class="avatar avatar--sm" style="background:${corPorTipo(u.tipo)}">${iniciais(u.nome)}</div>
                     <div class="usr-row__info">
-                        <div class="usr-row__name">${u.nome}</div>
+                        <div class="usr-row__name">${escaparHtml(u.nome)}</div>
                         <div class="usr-row__sub">${labelTipo(u.tipo)} · desde ${formatarData(u.criado_em)}</div>
                     </div>
                     <div class="usr-row__badge">Novo</div>
@@ -582,7 +523,7 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
                 <div class="usr-perfil-head">
                     <div class="avatar avatar--lg" style="background:${corPorTipo(u.tipo)}">${iniciais(u.nome)}</div>
                     <div>
-                        <div class="usr-perfil-name">${u.nome}</div>
+                        <div class="usr-perfil-name">${escaparHtml(u.nome)}</div>
                         <div class="usr-perfil-tag">✦ Novo · desde ${formatarData(u.criado_em)}</div>
                     </div>
                 </div>
@@ -598,7 +539,7 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
                     </div>
                     <div class="usr-info-item usr-info-item--full">
                         <div class="usr-info-label">E-mail</div>
-                        <div class="usr-info-value">${u.email || 'Não informado'}</div>
+                        <div class="usr-info-value">${escaparHtml(u.email) || 'Não informado'}</div>
                     </div>
                     <div class="usr-info-item">
                         <div class="usr-info-label">Cadastrado em</div>
@@ -753,7 +694,7 @@ $flashOk = (($_GET['ok'] ?? '') === 'excluido') ? 'Usuário excluído.' : null;
         function marcarAba(aba) {
             abas.forEach(function (a) {
                 const ehEsta = a.dataset.usuariosAba === aba;
-                a.classList.toggle('usr-aba--ativa', ehEsta);
+                a.classList.toggle('aba--ativa', ehEsta);
                 a.setAttribute('aria-selected', ehEsta ? 'true' : 'false');
             });
         }

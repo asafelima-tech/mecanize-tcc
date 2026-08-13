@@ -589,14 +589,14 @@ $preAgendamento = $preAgendamento ?? '';
    DADOS DE CATÁLOGO (PHP → JS)
 ---------------------------------------------------------------- */
     const CATALOGO = {
-        produto: <?= json_encode(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos), JSON_UNESCAPED_UNICODE) ?>,
-        servico: <?= json_encode(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos), JSON_UNESCAPED_UNICODE) ?>
+        produto: <?= json_para_script(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos)) ?>,
+        servico: <?= json_para_script(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos)) ?>
     };
 
-    const MECANICOS_DATA = <?= json_encode(array_map(fn($m) => [
+    const MECANICOS_DATA = <?= json_para_script(array_map(fn($m) => [
                                 'id'   => $m['id']   ?? null,
                                 'nome' => $m['nome'] ?? '',
-                            ], $mecanicos), JSON_UNESCAPED_UNICODE) ?>;
+                            ], $mecanicos)) ?>;
 
     /* ----------------------------------------------------------------
        ESTADO DA OS
@@ -1348,7 +1348,7 @@ $preAgendamento = $preAgendamento ?? '';
     // Veículo vindo da agenda: só dá pra selecionar depois que
     // filtrarVeiculosPorCliente() repovoou a lista com os veículos do cliente.
     (function () {
-        const preVeiculo = <?= json_encode((string) $preVeiculo) ?>;
+        const preVeiculo = <?= json_para_script((string) $preVeiculo) ?>;
         if (!preVeiculo || !veiculoSelect) return;
 
         const ts = getTS(veiculoSelect);

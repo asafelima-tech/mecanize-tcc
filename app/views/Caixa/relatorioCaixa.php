@@ -88,8 +88,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Total de entradas</div>
-            <div class="stat-card__ico b1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b1">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="19" x2="12" y2="5" />
                     <polyline points="5 12 12 5 19 12" />
                 </svg>
@@ -102,8 +102,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Total de saídas</div>
-            <div class="stat-card__ico b2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <polyline points="19 12 12 19 5 12" />
                 </svg>
@@ -116,8 +116,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Resultado do período</div>
-            <div class="stat-card__ico b3">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="1" x2="12" y2="23" />
                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
@@ -132,8 +132,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Sessões de caixa</div>
-            <div class="stat-card__ico b4">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b4">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="2" y="7" width="20" height="14" rx="2" />
                     <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
                 </svg>
@@ -299,7 +299,7 @@ $abas = [
     .periodo-tabs {
         display: inline-flex;
         gap: 4px;
-        background: var(--color-bg-subtle, #F1F5F9);
+        background: var(--color-bg-subtle);
         border-radius: var(--radius-md);
         padding: 4px;
     }
@@ -350,8 +350,8 @@ $abas = [
 <?php if (!empty($serie)): ?>
 <script>
     (function () {
-        const serie = <?= json_encode($serie, JSON_UNESCAPED_UNICODE) ?>;
-        const granularidade = <?= json_encode($periodo['granularidade'] ?? 'dia') ?>;
+        const serie = <?= json_para_script($serie) ?>;
+        const granularidade = <?= json_para_script($periodo['granularidade'] ?? 'dia') ?>;
 
         // 'YYYY-MM-DD' → '05/03' | 'YYYY-MM' → 'mar'
         const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];

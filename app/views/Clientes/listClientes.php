@@ -1,6 +1,12 @@
 <?php
 // Variáveis esperadas do controller:
-// $clientes, $totalClientes, $novosMes, $clientesVip, $paginaAtual
+// $clientes, $totalClientes, $novosMes, $clientesVip, $paginaAtual,
+// $totalResultados, $totalPaginas, $totalAtivos, $totalInativos, $aba
+
+// Aba visível (ativos por padrão). O recorte por status é da aba, não é mais
+// um filtro da toolbar — quem decide de verdade é ClienteController::abaAtual();
+// aqui é só o que a tela usa pra marcar a aba selecionada.
+$abaAtual = $aba ?? 'ativos';
 ?>
 
 <!-- Page Header -->
@@ -168,220 +174,30 @@
 
     </div>
 </div>
-<section class="card">
-
-    <!-- Toolbar / Filtros -->
-    <form method="GET" action="./listClientes" class="table-toolbar">
-        <div class="search-wrap">
-            <input
-                type="text"
-                name="busca"
-                value="<?= htmlspecialchars($_GET['busca'] ?? '') ?>"
-                placeholder="Buscar por nome, telefone ou e-mail..." />
-        </div>
-
-        <select name="status" class="toolbar-select" onchange="this.form.submit()">
-            <option value="">Status: Todos</option>
-            <option value="ativo" <?= (($_GET['status'] ?? '') === 'ativo') ? 'selected' : '' ?>>Ativo</option>
-            <option value="inativo" <?= (($_GET['status'] ?? '') === 'inativo') ? 'selected' : '' ?>>Inativo</option>
-        </select>
-
-        <button type="submit" class="btn btn--ghost">Buscar</button>
-
-        <span style="margin-left:auto;font-size:12px;color:var(--color-text-muted);">
-            <?= (int)($totalResultados ?? 0) ?> resultado(s)
-        </span>
-    </form>
-
-    <!-- Tabela -->
-    <div class="table-wrap">
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Cliente</th>
-                    <th>Contato</th>
-                    <th>Veículos Cadastrados</th>
-                    <th>Última Visita</th>
-                    <th>Status</th>
-                    <th>Ações</th>
-                </tr>
-            </thead>
-            <tbody>
-                <?php if (!empty($clientes)): ?>
-                    <?php foreach ($clientes as $cliente): ?>
-                        <tr>
-                            <!-- Cliente -->
-                            <td>
-                                <div class="user-cell">
-                                    <div class="avatar">
-                                        <?= mb_strtoupper(mb_substr($cliente['nome'], 0, 2)) ?>
-                                    </div>
-                                    <div>
-                                        <div class="user-cell__name"><?= htmlspecialchars($cliente['nome']) ?></div>
-                                        <div class="user-cell__sub">
-                                            <?= !empty($cliente['cpf_cnpj']) ? htmlspecialchars($cliente['cpf_cnpj']) : 'Sem documento' ?>
-                                        </div>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- Contato -->
-                            <td>
-                                <div style="font-size:13px;line-height:1.8;">
-                                    <div class="flex items-center gap-8">
-                                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.61 3.44C2.11 2.09 3.32 1 4.7 1h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L9.91 8.09a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 24 14.91v3.01z" />
-                                        </svg>
-                                        <?= htmlspecialchars($cliente['telefone'] ?: 'Sem telefone') ?>
-                                    </div>
-                                    <div class="text-muted fs-12">
-                                        <?= htmlspecialchars($cliente['email'] ?: 'Sem e-mail') ?>
-                                    </div>
-                                </div>
-                            </td>
-
-                            <!-- Veículos -->
-                            <td>
-                                <?php if (!empty($cliente['veiculo_principal'])): ?>
-                                    <?= htmlspecialchars($cliente['veiculo_principal']) ?>
-                                    <?php if ((int)$cliente['total_veiculos'] > 1): ?>
-                                        <span class="badge badge--neutral">+<?= ((int)$cliente['total_veiculos']) - 1 ?></span>
-                                    <?php endif; ?>
-                                <?php else: ?>
-                                    <span class="text-muted">Nenhum veículo</span>
-                                <?php endif; ?>
-                            </td>
-
-                            <!-- Última Visita -->
-                            <td>
-                                <?php if (!empty($cliente['ultima_visita'])): ?>
-                                    <?= date('d/m/Y', strtotime($cliente['ultima_visita'])) ?>
-                                <?php else: ?>
-                                    <span class="text-muted">Sem visita</span>
-                                <?php endif; ?>
-                            </td>
-
-                            <!-- Status -->
-                            <td>
-                                <?php
-                                $status = strtolower($cliente['status'] ?? 'ativo');
-                                $badgeClass = match ($status) {
-                                    'ativo'     => 'badge--success',
-                                    'inativo'   => 'badge--danger',
-                                    'bloqueado' => 'badge--warning',
-                                    default     => 'badge--neutral',
-                                };
-                                $statusLabel = match ($status) {
-                                    'ativo'     => 'Ativo',
-                                    'inativo'   => 'Inativo',
-                                    'bloqueado' => 'Bloqueado',
-                                    default     => ucfirst($status),
-                                };
-                                ?>
-                                <span class="badge <?= $badgeClass ?>">
-                                    <span class="badge__dot"></span>
-                                    <?= $statusLabel ?>
-                                </span>
-                            </td>
-
-                            <!-- Ações -->
-                            <td>
-                                <div class="row-actions">
-                                    <a href="./viewCliente?id=<?= $cliente['id_cliente'] ?>" class="row-action-btn primary" title="Visualizar">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                                            <circle cx="12" cy="12" r="3" />
-                                        </svg>
-                                    </a>
-                                    <a href="./editCliente?id=<?= $cliente['id_cliente'] ?>" class="row-action-btn" title="Editar">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
-                                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
-                                        </svg>
-                                    </a>
-                                    <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
-                                    <a
-                                        href="./deleteCliente?id=<?= $cliente['id_cliente'] ?>"
-                                        class="row-action-btn danger"
-                                        title="Desativar"
-                                        onclick="return confirm('Deseja desativar este cliente? Ele não será excluído permanentemente.')">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        </svg>
-                                    </a>
-                                    <?php endif; ?>
-                                </div>
-                            </td>
-                        </tr>
-                    <?php endforeach; ?>
-                <?php else: ?>
-                    <tr>
-                        <td colspan="6" style="text-align:center;padding:48px 20px;color:var(--color-text-muted);">
-                            <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="margin:0 auto 12px;display:block;opacity:.4;">
-                                <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-                                <circle cx="9" cy="7" r="4" />
-                                <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-                                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-                            </svg>
-                            Nenhum cliente encontrado.
-                        </td>
-                    </tr>
-                <?php endif; ?>
-            </tbody>
-        </table>
-    </div>
-
-    <!-- Paginação -->
-    <div class="pagination">
-        <span>
-            Mostrando <?= !empty($clientes) ? count($clientes) : 0 ?> de <?= (int)($totalResultados ?? 0) ?> resultados
-        </span>
-        <div class="pagination__pages">
-            <?php
-            $pagAtual = (int)($paginaAtual ?? 1);
-            // totalPaginas já vem calculado pelo model a partir do total FILTRADO
-            // (totalResultados) — não recalcular aqui a partir do total geral de
-            // clientes, senão a paginação ignora a busca/filtro ativo.
-            $totalPags = max(1, (int)($totalPaginas ?? 1));
-
-            // Preserva busca/status ao trocar de página; só troca "pagina".
-            $queryBase = $_GET;
-            unset($queryBase['pagina'], $queryBase['url']);
-
-            function hrefPaginaCliente($pagina, $queryBase)
-            {
-                return './listClientes?' . http_build_query(array_merge($queryBase, ['pagina' => $pagina]));
-            }
-
-            $inicio = max(1, $pagAtual - 1);
-            $fim    = min($totalPags, $pagAtual + 1);
-            ?>
-            <button type="button" class="pagination__btn"
-                <?= ($pagAtual <= 1) ? 'disabled' : 'onclick="window.location=\'' . hrefPaginaCliente($pagAtual - 1, $queryBase) . '\'"' ?>>‹</button>
-
-            <?php for ($p = $inicio; $p <= $fim; $p++): ?>
-                <button type="button" class="pagination__btn <?= $p === $pagAtual ? 'is-active' : '' ?>"
-                    onclick="window.location='<?= hrefPaginaCliente($p, $queryBase) ?>'">
-                    <?= $p ?>
-                </button>
-            <?php endfor; ?>
-
-            <button type="button" class="pagination__btn"
-                <?= ($pagAtual >= $totalPags) ? 'disabled' : 'onclick="window.location=\'' . hrefPaginaCliente($pagAtual + 1, $queryBase) . '\'"' ?>>›</button>
-        </div>
-    </div>
-
-</section>
-
-<div class="mt-16">
-    <a href="./listClientesDesativados" class="text-secondary fs-13 link-icon">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="display:inline-block;vertical-align:middle;">
-            <path d="M5 12h14M12 5l7 7-7 7" />
-        </svg>
-        Ver clientes desativados
+<!-- ── Abas: Ativos / Inativos ── -->
+<div class="abas" role="tablist" aria-label="Visualização de clientes">
+    <a href="./listClientes?aba=ativos"
+       class="aba<?= $abaAtual === 'ativos' ? ' aba--ativa' : '' ?>"
+       role="tab" aria-selected="<?= $abaAtual === 'ativos' ? 'true' : 'false' ?>"
+       data-clientes-aba="ativos">
+        Clientes Ativos
+        <span class="aba__contador"><?= (int) ($totalAtivos ?? 0) ?></span>
+    </a>
+    <a href="./listClientes?aba=inativos"
+       class="aba<?= $abaAtual === 'inativos' ? ' aba--ativa' : '' ?>"
+       role="tab" aria-selected="<?= $abaAtual === 'inativos' ? 'true' : 'false' ?>"
+       data-clientes-aba="inativos">
+        Clientes Inativos
+        <span class="aba__contador"><?= (int) ($totalInativos ?? 0) ?></span>
     </a>
 </div>
+
+<!-- ── Tabela ── -->
+<section class="card">
+    <div id="clientes-conteudo" data-aba-conteudo aria-busy="false">
+        <?php require __DIR__ . '/_tabelaClientes.php'; ?>
+    </div>
+</section>
 
 <style>
     /* Card precisa ser o ponto de ancoragem do painel */
@@ -658,9 +474,11 @@
     (function() {
         const PRIMARY = '#003BDD';
 
+        // Escapa na saída porque as iniciais também vão parar no HTML: um nome
+        // começando com "<" devolveria "<" cru dentro da bolinha do avatar.
         function iniciais(nome) {
-            const partes = nome.trim().split(/\s+/);
-            return ((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase();
+            const partes = String(nome || '').trim().split(/\s+/);
+            return escaparHtml(((partes[0]?.[0] || '') + (partes[1]?.[0] || '')).toUpperCase());
         }
 
         function formatarData(d) {
@@ -671,19 +489,21 @@
         // --- Gera o HTML de uma linha na lista, adaptando o "sub" e o badge
         //     conforme o tipo de painel (vip = recorrência, novo = data de cadastro) ---
         function criarLinhaCliente(c, tipo) {
+            const veiculo = escaparHtml(c.veiculo_principal) || 'Sem veículo';
+
             const sub = tipo === 'vip' ?
-                `${c.veiculo_principal || 'Sem veículo'} · ${formatarData(c.ultima_visita)}` :
-                `${c.veiculo_principal || 'Sem veículo'} · desde ${formatarData(c.criado_em)}`;
+                `${veiculo} · ${formatarData(c.ultima_visita)}` :
+                `${veiculo} · desde ${formatarData(c.criado_em)}`;
 
             const badge = tipo === 'vip' ?
-                `${c.total_visitas}x` :
+                `${parseInt(c.total_visitas, 10) || 0}x` :
                 'Novo';
 
             return `
-                <div class="vip-row" data-id="${c.id_cliente}">
+                <div class="vip-row" data-id="${parseInt(c.id_cliente, 10)}">
                     <div class="avatar" style="background:${PRIMARY}">${iniciais(c.nome)}</div>
                     <div class="vip-row__info">
-                        <div class="vip-row__name">${c.nome}</div>
+                        <div class="vip-row__name">${escaparHtml(c.nome)}</div>
                         <div class="vip-row__sub">${sub}</div>
                     </div>
                     <div class="vip-row__badge">${badge}</div>
@@ -694,7 +514,7 @@
         // --- Gera o HTML completo da tela de perfil, adaptando só a "tag" do topo ---
         function renderPerfil(c, tipo) {
             const tag = tipo === 'vip' ?
-                `★ VIP · ${c.total_visitas} visitas` :
+                `★ VIP · ${parseInt(c.total_visitas, 10) || 0} visitas` :
                 `✦ Novo cliente · desde ${formatarData(c.criado_em)}`;
 
             const veiculosHtml = (c.veiculos && c.veiculos.length) ?
@@ -703,7 +523,7 @@
                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="${PRIMARY}" stroke-width="2">
                             <path d="M5 17h14M5 17a2 2 0 1 1-4 0 2 2 0 0 1 4 0zm14 0a2 2 0 1 1-4 0 2 2 0 0 1 4 0zM3 17V9l2-5h14l2 5v8" />
                         </svg>
-                        ${v.marca} ${v.modelo}${v.ano ? ' · ' + v.ano : ''}
+                        ${escaparHtml(v.marca)} ${escaparHtml(v.modelo)}${v.ano ? ' · ' + escaparHtml(v.ano) : ''}
                     </div>
                 `).join('') :
                 '<div class="vip-empty">Nenhum veículo cadastrado.</div>';
@@ -712,7 +532,7 @@
                 <div class="vip-perfil-head">
                     <div class="avatar avatar--lg" style="background:${PRIMARY}">${iniciais(c.nome)}</div>
                     <div>
-                        <div class="vip-perfil-name">${c.nome}</div>
+                        <div class="vip-perfil-name">${escaparHtml(c.nome)}</div>
                         <div class="vip-perfil-tag">${tag}</div>
                     </div>
                 </div>
@@ -720,15 +540,15 @@
                 <div class="vip-info-grid">
                     <div class="vip-info-item">
                         <div class="vip-info-label">Telefone</div>
-                        <div class="vip-info-value">${c.telefone || 'Não informado'}</div>
+                        <div class="vip-info-value">${escaparHtml(c.telefone) || 'Não informado'}</div>
                     </div>
                     <div class="vip-info-item">
                         <div class="vip-info-label">E-mail</div>
-                        <div class="vip-info-value">${c.email || 'Não informado'}</div>
+                        <div class="vip-info-value">${escaparHtml(c.email) || 'Não informado'}</div>
                     </div>
                     <div class="vip-info-item">
                         <div class="vip-info-label">Documento</div>
-                        <div class="vip-info-value">${c.cpf_cnpj || 'Não informado'}</div>
+                        <div class="vip-info-value">${escaparHtml(c.cpf_cnpj) || 'Não informado'}</div>
                     </div>
                     <div class="vip-info-item">
                         <div class="vip-info-label">Cliente desde</div>
@@ -736,7 +556,7 @@
                     </div>
                     <div class="vip-info-item vip-info-item--full">
                         <div class="vip-info-label">Endereço</div>
-                        <div class="vip-info-value">${[c.endereco, c.bairro, c.cidade, c.uf].filter(Boolean).join(', ') || 'Não informado'}</div>
+                        <div class="vip-info-value">${[c.endereco, c.bairro, c.cidade, c.uf].filter(Boolean).map(escaparHtml).join(', ') || 'Não informado'}</div>
                     </div>
                     <div class="vip-info-item">
                         <div class="vip-info-label">Primeira visita</div>
@@ -898,6 +718,133 @@
                 painelVip.fecharPainel();
                 painelNovos.fecharPainel();
             }
+        });
+    })();
+</script>
+
+<script>
+    /**
+     * Troca entre "Clientes Ativos" e "Clientes Inativos" sem sair da página.
+     *
+     * Mesmo mecanismo da tela de Usuários: busca/paginação continuam
+     * server-side (é o banco que filtra e pagina), então a troca não pode ser
+     * só esconder linhas no DOM — o navegador só tem a página atual. A aba
+     * pede o miolo da tabela à MESMA rota (./listClientes com ?fragmento=1) e
+     * substitui só o #clientes-conteudo.
+     *
+     * Tudo é progressivo: abas, paginação e "limpar" são <a> de verdade e o
+     * filtro é um <form> GET normal — sem JS, a tela funciona recarregando.
+     */
+    (function () {
+        const conteudo = document.getElementById('clientes-conteudo');
+        const abas     = Array.from(document.querySelectorAll('[data-clientes-aba]'));
+
+        if (!conteudo || !abas.length) return;
+
+        let requisicaoAtual = 0;
+
+        function abaDaUrl(url) {
+            return new URL(url, window.location.href).searchParams.get('aba') === 'inativos'
+                ? 'inativos'
+                : 'ativos';
+        }
+
+        function marcarAba(aba) {
+            abas.forEach(function (a) {
+                const ehEsta = a.dataset.clientesAba === aba;
+                a.classList.toggle('aba--ativa', ehEsta);
+                a.setAttribute('aria-selected', ehEsta ? 'true' : 'false');
+            });
+        }
+
+        async function carregar(url, comHistorico) {
+            const id = ++requisicaoAtual;
+
+            conteudo.setAttribute('aria-busy', 'true');
+
+            try {
+                const alvo = new URL(url, window.location.href);
+                alvo.searchParams.set('fragmento', '1');
+
+                const resposta = await fetch(alvo, {
+                    headers: { 'X-Requested-With': 'fetch' },
+                    credentials: 'same-origin',
+                });
+
+                if (!resposta.ok) throw new Error('HTTP ' + resposta.status);
+
+                // O front-controller redireciona (302) quando a sessão caiu ou
+                // o caixa foi fechado em outra aba. O fetch segue o redirect
+                // calado, e sem isto a tela de login acabaria injetada dentro
+                // da tabela. Recarrega de verdade nesses casos.
+                if (resposta.redirected && !/[?&]fragmento=1/.test(resposta.url)) {
+                    window.location.href = resposta.url;
+                    return;
+                }
+
+                const html = await resposta.text();
+
+                // Uma resposta antiga não pode sobrescrever uma mais nova
+                // (cliques rápidos entre as abas).
+                if (id !== requisicaoAtual) return;
+
+                conteudo.innerHTML = html;
+                marcarAba(abaDaUrl(url));
+
+                if (comHistorico) {
+                    // URL sem "fragmento": recarregar a página na mão tem que
+                    // devolver a tela inteira na mesma aba.
+                    history.pushState({ clientes: true }, '', url);
+                }
+            } catch (erro) {
+                if (id !== requisicaoAtual) return;
+                // Falhou o fetch (offline, sessão expirada): cai na navegação
+                // normal em vez de deixar a tela travada.
+                window.location.href = url;
+            } finally {
+                if (id === requisicaoAtual) {
+                    conteudo.setAttribute('aria-busy', 'false');
+                }
+            }
+        }
+
+        // ── Abas ──
+        abas.forEach(function (aba) {
+            aba.addEventListener('click', function (e) {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+                e.preventDefault();
+                carregar(aba.getAttribute('href'), true);
+            });
+        });
+
+        // ── Paginação e "limpar busca" (vêm dentro do fragmento trocado,
+        //    por isso delegação em vez de listener por elemento) ──
+        conteudo.addEventListener('click', function (e) {
+            const link = e.target.closest('[data-clientes-link]');
+            if (!link) return;
+            if (e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+
+            e.preventDefault();
+            carregar(link.getAttribute('href'), true);
+        });
+
+        // ── Formulário de busca ──
+        conteudo.addEventListener('submit', function (e) {
+            const form = e.target.closest('[data-clientes-filtro]');
+            if (!form) return;
+
+            e.preventDefault();
+
+            const dados = new URLSearchParams(new FormData(form));
+            // Busca nova recomeça da primeira página.
+            dados.delete('pagina');
+
+            carregar('./listClientes?' + dados.toString(), true);
+        });
+
+        // ── Voltar/avançar do navegador ──
+        window.addEventListener('popstate', function () {
+            carregar(window.location.href, false);
         });
     })();
 </script>
