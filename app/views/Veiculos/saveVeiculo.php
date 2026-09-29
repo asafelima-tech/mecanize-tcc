@@ -151,14 +151,14 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                     border-radius: var(--radius-md);
                     padding: 14px 10px;
                     cursor: pointer;
-                    background: var(--color-bg-soft, #F9FAFB);
+                    background: var(--color-bg-soft);
                     transition: border-color .2s, background .2s;
                     text-align: center;
                     min-height: 80px;
                     position: relative;
                 "
                                     onmouseenter="this.style.borderColor='var(--color-primary)'; this.style.background='var(--color-primary-soft)'"
-                                    onmouseleave="this.style.borderColor='var(--color-border, #D1D5DB)'; this.style.background='var(--color-bg-soft, #F9FAFB)'">
+                                    onmouseleave="this.style.borderColor='var(--color-border, #D1D5DB)'; this.style.background='var(--color-bg-soft)'">
 
                                     <svg id="iconeFotoPlaca" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
                                         viewBox="0 0 24 24" stroke="var(--color-primary)" stroke-width="1.6">
@@ -413,8 +413,8 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
 </div>
 
 <script>
-    window.CORES_CARRO = <?= json_encode($coresCarro, JSON_UNESCAPED_UNICODE) ?>;
-    window.COMBUSTIVEIS = <?= json_encode($combustiveis, JSON_UNESCAPED_UNICODE) ?>;
+    window.CORES_CARRO = <?= json_para_script($coresCarro) ?>;
+    window.COMBUSTIVEIS = <?= json_para_script($combustiveis) ?>;
 
     // Reconstrói o <select> de combustível mostrando só os tipos permitidos
     // para o modelo escolhido. Sem restrição (modelo novo/sem regra) → lista completa.
@@ -673,7 +673,7 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
 
         function estiloParado() {
             dropArea.style.borderColor = 'var(--color-border, #D1D5DB)';
-            dropArea.style.background = 'var(--color-bg-soft, #F9FAFB)';
+            dropArea.style.background = 'var(--color-bg-soft)';
         }
 
         ['dragenter', 'dragover'].forEach(function (evento) {

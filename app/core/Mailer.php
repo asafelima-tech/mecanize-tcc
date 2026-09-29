@@ -50,6 +50,21 @@ class Mailer
      */
     public function enviar($destinatario, $assunto, $corpoHtml, $corpoTexto = null)
     {
+        /*
+         * O endereço é colado direto em "RCPT TO:<...>" e no cabeçalho "To:"
+         * mais abaixo. No protocolo SMTP cada comando termina numa quebra de
+         * linha, então um endereço que contivesse \r\n deixaria de ser só um
+         * endereço: o que viesse depois entraria como comando ou cabeçalho
+         * próprio (dá pra acrescentar destinatários ocultos, por exemplo).
+         *
+         * FILTER_VALIDATE_EMAIL rejeita qualquer quebra de linha, então esta
+         * única checagem fecha a brecha. As telas já validam o e-mail no
+         * cadastro; aqui é a garantia de quem de fato escreve no socket.
+         */
+        if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Destinatário de e-mail inválido.');
+        }
+
         $conexao = @fsockopen($this->host, $this->porta, $errno, $errstr, 10);
         if (!$conexao) {
             throw new \RuntimeException("Falha ao conectar no SMTP: {$errstr}");

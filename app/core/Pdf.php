@@ -20,7 +20,24 @@ class Pdf
     public static function baixar(string $html, string $nomeArquivo, bool $attachment = true): void
     {
         $options = new Options();
-        $options->set('isRemoteEnabled', true);
+
+        /*
+         * Só imagem embutida no próprio HTML (data:), que é o formato da
+         * assinatura desenhada pelo cliente na tela de conclusão da OS.
+         *
+         * Por padrão o Dompdf também aceita file://, http:// e https:// numa
+         * tag <img>. Isso significa que qualquer texto que chegasse ao HTML do
+         * documento sem escape poderia mandar o SERVIDOR abrir um arquivo do
+         * disco dele (o .env, por exemplo) e desenhá-lo dentro do PDF, ou
+         * fazer requisições para endereços internos da rede. Hoje as views de
+         * PDF escapam tudo, mas limitar o protocolo aqui faz a proteção deixar
+         * de depender disso.
+         *
+         * A opção 'isRemoteEnabled' que existia aqui não fazia mais efeito: no
+         * Dompdf 3.x ela virou legado e nada no pacote a consulta — quem manda
+         * é esta lista de protocolos.
+         */
+        $options->setAllowedProtocols(['data://' => ['rules' => []]]);
         $options->set('defaultFont', 'Helvetica');
 
         $dompdf = new Dompdf($options);
