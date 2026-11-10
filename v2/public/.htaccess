@@ -1,0 +1,7 @@
+# A raiz do projeto nega tudo ("Require all denied"); só esta pasta é servida.
+Require all granted
+
+RewriteEngine On
+RewriteCond %{REQUEST_FILENAME} !-f
+RewriteCond %{REQUEST_FILENAME} !-d
+RewriteRule ^(.*)$ index.php?url=$1 [QSA,L]

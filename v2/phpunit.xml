@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Rodar na raiz do projeto: C:\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml -->
+<phpunit bootstrap="tests/bootstrap.php" colors="true" cacheResult="false">
+    <testsuites>
+        <testsuite name="Mecanize v2">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+</phpunit>
