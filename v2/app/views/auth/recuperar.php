@@ -12,10 +12,7 @@ $authTitulo = 'Recuperar senha';
 <?php if (!empty($mensagem)): ?>
 
     <div class="auth-alerta auth-alerta--sucesso auth-alerta--solto" role="status">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M22 11.1V12a10 10 0 1 1-5.9-9.1" />
-            <polyline points="22 4 12 14.01 9 11.01" />
-        </svg>
+        <?= icone('success') ?>
         <span><?= e($mensagem) ?></span>
     </div>
 
@@ -30,10 +27,7 @@ $authTitulo = 'Recuperar senha';
         <div class="auth-campo">
             <label for="email">E-mail</label>
             <div class="auth-input">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="2" y="4" width="20" height="16" rx="2" />
-                    <path d="m22 7-10 6L2 7" />
-                </svg>
+                <?= icone('mail') ?>
                 <input type="email" id="email" name="email" placeholder="seu@email.com" autocomplete="username" required autofocus>
             </div>
         </div>
@@ -45,10 +39,7 @@ $authTitulo = 'Recuperar senha';
 
 <div class="auth-volta">
     <a href="./login">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-        </svg>
+        <?= icone('arrow-left') ?>
         Voltar para o login
     </a>
 </div>

@@ -51,6 +51,8 @@ final class Relatorio extends Modelo
             'ticket'    => (int) $atual['os'] > 0 ? $total / (int) $atual['os'] : 0.0,
             'anterior'  => $totalAnt,
             'variacao'  => $totalAnt > 0 ? ($total - $totalAnt) / $totalAnt * 100 : null,
+            'os_anterior'     => (int) $anterior['os'],
+            'ticket_anterior' => (int) $anterior['os'] > 0 ? $totalAnt / (int) $anterior['os'] : 0.0,
         ];
     }
 
@@ -148,6 +150,101 @@ final class Relatorio extends Modelo
         return $r;
     }
 
+    /**
+     * Entradas e saídas de dinheiro (mesma regra de caixa(): estornos descontados) agrupadas por
+     * dia, semana, mês ou ano, com todos os intervalos do período, mesmo os sem movimento.
+     * Devolve [chave => ['rotulo' => ..., 'entradas' => ..., 'saidas' => ...]].
+     */
+    public function fluxoNoTempo(string $agrupar): array
+    {
+        $formato = ['dia' => '%Y-%m-%d', 'semana' => '%x-%v', 'mes' => '%Y-%m', 'ano' => '%Y'][$agrupar] ?? '%Y-%m';
+        $valores = [];
+        foreach ($this->lista(
+            "SELECT DATE_FORMAT(mf.data_movimento, '{$formato}') AS chave, l.tipo,
+                    SUM(CASE WHEN mf.natureza = 'BAIXA' THEN mf.valor ELSE -mf.valor END) AS valor
+             FROM movimentacoes_financeiras mf
+             JOIN lancamentos l ON l.oficina_id = mf.oficina_id AND l.id = mf.lancamento_id
+             WHERE mf.oficina_id = :oficina AND mf.natureza IN ('BAIXA','ESTORNO') AND mf.data_movimento >= :ini AND mf.data_movimento < :fim
+             GROUP BY chave, l.tipo", $this->p()) as $l) {
+            $valores[$l['chave']][$l['tipo']] = (float) $l['valor'];
+        }
+
+        $meses = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+        $passo = ['dia' => '+1 day', 'semana' => '+1 week', 'mes' => '+1 month', 'ano' => '+1 year'][$agrupar] ?? '+1 month';
+        $d = new DateTimeImmutable($this->ini);
+        $d = match ($agrupar) {
+            'semana' => $d->modify('monday this week'),
+            'ano'    => $d->setDate((int) $d->format('Y'), 1, 1),
+            'dia'    => $d,
+            default  => $d->modify('first day of this month'),
+        };
+        $fim = new DateTimeImmutable($this->fim);
+        $serie = [];
+        for ($i = 0; $d < $fim && $i < 400; $d = $d->modify($passo), $i++) {
+            $chave = match ($agrupar) {
+                'dia' => $d->format('Y-m-d'), 'semana' => $d->format('o-W'), 'ano' => $d->format('Y'), default => $d->format('Y-m'),
+            };
+            $rotulo = match ($agrupar) {
+                'dia' => $d->format('d/m'), 'semana' => $d->format('d/m'), 'ano' => $d->format('Y'),
+                default => $meses[(int) $d->format('n')] . ($d->format('Y') !== date('Y') ? '/' . $d->format('y') : ''),
+            };
+            $serie[$chave] = ['rotulo' => $rotulo, 'entradas' => $valores[$chave]['RECEBER'] ?? 0.0, 'saidas' => $valores[$chave]['PAGAR'] ?? 0.0];
+        }
+
+        return $serie;
+    }
+
+    /** Pagamentos e recebimentos do período (com estornos), do mais recente para o mais antigo. */
+    public function movimentos(Paginacao $p, string $busca = ''): array
+    {
+        $where = "mf.oficina_id = :oficina AND mf.natureza IN ('BAIXA','ESTORNO') AND mf.data_movimento >= :ini AND mf.data_movimento < :fim";
+        $params = $this->p();
+        if ($busca !== '') {
+            $where .= ' AND (l.descricao LIKE :b1 OR c.nome LIKE :b2 OR f.nome LIKE :b3 OR fu.nome LIKE :b4)';
+            $params += ['b1' => "%{$busca}%", 'b2' => "%{$busca}%", 'b3' => "%{$busca}%", 'b4' => "%{$busca}%"];
+        }
+        $from = 'FROM movimentacoes_financeiras mf
+                 JOIN lancamentos l ON l.oficina_id = mf.oficina_id AND l.id = mf.lancamento_id
+                 LEFT JOIN clientes c ON c.oficina_id = l.oficina_id AND c.id = l.cliente_id
+                 LEFT JOIN fornecedores f ON f.oficina_id = l.oficina_id AND f.id = l.fornecedor_id
+                 LEFT JOIN usuarios fu ON fu.id = l.funcionario_id
+                 LEFT JOIN usuarios u ON u.id = mf.usuario_id';
+        $p->total = (int) $this->valor("SELECT COUNT(*) {$from} WHERE {$where}", $params);
+
+        return $this->lista(
+            "SELECT mf.id, mf.natureza, mf.direcao, mf.valor, mf.forma_pagamento, mf.data_movimento, l.id AS lancamento_id, l.tipo, l.categoria,
+                    l.descricao, COALESCE(c.nome, f.nome, fu.nome) AS pessoa, u.nome AS usuario
+             {$from} WHERE {$where} ORDER BY mf.data_movimento DESC, mf.id DESC" . $p->sql(),
+            $params
+        );
+    }
+
+    /** O maior pagamento do período (sem os estornados). */
+    public function maiorSaida(): ?array
+    {
+        return $this->linha(
+            "SELECT l.descricao, COALESCE(f.nome, fu.nome) AS pessoa, mf.valor
+             FROM movimentacoes_financeiras mf
+             JOIN lancamentos l ON l.oficina_id = mf.oficina_id AND l.id = mf.lancamento_id
+             LEFT JOIN fornecedores f ON f.oficina_id = l.oficina_id AND f.id = l.fornecedor_id
+             LEFT JOIN usuarios fu ON fu.id = l.funcionario_id
+             WHERE mf.oficina_id = :oficina AND mf.natureza = 'BAIXA' AND l.tipo = 'PAGAR' AND mf.data_movimento >= :ini AND mf.data_movimento < :fim
+               AND NOT EXISTS (SELECT 1 FROM movimentacoes_financeiras e WHERE e.oficina_id = mf.oficina_id AND e.estorno_de_id = mf.id)
+             ORDER BY mf.valor DESC, mf.id DESC LIMIT 1", $this->p()
+        );
+    }
+
+    /** Sessões de caixa abertas no período e quantas fecharam com sobra ou falta. */
+    public function sessoesCaixa(): array
+    {
+        $l = $this->linha(
+            "SELECT COUNT(*) AS n, SUM(status = 'FECHADO' AND ABS(valor_fechamento - valor_esperado) >= 0.005) AS diferenca
+             FROM caixas WHERE oficina_id = :oficina AND aberto_em >= :ini AND aberto_em < :fim", $this->p()
+        );
+
+        return ['n' => (int) $l['n'], 'diferenca' => (int) $l['diferenca']];
+    }
+
     /** Posição de hoje das contas em aberto. */
     public function contasEmAberto(): array
     {
@@ -196,6 +293,54 @@ final class Relatorio extends Modelo
              ORDER BY total DESC", $this->p());
     }
 
+    /**
+     * Desempenho de cada técnico no período: OS entregues e valor vendido (pelo técnico de cada item,
+     * como a comissão), e — pelas OS de que ele é o responsável — o tempo médio da abertura até ficar
+     * pronta e quantas ficaram prontas até a previsão.
+     */
+    public function desempenho(): array
+    {
+        $r = [];
+        foreach ($this->tecnicos() as $t) {
+            $r[$t['tecnico']] = $t + ['dias' => null, 'com_previsao' => 0, 'no_prazo' => 0];
+        }
+        foreach ($this->lista(
+            "SELECT COALESCE(u.nome, 'Sem técnico') AS tecnico,
+                    AVG(TIMESTAMPDIFF(MINUTE, os.criado_em, os.concluido_em)) / 1440 AS dias,
+                    SUM(os.previsao_conclusao IS NOT NULL) AS com_previsao,
+                    SUM(os.previsao_conclusao IS NOT NULL AND DATE(os.concluido_em) <= os.previsao_conclusao) AS no_prazo
+             FROM ordens_servico os LEFT JOIN usuarios u ON u.oficina_id = os.oficina_id AND u.id = os.tecnico_id
+             WHERE os.oficina_id = :oficina AND os.status = 'ENTREGUE' AND os.entregue_em >= :ini AND os.entregue_em < :fim
+               AND os.concluido_em IS NOT NULL
+             GROUP BY u.id, u.nome", $this->p()) as $l) {
+            $r[$l['tecnico']] = ($r[$l['tecnico']] ?? ['tecnico' => $l['tecnico'], 'os' => 0, 'servicos' => 0, 'total' => 0, 'comissao' => 0])
+                + ['dias' => null, 'com_previsao' => 0, 'no_prazo' => 0];
+            $r[$l['tecnico']]['dias'] = $l['dias'] === null ? null : (float) $l['dias'];
+            $r[$l['tecnico']]['com_previsao'] = (int) $l['com_previsao'];
+            $r[$l['tecnico']]['no_prazo'] = (int) $l['no_prazo'];
+        }
+
+        return array_values($r);
+    }
+
+    /** OS abertas no período, pela situação de hoje (para a lista "OS por situação"). */
+    public function situacaoDasAbertas(): array
+    {
+        $grupos = ['Concluídas' => ['PRONTA', 'ENTREGUE'], 'Em execução' => ['APROVADA', 'EM_EXECUCAO'], 'Aguardando peça' => ['AGUARDANDO_PECA'],
+                   'Orçamento' => ['ORCAMENTO'], 'Recusadas' => ['RECUSADA'], 'Canceladas' => ['CANCELADA']];
+        $porStatus = [];
+        foreach ($this->lista('SELECT status, COUNT(*) AS n FROM ordens_servico WHERE oficina_id = :oficina AND criado_em >= :ini AND criado_em < :fim
+                               GROUP BY status', $this->p()) as $l) {
+            $porStatus[$l['status']] = (int) $l['n'];
+        }
+        $r = [];
+        foreach ($grupos as $rotulo => $lista) {
+            $r[$rotulo] = array_sum(array_intersect_key($porStatus, array_flip($lista)));
+        }
+
+        return $r;
+    }
+
     public function clientes(int $limite = 10): array
     {
         $limite = max(1, min(50, $limite));
@@ -217,7 +362,10 @@ final class Relatorio extends Modelo
                                WHERE oficina_id = :oficina AND tipo = 'PECA' AND ativo = 1 AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo
                                ORDER BY (estoque_atual / estoque_minimo), nome LIMIT 15");
 
-        return ['pecas' => (int) $r['pecas'], 'valor_custo' => (float) $r['valor_custo'], 'valor_venda' => (float) $r['valor_venda'], 'abaixo' => $baixo];
+        $n = (int) $this->valor("SELECT COUNT(*) FROM produtos WHERE oficina_id = :oficina AND tipo = 'PECA' AND ativo = 1
+                                 AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo");
+
+        return ['pecas' => (int) $r['pecas'], 'valor_custo' => (float) $r['valor_custo'], 'valor_venda' => (float) $r['valor_venda'], 'abaixo' => $baixo, 'abaixo_n' => $n];
     }
 
     /** Agenda do período. */

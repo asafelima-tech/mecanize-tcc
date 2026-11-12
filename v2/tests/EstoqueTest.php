@@ -153,4 +153,35 @@ final class EstoqueTest extends Cenario
         $this->expectException(ErroHttp::class);
         (new Estoque())->estornar((int) $this->db->query('SELECT MAX(id) FROM movimentacoes_estoque')->fetchColumn(), 'Invasão');
     }
+
+    public function testNumerosDoEstoqueEDosFornecedoresNoMes(): void
+    {
+        $this->db->exec('UPDATE produtos SET estoque_minimo = 5 WHERE id = ' . $this->peca);
+        $this->entrada(); // 4 × R$ 55,50 da Distribuidora A, nota 123
+        $this->e->ajustar($this->peca, '3', 'Inventário');
+
+        $mes = $this->e->resumoMes();
+        $this->assertEqualsWithDelta(4.0, $mes['entradas'], 0.001);
+        $this->assertSame(1, $mes['notas']);
+        $this->assertSame(1, $mes['ajustes'], 'o estoque inicial do cadastro não conta como correção de inventário');
+
+        $minimo = $this->e->abaixoDoMinimo();
+        $this->assertSame([$this->peca], array_map('intval', array_column($minimo, 'id')), '3 de 5: abaixo do mínimo');
+
+        $r = (new Fornecedor())->resumo();
+        $this->assertSame(1, $r['ativos']);
+        $this->assertEqualsWithDelta(222.0, $r['compras_mes'], 0.001);
+        $entradas = (new Fornecedor())->ultimasEntradas();
+        $this->assertSame('Distribuidora A', $entradas[0]['fornecedor']);
+        $this->assertSame(1, (int) $entradas[0]['itens']);
+
+        $p = (new Produto())->resumo();
+        $this->assertSame(1, $p['baixo']);
+        $this->assertSame(0, $p['esgotados']);
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertSame([], (new Estoque())->abaixoDoMinimo(), 'a oficina B não vê as peças da A');
+        $this->assertSame([], (new Fornecedor())->ultimasEntradas(), 'nem as entradas de mercadoria');
+        $this->assertEqualsWithDelta(0.0, (new Estoque())->resumoMes()['entradas'], 0.001);
+    }
 }

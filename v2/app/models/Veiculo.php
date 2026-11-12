@@ -10,7 +10,8 @@ final class Veiculo extends Modelo
     public const CORES = ['Branco', 'Branco Pérola', 'Preto', 'Prata', 'Cinza', 'Grafite', 'Chumbo', 'Vermelho', 'Vinho', 'Azul',
                           'Azul Marinho', 'Verde', 'Verde Escuro', 'Amarelo', 'Laranja', 'Marrom', 'Bege', 'Dourado', 'Bronze', 'Rosa', 'Roxo'];
 
-    private const SELECT = "SELECT v.*, c.nome AS cliente, COALESCE(CONCAT(m.marca, ' ', m.nome), v.modelo_texto) AS modelo, m.marca
+    private const SELECT = "SELECT v.*, c.nome AS cliente, COALESCE(CONCAT(m.marca, ' ', m.nome), v.modelo_texto) AS modelo, m.marca,
+                                   COALESCE(m.nome, v.modelo_texto) AS modelo_nome
                             FROM veiculos v
                             JOIN clientes c ON c.oficina_id = v.oficina_id AND c.id = v.cliente_id
                             LEFT JOIN modelos_veiculos m ON m.id = v.modelo_id";
@@ -41,11 +42,49 @@ final class Veiculo extends Modelo
             $where .= ' AND v.ativo = :ativo';
             $params['ativo'] = ($f['status'] ?? 'ativos') === 'inativos' ? 0 : 1;
         }
+        if (($f['marca'] ?? '') !== '') {
+            $where .= ' AND m.marca = :marca';
+            $params['marca'] = $f['marca'];
+        }
+        if (in_array($f['combustivel'] ?? '', self::COMBUSTIVEIS, true)) {
+            $where .= ' AND v.combustivel = :combustivel';
+            $params['combustivel'] = $f['combustivel'];
+        }
+        if (($f['novos'] ?? '') === 'mes') {
+            $where .= " AND v.criado_em >= DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+        }
 
         $p->total = (int) $this->valor("SELECT COUNT(*) FROM veiculos v JOIN clientes c ON c.oficina_id = v.oficina_id AND c.id = v.cliente_id
                                          LEFT JOIN modelos_veiculos m ON m.id = v.modelo_id WHERE {$where}", $params);
 
         return $this->lista(self::SELECT . " WHERE {$where} ORDER BY v.placa_normalizada" . $p->sql(), $params);
+    }
+
+    /** Números do topo da lista: veículos ativos, novos no mês (e no mesmo trecho do mês anterior) e a marca mais comum. */
+    public function resumo(): array
+    {
+        $l = $this->linha(
+            "SELECT SUM(ativo = 1) AS ativos, SUM(ativo = 0) AS inativos,
+                    SUM(criado_em >= DATE_FORMAT(CURDATE(), '%Y-%m-01')) AS novos_mes,
+                    SUM(criado_em >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                        AND criado_em < DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01') + INTERVAL DAY(CURDATE()) DAY) AS novos_anterior
+             FROM veiculos WHERE oficina_id = :oficina"
+        );
+        $marca = $this->linha(
+            "SELECT m.marca, COUNT(*) AS n FROM veiculos v JOIN modelos_veiculos m ON m.id = v.modelo_id
+             WHERE v.oficina_id = :oficina AND v.ativo = 1 GROUP BY m.marca ORDER BY n DESC, m.marca LIMIT 1"
+        );
+
+        return ['ativos' => (int) $l['ativos'], 'inativos' => (int) $l['inativos'], 'novos_mes' => (int) $l['novos_mes'],
+                'novos_anterior' => (int) $l['novos_anterior'], 'marca' => $marca['marca'] ?? null, 'marca_n' => (int) ($marca['n'] ?? 0)];
+    }
+
+    /** Marcas (do catálogo) dos veículos da oficina, para o filtro. */
+    public function marcas(): array
+    {
+        return array_column($this->lista(
+            'SELECT DISTINCT m.marca FROM veiculos v JOIN modelos_veiculos m ON m.id = v.modelo_id WHERE v.oficina_id = :oficina ORDER BY m.marca'
+        ), 'marca');
     }
 
     public function buscar(int $id): ?array

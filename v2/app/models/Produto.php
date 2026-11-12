@@ -13,6 +13,9 @@ final class Produto extends Modelo
         'uq_produtos_codigo' => 'Já existe um item com este código interno.',
     ];
 
+    /** Observação do movimento que registra o estoque inicial de uma peça nova (é um ajuste, mas não é correção de inventário). */
+    public const OBS_ESTOQUE_INICIAL = 'Estoque inicial no cadastro';
+
     public function listar(array $f, Paginacao $p): array
     {
         $where  = 'p.oficina_id = :oficina';
@@ -34,6 +37,9 @@ final class Produto extends Modelo
         if (!empty($f['baixo'])) {
             $where .= " AND p.tipo = 'PECA' AND p.estoque_minimo > 0 AND p.estoque_atual <= p.estoque_minimo";
         }
+        if (!empty($f['esgotado'])) {
+            $where .= " AND p.tipo = 'PECA' AND p.estoque_atual <= 0";
+        }
         if (($f['status'] ?? 'ativos') !== 'todos') {
             $where .= ' AND p.ativo = :ativo';
             $params['ativo'] = ($f['status'] ?? 'ativos') === 'inativos' ? 0 : 1;
@@ -42,6 +48,21 @@ final class Produto extends Modelo
         $p->total = (int) $this->valor("SELECT COUNT(*) FROM produtos p WHERE {$where}", $params);
 
         return $this->lista("SELECT p.* FROM produtos p WHERE {$where} ORDER BY p.tipo, p.nome" . $p->sql(), $params);
+    }
+
+    /** Números do topo do catálogo (só itens ativos). O valor em inventário é pelo custo: a tela só mostra ao ADMIN. */
+    public function resumo(): array
+    {
+        $l = $this->linha(
+            "SELECT SUM(tipo = 'PECA') AS pecas, SUM(tipo = 'SERVICO') AS servicos,
+                    SUM(tipo = 'PECA' AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo AND estoque_atual > 0) AS baixo,
+                    SUM(tipo = 'PECA' AND estoque_atual <= 0) AS esgotados,
+                    COALESCE(SUM(CASE WHEN tipo = 'PECA' AND estoque_atual > 0 THEN estoque_atual * COALESCE(preco_custo, 0) END), 0) AS inventario
+             FROM produtos WHERE oficina_id = :oficina AND ativo = 1"
+        );
+
+        return ['pecas' => (int) $l['pecas'], 'servicos' => (int) $l['servicos'], 'baixo' => (int) $l['baixo'],
+                'esgotados' => (int) $l['esgotados'], 'inventario' => (float) $l['inventario']];
     }
 
     /** Itens ativos para escolher numa OS (id, tipo, nome, preço, estoque). */
@@ -99,7 +120,7 @@ final class Produto extends Modelo
             if ($inicial != 0) {
                 $this->inserir('movimentacoes_estoque', [
                     'produto_id' => $id, 'motivo' => 'AJUSTE', 'delta' => $inicial, 'custo_unitario' => $dados['preco_custo'],
-                    'usuario_id' => Contexto::usuarioId(), 'observacao' => 'Estoque inicial no cadastro',
+                    'usuario_id' => Contexto::usuarioId(), 'observacao' => self::OBS_ESTOQUE_INICIAL,
                 ]);
             }
 

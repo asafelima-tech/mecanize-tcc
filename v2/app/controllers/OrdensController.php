@@ -2,15 +2,24 @@
 
 final class OrdensController extends Controller
 {
+    /** Lista de OS em abas por situação, ou o Kanban das OS em aberto (?modo=kanban). */
     public function lista(): void
     {
+        $m = new OrdemServico();
         $p = new Paginacao();
         $f = [
             'busca'    => trim((string) ($_GET['busca'] ?? '')),
             'situacao' => isset(OrdemServico::FILTROS[$_GET['situacao'] ?? '']) ? $_GET['situacao'] : 'abertas',
             'tecnico'  => (int) ($_GET['tecnico'] ?? 0),
+            'modo'     => ($_GET['modo'] ?? '') === 'kanban' ? 'kanban' : 'lista',
         ];
-        $this->tela('ordens/lista', ['ordens' => (new OrdemServico())->listar($f, $p), 'f' => $f, 'p' => $p, 'tecnicos' => (new Usuario())->tecnicos()]);
+        $dados = ['f' => $f, 'p' => $p, 'tecnicos' => (new Usuario())->tecnicos(), 'contagens' => $m->contagens($f)];
+
+        if ($f['modo'] === 'kanban') {
+            $this->tela('ordens/lista', $dados + ['ordens' => [], 'colunas' => $m->kanban($f)]);
+            return;
+        }
+        $this->tela('ordens/lista', $dados + ['ordens' => $m->listar($f, $p), 'colunas' => null]);
     }
 
     public function nova(): void
@@ -29,7 +38,7 @@ final class OrdensController extends Controller
                    'agendamento_id' => (int) $ag['id']] + $os;
         }
 
-        $this->tela('ordens/nova', ['os' => $os, 'clientes' => (new Cliente())->opcoes(), 'tecnicos' => (new Usuario())->tecnicos()]);
+        $this->tela('ordens/nova', ['os' => $os, 'clientes' => (new Cliente())->opcoes(), 'tecnicos' => (new Usuario())->tecnicos(), 'catalogo' => $this->catalogo()]);
     }
 
     public function criar(): void
@@ -40,21 +49,34 @@ final class OrdensController extends Controller
             if ($v->fails()) {
                 throw new DomainException($v->firstError());
             }
-            // OS e vínculo com o agendamento na mesma transação: ou os dois, ou nenhum.
-            $id = Transacao::executar(Banco::conexao(), function () use ($agendamento) {
-                $id = (new OrdemServico())->criar($_POST);
+            // OS, vínculo com o agendamento e os itens já montados na tela na mesma transação: ou tudo, ou nada.
+            // Cada item passa pela mesma inclusão da tela da OS (mesmas validações e o mesmo recálculo dos totais).
+            $itens = $this->itensDoOrcamento();
+            $id = Transacao::executar(Banco::conexao(), function () use ($agendamento, $itens) {
+                $m = new OrdemServico();
+                $id = $m->criar($_POST);
                 if ($agendamento && !(new Agendamento())->vincularOs($agendamento, $id, (int) $_POST['cliente_id'])) {
                     throw new DomainException('Este agendamento já virou OS, foi cancelado ou é de outro cliente.');
+                }
+                foreach ($itens as $n => $item) {
+                    try {
+                        $m->adicionarItem($id, $item);
+                    } catch (DomainException $e) {
+                        $nome = trim((string) ($item['descricao'] ?? ''))
+                            ?: (!empty($item['produto_id']) ? ((new Produto())->buscar((int) $item['produto_id'])['nome'] ?? '') : '');
+                        throw new DomainException(($nome !== '' ? 'Item "' . $nome . '"' : 'Item ' . ($n + 1)) . ': ' . $e->getMessage());
+                    }
                 }
 
                 return $id;
             });
         } catch (DomainException $e) {
-            $this->tela('ordens/nova', ['os' => $_POST, 'erro' => $e->getMessage(), 'clientes' => (new Cliente())->opcoes(), 'tecnicos' => (new Usuario())->tecnicos()]);
+            $this->tela('ordens/nova', ['os' => $_POST, 'erro' => $e->getMessage(), 'clientes' => (new Cliente())->opcoes(),
+                                        'tecnicos' => (new Usuario())->tecnicos(), 'catalogo' => $this->catalogo()]);
             return;
         }
 
-        $this->avisar('Orçamento aberto. Inclua os serviços e peças.');
+        $this->avisar(!empty($itens) ? 'Orçamento aberto com ' . count($itens) . ' item(ns).' : 'Orçamento aberto. Inclua os serviços e peças.');
         $this->redirecionar('os', ['id' => $id]);
     }
 
@@ -185,6 +207,21 @@ final class OrdensController extends Controller
             $this->avisar($e->getMessage(), 'erro');
         }
         $this->redirecionar('os', ['id' => $id]);
+    }
+
+    /** Itens montados na tela de novo orçamento (itens[n][campo]); só os campos que a inclusão de item usa. */
+    private function itensDoOrcamento(): array
+    {
+        $itens = [];
+        foreach (array_slice((array) ($_POST['itens'] ?? []), 0, 100) as $i) {
+            if (!is_array($i)) {
+                continue;
+            }
+            $itens[] = array_intersect_key(array_map(fn($v) => is_scalar($v) ? (string) $v : '', $i),
+                array_flip(['produto_id', 'tipo', 'descricao', 'quantidade', 'valor_unitario', 'desconto', 'tecnico_id']));
+        }
+
+        return $itens;
     }
 
     private function catalogo(): array

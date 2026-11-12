@@ -18,11 +18,7 @@ $authTitulo = 'Redefinir senha';
 <?php $erro = !empty($invalido) ? 'Este link é inválido ou já expirou. Peça a recuperação de novo.' : ($erro ?? ''); ?>
 <?php if ($erro !== ''): ?>
     <div class="auth-alerta auth-alerta--erro<?= !empty($invalido) ? ' auth-alerta--solto' : '' ?>" role="alert">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="10" />
-            <line x1="12" y1="8" x2="12" y2="12" />
-            <line x1="12" y1="16" x2="12.01" y2="16" />
-        </svg>
+        <?= icone('error') ?>
         <span><?= e($erro) ?></span>
     </div>
 <?php endif; ?>
@@ -40,16 +36,10 @@ $authTitulo = 'Redefinir senha';
         <div class="auth-campo">
             <label for="nova_senha">Nova senha</label>
             <div class="auth-input">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
+                <?= icone('lock') ?>
                 <input type="password" id="nova_senha" name="nova_senha" placeholder="Mínimo de 6 caracteres" autocomplete="new-password" required minlength="6" autofocus>
                 <button type="button" class="auth-olho" data-alvo="nova_senha" aria-label="Mostrar senha">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg>
+                    <?= icone('eye') ?>
                 </button>
             </div>
         </div>
@@ -57,16 +47,10 @@ $authTitulo = 'Redefinir senha';
         <div class="auth-campo">
             <label for="confirmar_senha">Confirmar nova senha</label>
             <div class="auth-input">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
+                <?= icone('lock') ?>
                 <input type="password" id="confirmar_senha" name="confirmar_senha" placeholder="Repita a nova senha" autocomplete="new-password" required minlength="6">
                 <button type="button" class="auth-olho" data-alvo="confirmar_senha" aria-label="Mostrar senha">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
-                        <circle cx="12" cy="12" r="3" />
-                    </svg>
+                    <?= icone('eye') ?>
                 </button>
             </div>
         </div>
@@ -90,10 +74,7 @@ $authTitulo = 'Redefinir senha';
 
 <div class="auth-volta">
     <a href="./login">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="19" y1="12" x2="5" y2="12" />
-            <polyline points="12 19 5 12 12 5" />
-        </svg>
+        <?= icone('arrow-left') ?>
         Voltar para o login
     </a>
 </div>

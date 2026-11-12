@@ -17,7 +17,11 @@ final class Cliente extends Modelo
         return $this->lista(
             "SELECT c.*,
                     (SELECT COUNT(*) FROM veiculos v WHERE v.oficina_id = c.oficina_id AND v.cliente_id = c.id) AS veiculos,
-                    (SELECT MAX(os.criado_em) FROM ordens_servico os WHERE os.oficina_id = c.oficina_id AND os.cliente_id = c.id) AS ultima_os
+                    (SELECT GROUP_CONCAT(v.placa ORDER BY v.ativo DESC, v.placa SEPARATOR ',') FROM veiculos v
+                      WHERE v.oficina_id = c.oficina_id AND v.cliente_id = c.id) AS placas,
+                    (SELECT MAX(os.criado_em) FROM ordens_servico os WHERE os.oficina_id = c.oficina_id AND os.cliente_id = c.id) AS ultima_os,
+                    (SELECT COALESCE(SUM(os.valor_total), 0) FROM ordens_servico os
+                      WHERE os.oficina_id = c.oficina_id AND os.cliente_id = c.id AND os.status = 'ENTREGUE') AS total_gasto
              FROM clientes c WHERE {$where} ORDER BY c.nome" . $p->sql(),
             $params
         );
@@ -38,8 +42,51 @@ final class Cliente extends Modelo
             $where .= ' AND c.ativo = :ativo';
             $params['ativo'] = ($f['status'] ?? 'ativos') === 'inativos' ? 0 : 1;
         }
+        if (in_array($f['tipo'] ?? '', ['PF', 'PJ'], true)) {
+            $where .= ' AND c.tipo_pessoa = :tipo';
+            $params['tipo'] = $f['tipo'];
+        }
+        if (($f['novos'] ?? '') === 'mes') {
+            $where .= " AND c.criado_em >= DATE_FORMAT(CURDATE(), '%Y-%m-01')";
+        }
 
         return [$where, $params];
+    }
+
+    /** Números do topo da lista: ativos, inativos, novos no mês (e no mesmo trecho do mês anterior) e recorrentes. */
+    public function resumo(): array
+    {
+        $l = $this->linha(
+            "SELECT SUM(ativo = 1) AS ativos, SUM(ativo = 0) AS inativos,
+                    SUM(criado_em >= DATE_FORMAT(CURDATE(), '%Y-%m-01')) AS novos_mes,
+                    SUM(criado_em >= DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01')
+                        AND criado_em < DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01') + INTERVAL DAY(CURDATE()) DAY) AS novos_anterior
+             FROM clientes WHERE oficina_id = :oficina"
+        );
+        $recorrentes = (int) $this->valor(
+            "SELECT COUNT(*) FROM (SELECT cliente_id FROM ordens_servico
+              WHERE oficina_id = :oficina AND criado_em >= CURDATE() - INTERVAL 12 MONTH AND status NOT IN ('RECUSADA','CANCELADA')
+              GROUP BY cliente_id HAVING COUNT(*) >= " . self::VISITAS_RECORRENTE . ') r'
+        );
+
+        return ['ativos' => (int) $l['ativos'], 'inativos' => (int) $l['inativos'], 'novos_mes' => (int) $l['novos_mes'],
+                'novos_anterior' => (int) $l['novos_anterior'], 'recorrentes' => $recorrentes];
+    }
+
+    /** A partir de quantas OS em 12 meses o cliente conta como recorrente. */
+    public const VISITAS_RECORRENTE = 4;
+
+    /** Clientes que mais voltaram nos últimos 12 meses (OS não recusadas nem canceladas), com o total entregue. */
+    public function recorrentes(int $limite = 4): array
+    {
+        $limite = max(1, min(20, $limite));
+
+        return $this->lista(
+            "SELECT c.id, c.nome, COUNT(*) AS visitas, SUM(CASE WHEN os.status = 'ENTREGUE' THEN os.valor_total ELSE 0 END) AS total
+             FROM ordens_servico os JOIN clientes c ON c.oficina_id = os.oficina_id AND c.id = os.cliente_id
+             WHERE os.oficina_id = :oficina AND os.criado_em >= CURDATE() - INTERVAL 12 MONTH AND os.status NOT IN ('RECUSADA','CANCELADA')
+             GROUP BY c.id, c.nome HAVING visitas >= 2 ORDER BY visitas DESC, total DESC, c.nome LIMIT {$limite}"
+        );
     }
 
     public function buscar(int $id): ?array

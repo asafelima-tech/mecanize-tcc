@@ -8,13 +8,13 @@ $motivos = ['COMPRA' => 'Entrada', 'SAIDA_OS' => 'Saída por OS', 'DEVOLUCAO_OS'
 ?>
 <div class="page-header">
   <div>
-    <h1 class="page-header__title"><?= e($pr['nome']) ?> <?php if (!$pr['ativo']): ?><span class="badge badge--neutral">Inativo</span><?php endif; ?></h1>
+    <h1 class="page-header__title"><?= e($pr['nome']) ?> <?php if (!$pr['ativo']): ?><span class="badge badge--muted">Inativo</span><?php endif; ?></h1>
     <p class="page-header__subtitle"><a href="./produtos">Peças e serviços</a> · <?= $peca ? 'Peça' : 'Serviço' ?><?= $pr['categoria'] ? ' · ' . e($pr['categoria']) : '' ?></p>
   </div>
   <?php if ($admin): ?>
     <div class="page-header__actions acoes">
       <?php $rotaAtivo = 'produto-ativo'; $rotaExcluir = 'produto-excluir'; $registro = $pr; $nome = 'este item'; require V2_RAIZ . '/app/views/layout/_ativo.php'; ?>
-      <a class="btn btn--primary btn--sm" href="./produto-form?id=<?= (int) $pr['id'] ?>"><i class="bi bi-pencil"></i> Editar</a>
+      <a class="btn btn--primary btn--sm" href="./produto-form?id=<?= (int) $pr['id'] ?>"><?= icone('edit') ?> Editar</a>
     </div>
   <?php endif; ?>
 </div>
@@ -42,8 +42,8 @@ $motivos = ['COMPRA' => 'Entrada', 'SAIDA_OS' => 'Saída por OS', 'DEVOLUCAO_OS'
       <h2 class="card__titulo">Últimas movimentações <?php if ($admin): ?><a href="./estoque?produto=<?= (int) $pr['id'] ?>">Ver todas</a><?php endif; ?></h2>
       <?php if ($admin && $pr['ativo']): ?>
         <div class="acoes" style="margin-bottom:8px">
-          <a class="btn btn--ghost btn--sm" href="./estoque-entrada?produto=<?= (int) $pr['id'] ?>"><i class="bi bi-box-arrow-in-down"></i> Entrada</a>
-          <a class="btn btn--ghost btn--sm" href="./estoque-ajuste?produto=<?= (int) $pr['id'] ?>"><i class="bi bi-sliders"></i> Ajustar</a>
+          <a class="btn btn--ghost btn--sm" href="./estoque-entrada?produto=<?= (int) $pr['id'] ?>"><?= icone('download') ?> Entrada</a>
+          <a class="btn btn--ghost btn--sm" href="./estoque-ajuste?produto=<?= (int) $pr['id'] ?>"><?= icone('settings') ?> Ajustar</a>
         </div>
       <?php endif; ?>
       <?php if (!$movimentos): ?><p class="form-dica">Nenhuma movimentação.</p><?php endif; ?>

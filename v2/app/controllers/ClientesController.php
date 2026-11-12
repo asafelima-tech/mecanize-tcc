@@ -5,8 +5,9 @@ final class ClientesController extends Cadastro
     public function lista(): void
     {
         $p = new Paginacao();
-        $f = $this->filtros();
-        $this->tela('clientes/lista', ['clientes' => (new Cliente())->listar($f, $p), 'f' => $f, 'p' => $p]);
+        $f = $this->filtros(['tipo', 'novos']);
+        $m = new Cliente();
+        $this->tela('clientes/lista', ['clientes' => $m->listar($f, $p), 'f' => $f, 'p' => $p, 'resumo' => $m->resumo(), 'recorrentes' => $m->recorrentes()]);
     }
 
     public function ver(): void

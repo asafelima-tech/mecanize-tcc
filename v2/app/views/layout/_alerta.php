@@ -4,7 +4,7 @@
  *
  * Substitui os blocos de <div style="background:var(--color-danger-soft)...">
  * que estavam copiados em ~25 telas, cada um com um tom levemente diferente.
- * Aqui o estilo mora no CSS (.alerta) e usa a mesma paleta das telas de erro.
+ * Aqui o estilo mora no CSS (.alerta), no padrão de mensagens do Design System.
  *
  * Erro de validação continua no formulário de propósito: mandar a pessoa pra
  * uma tela cheia por causa de um campo obrigatório faria perder tudo que ela
@@ -29,18 +29,11 @@ if ($alertaMensagem !== ''):
         $alertaTipo = 'erro';
     }
 
-    // Cada tom tem seu próprio ícone: a cor sozinha não comunica pra quem não
-    // distingue verde de vermelho.
-    $alertaIcone = [
-        'erro'    => '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>',
-        'aviso'   => '<path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/>',
-        'sucesso' => '<path d="M22 11.1V12a10 10 0 1 1-5.9-9.1"/><polyline points="22 4 12 14.01 9 11.01"/>',
-        'info'    => '<circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/>',
-    ][$alertaTipo];
+    // Sem cor (Design System): cada tom se distingue por preenchimento, contorno e ícone próprio.
+    $alertaIcone = ['erro' => 'error', 'aviso' => 'warning', 'sucesso' => 'success', 'info' => 'info'][$alertaTipo];
 ?>
     <div class="alerta alerta--<?= $alertaTipo ?>" role="<?= $alertaTipo === 'erro' ? 'alert' : 'status' ?>">
-        <svg class="alerta__icone" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-             stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?= $alertaIcone ?></svg>
+        <?= icone($alertaIcone, 16, 1.5, 'alerta__icone') ?>
         <div>
             <?php if ($alertaTitulo !== ''): ?>
                 <strong class="alerta__titulo"><?= e($alertaTitulo) ?></strong>

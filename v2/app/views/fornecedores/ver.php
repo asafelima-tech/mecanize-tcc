@@ -1,12 +1,12 @@
 <?php /** Espera: $fo */ $titulo = $fo['nome']; ?>
 <div class="page-header">
   <div>
-    <h1 class="page-header__title"><?= e($fo['nome']) ?> <?php if (!$fo['ativo']): ?><span class="badge badge--neutral">Inativo</span><?php endif; ?></h1>
+    <h1 class="page-header__title"><?= e($fo['nome']) ?> <?php if (!$fo['ativo']): ?><span class="badge badge--muted">Inativo</span><?php endif; ?></h1>
     <p class="page-header__subtitle"><a href="./fornecedores">Fornecedores</a></p>
   </div>
   <div class="page-header__actions acoes">
     <?php $rotaAtivo = 'fornecedor-ativo'; $rotaExcluir = 'fornecedor-excluir'; $registro = $fo; $nome = 'este fornecedor'; require V2_RAIZ . '/app/views/layout/_ativo.php'; ?>
-    <a class="btn btn--primary btn--sm" href="./fornecedor-form?id=<?= (int) $fo['id'] ?>"><i class="bi bi-pencil"></i> Editar</a>
+    <a class="btn btn--primary btn--sm" href="./fornecedor-form?id=<?= (int) $fo['id'] ?>"><?= icone('edit') ?> Editar</a>
   </div>
 </div>
 <div class="card form-card">

@@ -23,23 +23,23 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
     <p class="page-header__subtitle"><a href="./ordens">Ordens de serviço</a> · <?= e($os['cliente']) ?> · <?= e($os['placa']) ?> <?= e($os['modelo']) ?> · aberta em <?= data_br($os['criado_em'], true) ?></p>
   </div>
   <div class="page-header__actions acoes">
-    <a class="btn btn--ghost btn--sm" href="./os-imprimir?id=<?= (int) $os['id'] ?>" target="_blank"><i class="bi bi-printer"></i> Imprimir</a>
-    <button type="button" class="btn btn--ghost btn--sm" data-copiar="<?= e($linkAcompanhamento) ?>"><i class="bi bi-link-45deg"></i> Link do cliente</button>
+    <a class="btn btn--ghost btn--sm" href="./os-imprimir?id=<?= (int) $os['id'] ?>" target="_blank"><?= icone('print') ?> Imprimir</a>
+    <button type="button" class="btn btn--ghost btn--sm" data-copiar="<?= e($linkAcompanhamento) ?>"><?= icone('link') ?> Link do cliente</button>
     <?php if ($cancelavel): ?><button type="button" class="btn btn--danger-ghost btn--sm" data-abrir="dlg-cancelar">Cancelar OS</button><?php endif; ?>
     <?php if ($st === 'ORCAMENTO'): ?>
       <button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-recusar">Recusado</button>
-      <button type="button" class="btn btn--primary btn--sm" data-abrir="dlg-aprovar"><i class="bi bi-check2"></i> Aprovar orçamento</button>
+      <button type="button" class="btn btn--primary btn--sm" data-abrir="dlg-aprovar"><?= icone('check') ?> Aprovar orçamento</button>
     <?php elseif ($st === 'RECUSADA'): ?>
       <?= $botao('reabrir', 'Reabrir orçamento') ?>
     <?php elseif ($st === 'APROVADA'): ?>
-      <?= $botao('iniciar', '<i class="bi bi-play-fill"></i> Iniciar execução') ?>
+      <?= $botao('iniciar', icone('arrow-right') . ' Iniciar execução') ?>
     <?php elseif ($st === 'AGUARDANDO_PECA'): ?>
-      <?= $botao('baixar', '<i class="bi bi-box-arrow-in-down"></i> Peças chegaram') ?>
+      <?= $botao('baixar', icone('download') . ' Peças chegaram') ?>
     <?php elseif ($st === 'EM_EXECUCAO'): ?>
-      <?= $botao('concluir', '<i class="bi bi-check2-circle"></i> Concluir serviço') ?>
+      <?= $botao('concluir', icone('success') . ' Concluir serviço') ?>
     <?php elseif ($st === 'PRONTA'): ?>
       <button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-retomar">Voltar para execução</button>
-      <button type="button" class="btn btn--primary btn--sm" data-abrir="dlg-entregar"><i class="bi bi-key"></i> Entregar veículo</button>
+      <button type="button" class="btn btn--primary btn--sm" data-abrir="dlg-entregar"><?= icone('key') ?> Entregar veículo</button>
     <?php endif; ?>
   </div>
 </div>
@@ -60,7 +60,7 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
         <?php endif; ?>
       </div>
       <?php if (!$itens): ?>
-        <div class="vazio"><i class="bi bi-list-check"></i>Nenhum item ainda. Inclua os serviços e as peças abaixo.</div>
+        <div class="vazio"><?= icone('checklist', 32, 1.25) ?>Nenhum item ainda. Inclua os serviços e as peças abaixo.</div>
       <?php else: ?>
         <div class="table-wrap">
           <table class="table">
@@ -85,14 +85,14 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
                   <?php if ($editavel): ?>
                     <td class="num" style="white-space:nowrap">
                       <?php if (!$devolvido): ?>
-                        <button type="button" class="btn btn--ghost btn--sm" title="Alterar" aria-label="Alterar item" data-editar-item='<?= e(json_encode(['id' => (int) $i['id'], 'tipo' => $i['tipo'], 'descricao' => $i['descricao'], 'quantidade' => $qtd($i['quantidade']), 'valor_unitario' => number_format((float) $i['valor_unitario'], 2, ',', '.'), 'desconto' => number_format((float) $i['desconto'], 2, ',', '.'), 'tecnico_id' => (int) $i['tecnico_id']], JSON_UNESCAPED_UNICODE)) ?>'><i class="bi bi-pencil"></i></button>
+                        <button type="button" class="btn btn--ghost btn--sm" title="Alterar" aria-label="Alterar item" data-editar-item='<?= e(json_encode(['id' => (int) $i['id'], 'tipo' => $i['tipo'], 'descricao' => $i['descricao'], 'quantidade' => $qtd($i['quantidade']), 'valor_unitario' => number_format((float) $i['valor_unitario'], 2, ',', '.'), 'desconto' => number_format((float) $i['desconto'], 2, ',', '.'), 'tecnico_id' => (int) $i['tecnico_id']], JSON_UNESCAPED_UNICODE)) ?>'><?= icone('edit') ?></button>
                         <?php if ($noOrcamento): ?>
                           <form method="post" action="./os-item?id=<?= (int) $os['id'] ?>" style="display:inline" data-confirmar="Remover este item do orçamento?">
                             <?= csrf_field() ?><input type="hidden" name="operacao" value="remover"><input type="hidden" name="item_id" value="<?= (int) $i['id'] ?>">
-                            <button class="btn btn--ghost btn--sm" title="Remover" aria-label="Remover item"><i class="bi bi-trash"></i></button>
+                            <button class="btn btn--ghost btn--sm" title="Remover" aria-label="Remover item"><?= icone('trash') ?></button>
                           </form>
                         <?php else: ?>
-                          <button type="button" class="btn btn--ghost btn--sm" title="Remover" aria-label="Remover item" data-remover-item="<?= (int) $i['id'] ?>"><i class="bi bi-trash"></i></button>
+                          <button type="button" class="btn btn--ghost btn--sm" title="Remover" aria-label="Remover item" data-remover-item="<?= (int) $i['id'] ?>"><?= icone('trash') ?></button>
                         <?php endif; ?>
                       <?php endif; ?>
                     </td>
@@ -132,13 +132,13 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
           <div class="form-field"><label for="quantidade">Qtd</label><input id="quantidade" name="quantidade" value="1" inputmode="decimal"></div>
           <div class="form-field"><label for="valor_unitario">Unitário (R$)</label><input id="valor_unitario" name="valor_unitario" inputmode="decimal"></div>
           <div class="form-field"><label for="desconto">Desconto (R$)</label><input id="desconto" name="desconto" inputmode="decimal" placeholder="0,00"></div>
-          <div class="form-field span-2" id="campo-tecnico">
+          <div class="form-field span-3" id="campo-tecnico">
             <label for="tecnico_item">Técnico</label>
             <select id="tecnico_item" name="tecnico_id"><option value="">Responsável da OS</option>
               <?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>"><?= e($t['nome']) ?></option><?php endforeach; ?>
             </select>
           </div>
-          <div class="form-field" style="justify-content:flex-end"><button class="btn btn--primary"><i class="bi bi-plus-lg"></i> Incluir<?= $noOrcamento ? '' : ' adicional' ?></button></div>
+          <div class="os-novo-item__acao"><button class="btn btn--primary"><?= icone('plus') ?> Incluir<?= $noOrcamento ? '' : ' adicional' ?></button></div>
         </form>
         <?php if (!$noOrcamento): ?><p class="form-dica" style="padding:0 24px 16px">O orçamento já foi aprovado: o que for incluído agora aparece como <strong>adicional</strong>, separado do valor aprovado.</p><?php endif; ?>
       <?php endif; ?>
@@ -151,7 +151,7 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
         <div class="anexos">
           <?php foreach ($anexos as $a): $img = Anexo::ehImagem($a); ?>
             <a class="anexo" href="./anexo?id=<?= (int) $a['id'] ?>" target="_blank" rel="noopener" title="<?= e($a['nome_original']) ?>">
-              <?php if ($img): ?><img src="./anexo?id=<?= (int) $a['id'] ?>" alt="<?= e($a['descricao'] ?: $a['nome_original']) ?>" loading="lazy"><?php else: ?><span class="anexo__doc"><i class="bi bi-file-earmark-pdf"></i></span><?php endif; ?>
+              <?php if ($img): ?><img src="./anexo?id=<?= (int) $a['id'] ?>" alt="<?= e($a['descricao'] ?: $a['nome_original']) ?>" loading="lazy"><?php else: ?><span class="anexo__doc"><?= icone('file') ?></span><?php endif; ?>
               <span class="anexo__legenda"><strong><?= e(Anexo::CATEGORIAS_OS[$a['categoria']] ?? $a['categoria']) ?></strong><?= $a['descricao'] ? ' · ' . e($a['descricao']) : '' ?><br><span class="form-dica"><?= data_br($a['enviado_em'], true) ?><?= $a['autor'] ? ' · ' . e($a['autor']) : '' ?></span></span>
             </a>
           <?php endforeach; ?>
@@ -167,7 +167,7 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
           <div class="form-field"><label for="anexo-descricao">Descrição (opcional)</label><input id="anexo-descricao" name="descricao" maxlength="200"></div>
           <div class="form-field"><label for="anexo-arquivos">Arquivos (até 10, 5 MB cada)</label><input id="anexo-arquivos" type="file" name="arquivos[]" multiple required accept="image/jpeg,image/png,image/webp,application/pdf"></div>
           <div class="form-field span-3"><span class="form-dica">Fotos: JPG, PNG ou WEBP. PDF só no tipo "Documento". Arquivos anexados não são apagados: ficam como registro da OS.</span>
-            <div><button class="btn btn--ghost btn--sm"><i class="bi bi-paperclip"></i> Anexar</button></div></div>
+            <div><button class="btn btn--ghost btn--sm"><?= icone('attach') ?> Anexar</button></div></div>
         </form>
       <?php endif; ?>
     </div>
@@ -209,12 +209,12 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
     $cobravel = in_array($st, ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA', 'ENTREGUE'], true);
     $recebido = array_sum(array_map(fn($c) => $c['status'] === 'CANCELADO' ? 0 : (float) $c['valor_pago'], $contas));
     $aReceber = round((float) $os['valor_total'] - $recebido, 2);
-    $coresConta = ['ABERTO' => 'info', 'PARCIAL' => 'warning', 'PAGO' => 'success', 'CANCELADO' => 'neutral'];
+    $coresConta = ['ABERTO' => 'neutral', 'PARCIAL' => 'info', 'PAGO' => 'success', 'CANCELADO' => 'muted'];
     $nomesConta = ['ABERTO' => 'Em aberto', 'PARCIAL' => 'Parcial', 'PAGO' => 'Recebido', 'CANCELADO' => 'Cancelado'];
   ?>
   <?php if ($cobravel || $contas): ?>
     <div class="card" style="margin-bottom:16px">
-      <h2 class="card__titulo">Pagamento <?php if ($st !== 'CANCELADA'): ?><span class="badge badge--<?= $aReceber <= 0.004 ? 'success' : ($recebido > 0 ? 'warning' : 'neutral') ?>"><?= $aReceber <= 0.004 ? 'Quitada' : 'Falta ' . dinheiro($aReceber) ?></span><?php endif; ?></h2>
+      <h2 class="card__titulo">Pagamento <?php if ($st !== 'CANCELADA'): ?><span class="badge badge--<?= $aReceber <= 0.004 ? 'success' : ($recebido > 0 ? 'info' : 'neutral') ?>"><?= $aReceber <= 0.004 ? 'Quitada' : 'Falta ' . dinheiro($aReceber) ?></span><?php endif; ?></h2>
       <?php foreach ($contas as $c): $saldoC = round((float) $c['devido'] - (float) $c['valor_pago'], 2); ?>
         <div class="linha-os"><div class="linha-os__topo">
           <span><?= $c['parcela_total'] > 1 ? (int) $c['parcela_numero'] . '/' . (int) $c['parcela_total'] . ' · ' : '' ?><?= data_br($c['vencimento']) ?> · <?= dinheiro($c['devido']) ?>
@@ -230,7 +230,7 @@ $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
           <div class="form-field"><label>Parcelas</label><select name="parcelas"><?php for ($i = 1; $i <= 12; $i++): ?><option value="<?= $i ?>"><?= $i === 1 ? 'À vista' : $i . 'x de ' . dinheiro($faltaLancar / $i) ?></option><?php endfor; ?></select></div>
           <div class="form-field"><label>1º vencimento</label><input type="date" name="vencimento" value="<?= date('Y-m-d') ?>"></div>
           <div class="form-field"><label>Forma</label><select name="forma"><?php foreach (Lancamento::FORMAS as $k => $r): ?><option value="<?= $k ?>" <?= $k === 'PIX' ? 'selected' : '' ?>><?= $r ?></option><?php endforeach; ?></select></div>
-          <div class="form-field span-3"><button class="btn btn--ghost btn--sm"><i class="bi bi-receipt"></i> Lançar cobrança de <?= dinheiro($faltaLancar) ?></button></div>
+          <div class="form-field span-3"><button class="btn btn--ghost btn--sm"><?= icone('receipt') ?> Lançar cobrança de <?= dinheiro($faltaLancar) ?></button></div>
         </form>
       <?php elseif ($faltaLancar < -0.004): ?>
         <p class="form-dica" style="margin-top:8px">O lançado é maior que o total atual da OS (<?= dinheiro(-$faltaLancar) ?> a mais). Ajuste no financeiro.</p>

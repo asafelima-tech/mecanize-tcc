@@ -8,7 +8,7 @@ final class UsuariosController extends Cadastro
         $p = new Paginacao();
         $f = $this->filtros(['perfil']);
         $m = new Usuario();
-        $this->tela('usuarios/lista', ['usuarios' => $m->listarDaOficina($f, $p), 'f' => $f, 'p' => $p, 'vagas' => $m->vagas()]);
+        $this->tela('usuarios/lista', ['usuarios' => $m->listarDaOficina($f, $p), 'f' => $f, 'p' => $p, 'vagas' => $m->vagas(), 'resumo' => $m->resumo()]);
     }
 
     public function form(): void

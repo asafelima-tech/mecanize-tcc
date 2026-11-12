@@ -8,11 +8,11 @@ final class InicioController extends Controller
         $admin = Contexto::perfil() === 'ADMIN';
 
         $this->tela('inicio/painel', [
-            'resumo'  => $painel->resumo(),
-            'ultimas' => $painel->ultimasOs(),
-            'agenda'  => (new Agendamento())->proximos(),
-            'alertas' => $painel->alertas($admin),
-            'admin'   => $admin,
+            'resumo'    => $painel->resumo(),
+            'graficos'  => $painel->graficos(),
+            'ultimas'   => $painel->ultimasOs(5),
+            'alertas'   => $painel->alertas($admin),
+            'admin'     => $admin,
         ]);
     }
 }

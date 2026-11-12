@@ -114,10 +114,13 @@ final class Caixa extends Modelo
     public function movimentos(int $caixaId): array
     {
         return $this->lista(
-            "SELECT m.*, u.nome AS usuario, l.descricao AS lancamento, l.tipo AS lancamento_tipo, l.ordem_servico_id
+            "SELECT m.*, u.nome AS usuario, l.descricao AS lancamento, l.tipo AS lancamento_tipo, l.categoria AS lancamento_categoria,
+                    l.ordem_servico_id, cl.nome AS cliente
              FROM movimentacoes_financeiras m
              LEFT JOIN usuarios u ON u.id = m.usuario_id
              LEFT JOIN lancamentos l ON l.oficina_id = m.oficina_id AND l.id = m.lancamento_id
+             LEFT JOIN ordens_servico os ON os.oficina_id = l.oficina_id AND os.id = l.ordem_servico_id
+             LEFT JOIN clientes cl ON cl.oficina_id = os.oficina_id AND cl.id = os.cliente_id
              WHERE m.oficina_id = :oficina AND m.caixa_id = :c ORDER BY m.data_movimento DESC, m.id DESC",
             ['c' => $caixaId]
         );

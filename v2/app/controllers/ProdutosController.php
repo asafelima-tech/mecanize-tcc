@@ -6,9 +6,17 @@ final class ProdutosController extends Cadastro
     public function lista(): void
     {
         $p = new Paginacao();
-        $f = $this->filtros(['tipo', 'categoria', 'baixo']);
+        $situacao = (string) ($_GET['situacao'] ?? '');
+        if (in_array($situacao, ['baixo', 'esgotado'], true)) {
+            $_GET[$situacao] = '1';
+        } elseif (in_array($situacao, ['inativos', 'todos'], true)) {
+            $_GET['status'] = $situacao;
+        }
+        $f = $this->filtros(['tipo', 'categoria', 'baixo', 'esgotado']);
+        // Um filtro só de situação na tela (Design System): ativos, estoque baixo, esgotados, inativos ou todos.
+        $f['situacao'] = $f['baixo'] ? 'baixo' : ($f['esgotado'] ? 'esgotado' : $f['status']);
         $m = new Produto();
-        $this->tela('produtos/lista', ['produtos' => $m->listar($f, $p), 'f' => $f, 'p' => $p, 'categorias' => $m->categorias()]);
+        $this->tela('produtos/lista', ['produtos' => $m->listar($f, $p), 'f' => $f, 'p' => $p, 'categorias' => $m->categorias(), 'resumo' => $m->resumo()]);
     }
 
     public function ver(): void

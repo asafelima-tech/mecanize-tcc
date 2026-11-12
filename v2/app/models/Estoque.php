@@ -57,8 +57,8 @@ final class Estoque extends Modelo
     /* ── Entrada de mercadoria, ajuste e estorno (tela Estoque) ────────── */
 
     public const MOTIVOS = [
-        'COMPRA' => ['Entrada', 'success'], 'SAIDA_OS' => ['Saída por OS', 'info'], 'DEVOLUCAO_OS' => ['Devolução de OS', 'neutral'],
-        'AJUSTE' => ['Ajuste', 'warning'], 'ESTORNO' => ['Estorno', 'danger'],
+        'COMPRA' => ['Entrada', 'plain'], 'SAIDA_OS' => ['Saída por OS', 'plain'], 'DEVOLUCAO_OS' => ['Devolução de OS', 'plain'],
+        'AJUSTE' => ['Ajuste', 'plain'], 'ESTORNO' => ['Estorno', 'muted'],
     ];
 
     /**
@@ -261,6 +261,38 @@ final class Estoque extends Modelo
                     COALESCE(SUM(estoque_minimo > 0 AND estoque_atual <= estoque_minimo), 0) AS abaixo_minimo,
                     COALESCE(SUM(estoque_atual * preco_custo), 0) AS valor_custo
              FROM produtos WHERE oficina_id = :oficina AND tipo = 'PECA' AND ativo = 1"
+        );
+    }
+
+    /** Movimento do mês corrente para os cartões do topo (Design System, tela 20). Estornos e o estoque inicial do cadastro não entram. */
+    public function resumoMes(): array
+    {
+        $l = $this->linha(
+            "SELECT COALESCE(SUM(CASE WHEN m.motivo = 'COMPRA' THEN m.delta END), 0) AS entradas,
+                    COUNT(DISTINCT CASE WHEN m.motivo = 'COMPRA' THEN CONCAT(COALESCE(m.fornecedor_id, 0), '|', COALESCE(m.documento, m.id)) END) AS notas,
+                    COALESCE(-SUM(CASE WHEN m.motivo = 'SAIDA_OS' THEN m.delta END), 0) AS saidas,
+                    COUNT(DISTINCT CASE WHEN m.motivo = 'SAIDA_OS' THEN i.ordem_servico_id END) AS os,
+                    SUM(m.motivo = 'AJUSTE' AND COALESCE(m.observacao, '') <> :inicial) AS ajustes
+             FROM movimentacoes_estoque m
+             LEFT JOIN ordem_servico_itens i ON i.oficina_id = m.oficina_id AND i.id = m.ordem_servico_item_id
+             WHERE m.oficina_id = :oficina AND m.criado_em >= DATE_FORMAT(CURDATE(), '%Y-%m-01')
+               AND NOT EXISTS (SELECT 1 FROM movimentacoes_estoque e WHERE e.oficina_id = m.oficina_id AND e.estorno_de_id = m.id)",
+            ['inicial' => Produto::OBS_ESTOQUE_INICIAL]
+        );
+
+        return ['entradas' => (float) $l['entradas'], 'notas' => (int) $l['notas'], 'saidas' => (float) $l['saidas'],
+                'os' => (int) $l['os'], 'ajustes' => (int) $l['ajustes']];
+    }
+
+    /** Peças ativas no estoque mínimo ou abaixo dele, as mais críticas primeiro. */
+    public function abaixoDoMinimo(int $limite = 5): array
+    {
+        $limite = max(1, min(50, $limite));
+
+        return $this->lista(
+            "SELECT id, nome, codigo_interno, estoque_atual, estoque_minimo FROM produtos
+             WHERE oficina_id = :oficina AND tipo = 'PECA' AND ativo = 1 AND estoque_minimo > 0 AND estoque_atual <= estoque_minimo
+             ORDER BY estoque_atual / estoque_minimo, nome LIMIT {$limite}"
         );
     }
 

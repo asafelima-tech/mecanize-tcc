@@ -9,11 +9,13 @@ $inicio = Contexto::logado() ? './' . Permissao::inicio(Contexto::perfil()) : '.
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Mecanize · <?= e($titulo) ?></title>
+    <?php require V2_RAIZ . '/app/views/layout/_favicon.php'; ?>
     <style><?= Erro::css() ?></style>
+    <script>try { if (localStorage.getItem('mecanize-theme') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
 </head>
 
 <body class="erro-pagina">
-    <span class="erro-logo-texto">Mecanize</span>
+    <img class="erro-logo logo-claro" src="./img/logo.png" alt="Mecanize">
 
     <main class="erro-centro">
         <p class="erro-codigo"><?= (int) $http ?></p>
@@ -21,12 +23,14 @@ $inicio = Contexto::logado() ? './' . Permissao::inicio(Contexto::perfil()) : '.
         <p class="erro-resumo"><?= e($resumo) ?></p>
 
         <?php if ($tipo === 'nao-autenticado'): ?>
-            <a class="erro-btn" href="./login"><span>Entrar novamente</span></a>
+            <a class="btn btn--primary btn--lg" href="./login">Entrar novamente</a>
         <?php elseif ($tipo === 'sessao-expirada'): ?>
-            <button type="button" class="erro-btn" onclick="history.back()"><span>Voltar e enviar de novo</span></button>
+            <button type="button" class="btn btn--primary btn--lg" onclick="history.back()">Voltar e enviar de novo</button>
         <?php elseif ($tipo !== 'rastreio-invalido'): ?>
-            <a class="erro-btn" href="<?= e($voltar ?: $inicio) ?>"><span><?= $voltar ? 'Voltar para a lista' : 'Voltar ao início' ?></span></a>
-            <button type="button" class="erro-link" onclick="history.back()">Voltar à página anterior</button>
+            <div class="acoes" style="justify-content:center">
+                <a class="btn btn--primary btn--lg" href="<?= e($voltar ?: $inicio) ?>"><?= $voltar ? 'Voltar para a lista' : 'Voltar ao início' ?></a>
+                <button type="button" class="btn btn--ghost btn--lg" onclick="history.back()">Página anterior</button>
+            </div>
         <?php endif; ?>
 
         <?php if ($tipo === 'falha-interna' && $ocorrencia): ?>

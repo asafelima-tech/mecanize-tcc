@@ -1,6 +1,14 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<!-- Rodar na raiz do projeto: C:\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml -->
+<!--
+  Rodar na raiz do projeto (mecanize-tcc), com o php.exe do XAMPP:
+    C:\Users\SENAI_2025\Progs\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml
+  O includePath ".." (a raiz do projeto) faz o caminho relativo funcionar mesmo quando o php.ini
+  do XAMPP não tem "." no include_path, o que acontece quando o XAMPP não está em C:\xampp.
+-->
 <phpunit bootstrap="tests/bootstrap.php" colors="true" cacheResult="false">
+    <php>
+        <includePath>..</includePath>
+    </php>
     <testsuites>
         <testsuite name="Mecanize v2">
             <directory>tests</directory>

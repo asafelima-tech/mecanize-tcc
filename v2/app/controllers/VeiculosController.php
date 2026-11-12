@@ -5,8 +5,9 @@ final class VeiculosController extends Cadastro
     public function lista(): void
     {
         $p = new Paginacao();
-        $f = $this->filtros();
-        $this->tela('veiculos/lista', ['veiculos' => (new Veiculo())->listar($f, $p), 'f' => $f, 'p' => $p]);
+        $f = $this->filtros(['marca', 'combustivel', 'novos']);
+        $m = new Veiculo();
+        $this->tela('veiculos/lista', ['veiculos' => $m->listar($f, $p), 'f' => $f, 'p' => $p, 'resumo' => $m->resumo(), 'marcas' => $m->marcas()]);
     }
 
     public function ver(): void

@@ -12,29 +12,27 @@ $authTitulo = $authTitulo ?? 'Acesso';
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= e(Csrf::token()) ?>">
   <title>Mecanize · <?= e($authTitulo) ?></title>
-  <link rel="icon" type="image/png" href="<?= e(asset('img/logo-escuro.png')) ?>">
-  <link rel="stylesheet" href="<?= e(asset('vendor/inter.css')) ?>">
-  <!-- global.css entra só pelo reset, pela fonte e pelos tokens de cor;
-       todo o visual desta tela mora no auth.css. -->
-  <link rel="stylesheet" href="<?= e(asset('css/global.css')) ?>">
-  <link rel="stylesheet" href="<?= e(asset('css/auth.css')) ?>">
+  <?php require V2_RAIZ . '/app/views/layout/_favicon.php'; ?>
+  <link rel="stylesheet" href="./css/mecanize.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/mecanize.css') ?>">
+  <script>try { if (localStorage.getItem('mecanize-theme') === 'dark' || (!localStorage.getItem('mecanize-theme') && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
 </head>
 
-<body class="auth-body">
+<body>
+  <main class="login-pagina">
+    <div class="login-cartao">
+      <?php require V2_RAIZ . '/app/views/auth/_vitrine.php'; ?>
 
-  <main class="auth">
-
-    <div class="auth-card">
-      <img src="<?= e(asset('img/logo-escuro.png')) ?>" alt="Mecanize" class="auth-marca">
-      <?= $conteudo ?>
+      <section class="login-painel">
+        <div class="login-form">
+          <img class="login-logo-movel logo-claro" src="./img/logo.png" alt="Mecanize">
+          <?= $conteudo ?>
+        </div>
+        <span class="login-rodape">© <?= date('Y') ?> Mecanize</span>
+      </section>
     </div>
-
-    <div class="auth-rodape">
-      <span>© <?= date('Y') ?> Mecanize</span>
-    </div>
-
   </main>
 
+  <script src="./js/campos.js?v=<?= (int) @filemtime(V2_RAIZ . '/public/js/campos.js') ?>"></script>
   <script src="<?= e(asset('js/csrf.js')) ?>"></script>
 </body>
 

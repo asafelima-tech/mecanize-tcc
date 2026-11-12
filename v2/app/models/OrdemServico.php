@@ -40,6 +40,10 @@ final class OrdemServico extends Modelo
         'todas'      => ['Todas', []],
     ];
 
+    /** Colunas do Kanban: as situações em aberto, na ordem do fluxo. */
+    public const KANBAN = ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA'];
+    public const KANBAN_LIMITE = 200;
+
     private Historico $hist;
 
     public function __construct(?PDO $db = null)
@@ -52,9 +56,71 @@ final class OrdemServico extends Modelo
 
     public function listar(array $f, Paginacao $p): array
     {
+        [$where, $params, $from] = $this->filtro($f);
+        $p->total = (int) $this->valor("SELECT COUNT(*) {$from} WHERE {$where}", $params);
+
+        return $this->lista(
+            self::CAMPOS_LISTA . " {$from} WHERE {$where}
+             ORDER BY FIELD(os.status, 'PRONTA', 'AGUARDANDO_PECA', 'EM_EXECUCAO', 'APROVADA', 'ORCAMENTO') DESC, os.numero DESC" . $p->sql(),
+            $params
+        );
+    }
+
+    /**
+     * Quantas OS há em cada aba da lista. Respeita a busca e o técnico, não a aba escolhida.
+     * Uma consulta só, agrupada por situação; cada aba soma as situações que cobre.
+     */
+    public function contagens(array $f): array
+    {
+        [$where, $params, $from] = $this->filtro($f, false);
+        $porStatus = [];
+        foreach ($this->lista("SELECT os.status, COUNT(*) AS n {$from} WHERE {$where} GROUP BY os.status", $params) as $l) {
+            $porStatus[$l['status']] = (int) $l['n'];
+        }
+
+        $r = [];
+        foreach (self::FILTROS as $k => [, $status]) {
+            $r[$k] = $status ? array_sum(array_intersect_key($porStatus, array_flip($status))) : array_sum($porStatus);
+        }
+
+        return $r;
+    }
+
+    /**
+     * OS em aberto agrupadas por situação, para o Kanban. É só consulta: a troca de situação
+     * continua na tela da OS, onde ficam as regras de estoque, aprovação e comissão.
+     * Devolve [situação => [OS...]] com todas as colunas (mesmo vazias) e no máximo $limite OS.
+     */
+    public function kanban(array $f, int $limite = self::KANBAN_LIMITE): array
+    {
+        [$where, $params, $from] = $this->filtro(['situacao' => 'abertas'] + $f);
+        $colunas = array_fill_keys(self::KANBAN, []);
+        $linhas  = $this->lista(self::CAMPOS_LISTA . " {$from} WHERE {$where} ORDER BY os.numero DESC LIMIT " . max(1, $limite), $params);
+        foreach ($linhas as $o) {
+            $colunas[$o['status']][] = $o;
+        }
+
+        return $colunas;
+    }
+
+    /** Passou da previsão de conclusão e ainda não ficou pronta. */
+    public static function atrasada(array $os): bool
+    {
+        return !empty($os['previsao_conclusao'])
+            && !in_array($os['status'], ['PRONTA', 'ENTREGUE', 'RECUSADA', 'CANCELADA'], true)
+            && strtotime($os['previsao_conclusao']) < time();
+    }
+
+    private const CAMPOS_LISTA = "SELECT os.id, os.numero, os.status, os.valor_total, os.criado_em, os.previsao_conclusao, os.entregue_em,
+                    c.nome AS cliente, c.telefone AS cliente_telefone, v.placa,
+                    COALESCE(CONCAT(m.marca, ' ', m.nome), v.modelo_texto) AS modelo, t.nome AS tecnico";
+
+    /** WHERE da lista (aba, busca e técnico) e o FROM com cliente, veículo, modelo e técnico. */
+    private function filtro(array $f, bool $comSituacao = true): array
+    {
         $where  = 'os.oficina_id = :oficina';
         $params = [];
-        $status = self::FILTROS[$f['situacao'] ?? 'abertas'][1] ?? self::FILTROS['abertas'][1];
+        $status = $comSituacao ? (self::FILTROS[$f['situacao'] ?? 'abertas'][1] ?? self::FILTROS['abertas'][1]) : [];
         if ($status) {
             $marcadores = [];
             foreach ($status as $i => $s) {
@@ -79,15 +145,10 @@ final class OrdemServico extends Modelo
         $from = 'FROM ordens_servico os
                  JOIN clientes c ON c.oficina_id = os.oficina_id AND c.id = os.cliente_id
                  JOIN veiculos v ON v.oficina_id = os.oficina_id AND v.id = os.veiculo_id
+                 LEFT JOIN modelos_veiculos m ON m.id = v.modelo_id
                  LEFT JOIN usuarios t ON t.id = os.tecnico_id';
-        $p->total = (int) $this->valor("SELECT COUNT(*) {$from} WHERE {$where}", $params);
 
-        return $this->lista(
-            "SELECT os.id, os.numero, os.status, os.valor_total, os.criado_em, os.previsao_conclusao, os.entregue_em,
-                    c.nome AS cliente, v.placa, t.nome AS tecnico {$from} WHERE {$where}
-             ORDER BY FIELD(os.status, 'PRONTA', 'AGUARDANDO_PECA', 'EM_EXECUCAO', 'APROVADA', 'ORCAMENTO') DESC, os.numero DESC" . $p->sql(),
-            $params
-        );
+        return [$where, $params, $from];
     }
 
     public function buscar(int $id): ?array

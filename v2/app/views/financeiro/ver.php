@@ -3,7 +3,7 @@
 $receber = $l['tipo'] === 'RECEBER';
 $titulo = $l['descricao'];
 $saldo = round((float) $l['devido'] - (float) $l['valor_pago'], 2);
-$cores = ['ABERTO' => 'info', 'PARCIAL' => 'warning', 'PAGO' => 'success', 'CANCELADO' => 'neutral'];
+$cores = ['ABERTO' => 'neutral', 'PARCIAL' => 'info', 'PAGO' => 'success', 'CANCELADO' => 'muted'];
 $nomes = ['ABERTO' => 'Em aberto', 'PARCIAL' => 'Parcial', 'PAGO' => $receber ? 'Recebido' : 'Pago', 'CANCELADO' => 'Cancelado'];
 $aberta = in_array($l['status'], ['ABERTO', 'PARCIAL'], true);
 $acoesHist = ['CRIACAO' => 'Lançada', 'ALTERACAO' => 'Alterada', 'PAGAMENTO' => $receber ? 'Recebimento' : 'Pagamento', 'ESTORNO' => 'Estorno', 'CANCELAMENTO' => 'Cancelada', 'ANEXO' => 'Comprovante anexado'];
@@ -19,7 +19,7 @@ $acoesHist = ['CRIACAO' => 'Lançada', 'ALTERACAO' => 'Alterada', 'PAGAMENTO' =>
     <?php if ($aberta): ?>
       <button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-editar">Editar</button>
       <button type="button" class="btn btn--primary btn--sm" data-baixar="dlg-baixa" data-conta="<?= (int) $l['id'] ?>" data-saldo="<?= e(number_format($saldo, 2, ',', '.')) ?>" data-forma="<?= e($l['forma_prevista'] ?? '') ?>" data-rotulo="Saldo: <?= e(dinheiro($saldo)) ?>">
-        <i class="bi bi-cash"></i> <?= $receber ? 'Receber' : 'Pagar' ?></button>
+        <?= icone('cash') ?> <?= $receber ? 'Receber' : 'Pagar' ?></button>
     <?php endif; ?>
   </div>
 </div>
@@ -49,7 +49,7 @@ $acoesHist = ['CRIACAO' => 'Lançada', 'ALTERACAO' => 'Alterada', 'PAGAMENTO' =>
 
     <div class="card card--tabela">
       <div class="card__header"><span class="card__title"><?= $receber ? 'Recebimentos' : 'Pagamentos' ?></span></div>
-      <?php if (!$movimentos): ?><div class="vazio" style="padding:20px">Nenhum <?= $receber ? 'recebimento' : 'pagamento' ?> ainda.</div><?php else: ?>
+      <?php if (!$movimentos): ?><div class="vazio">Nenhum <?= $receber ? 'recebimento' : 'pagamento' ?> ainda.</div><?php else: ?>
         <div class="table-wrap"><table class="table">
           <thead><tr><th>Data</th><th>Forma</th><th>Por</th><th class="num">Valor</th><th></th></tr></thead>
           <tbody>
@@ -85,7 +85,7 @@ $acoesHist = ['CRIACAO' => 'Lançada', 'ALTERACAO' => 'Alterada', 'PAGAMENTO' =>
       <?php if (!$anexos): ?><p class="form-dica">Nenhum comprovante anexado.</p><?php endif; ?>
       <?php foreach ($anexos as $a): ?>
         <div class="linha-os"><div class="linha-os__topo">
-          <a href="./anexo?id=<?= (int) $a['id'] ?>" target="_blank" rel="noopener"><i class="bi <?= Anexo::ehImagem($a) ? 'bi-file-earmark-image' : 'bi-file-earmark-pdf' ?>"></i> <?= e($a['descricao'] ?: $a['nome_original']) ?></a>
+          <a href="./anexo?id=<?= (int) $a['id'] ?>" target="_blank" rel="noopener"><?= icone(Anexo::ehImagem($a) ? 'image' : 'file') ?> <?= e($a['descricao'] ?: $a['nome_original']) ?></a>
           <span class="form-dica"><?= data_br($a['enviado_em']) ?></span></div></div>
       <?php endforeach; ?>
       <?php if (count($anexos) < Anexo::MAX_POR_DONO): ?>
@@ -93,7 +93,7 @@ $acoesHist = ['CRIACAO' => 'Lançada', 'ALTERACAO' => 'Alterada', 'PAGAMENTO' =>
           <?= csrf_field() ?>
           <div class="form-field"><input type="file" name="arquivo" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Comprovante"></div>
           <div class="form-field" style="margin-top:8px"><input name="descricao" maxlength="200" placeholder="Descrição (opcional)" aria-label="Descrição"></div>
-          <div style="margin-top:8px"><button class="btn btn--ghost btn--sm"><i class="bi bi-paperclip"></i> Anexar comprovante</button> <span class="form-dica">PDF ou imagem, até 5 MB</span></div>
+          <div style="margin-top:8px"><button class="btn btn--ghost btn--sm"><?= icone('attach') ?> Anexar comprovante</button> <span class="form-dica">PDF ou imagem, até 5 MB</span></div>
         </form>
       <?php endif; ?>
     </div>

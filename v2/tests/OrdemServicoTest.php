@@ -271,4 +271,25 @@ final class OrdemServicoTest extends Cenario
         $this->assertNull((new OrdemServico())->porToken(str_repeat('0', 32)));
         $this->assertNull((new OrdemServico())->porToken("' OR 1=1"));
     }
+
+    public function testAbasContamPorSituacaoEKanbanAgrupaAsAbertas(): void
+    {
+        $antes = $this->os->contagens([]);
+        $id    = $this->novaOs();
+        $depois = $this->os->contagens([]);
+
+        $this->assertSame($antes['orcamento'] + 1, $depois['orcamento']);
+        $this->assertSame($antes['abertas'] + 1, $depois['abertas']);
+        $this->assertSame($antes['todas'] + 1, $depois['todas']);
+        $this->assertSame($antes['execucao'], $depois['execucao'], 'orçamento não conta como em andamento');
+
+        $ids = fn (array $colunas) => array_map('intval', array_column(array_merge(...array_values($colunas)), 'id'));
+        $kanban = $this->os->kanban([]);
+        $this->assertSame(OrdemServico::KANBAN, array_keys($kanban), 'todas as colunas, na ordem do fluxo');
+        $this->assertContains($id, array_map('intval', array_column($kanban['ORCAMENTO'], 'id')));
+        $this->assertNotContains($id, $ids($this->os->kanban(['tecnico' => 999999])), 'o filtro de técnico vale no Kanban');
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertNotContains($id, $ids((new OrdemServico())->kanban([])), 'a oficina B não enxerga a OS da oficina A');
+    }
 }

@@ -9,20 +9,21 @@ $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
 <head>
   <meta charset="UTF-8">
   <title><?= $ehOrcamento ? 'Orçamento' : 'Ordem de serviço' ?> <?= os_numero($os['numero']) ?></title>
+    <?php require V2_RAIZ . '/app/views/layout/_favicon.php'; ?>
   <style>
     * { box-sizing: border-box; }
-    body { font: 12px/1.45 -apple-system, "Segoe UI", Inter, Arial, sans-serif; color: #111; margin: 0; padding: 28px; }
+    body { font: 12px/1.45 Arial, "Helvetica Neue", Helvetica, sans-serif; color: #1D1D1F; margin: 0; padding: 28px; font-variant-numeric: tabular-nums; }
     .folha { max-width: 780px; margin: 0 auto; }
-    header { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #111; padding-bottom: 12px; }
-    h1 { font-size: 18px; margin: 0; } h2 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: #555; }
+    header { display: flex; justify-content: space-between; gap: 16px; border-bottom: 2px solid #1D1D1F; padding-bottom: 12px; }
+    h1 { font-size: 18px; margin: 0; } h2 { font-size: 13px; margin: 18px 0 6px; text-transform: uppercase; letter-spacing: .04em; color: #6E6E73; }
     .doc { text-align: right; } .doc strong { font-size: 16px; display: block; }
     .grade { display: grid; grid-template-columns: 1fr 1fr; gap: 4px 24px; }
     table { width: 100%; border-collapse: collapse; margin-top: 4px; }
-    th, td { padding: 6px 4px; border-bottom: 1px solid #ddd; text-align: left; vertical-align: top; }
-    th { font-size: 10px; text-transform: uppercase; color: #555; } .n { text-align: right; white-space: nowrap; }
-    tfoot td { border: 0; } .total td { font-size: 14px; font-weight: 700; border-top: 2px solid #111; }
+    th, td { padding: 6px 4px; border-bottom: 1px solid #E8E8ED; text-align: left; vertical-align: top; }
+    th { font-size: 10px; text-transform: uppercase; color: #6E6E73; } .n { text-align: right; white-space: nowrap; }
+    tfoot td { border: 0; } .total td { font-size: 14px; font-weight: 700; border-top: 2px solid #1D1D1F; }
     .assinaturas { display: grid; grid-template-columns: 1fr 1fr; gap: 40px; margin-top: 48px; text-align: center; }
-    .assinaturas div { border-top: 1px solid #111; padding-top: 4px; }
+    .assinaturas div { border-top: 1px solid #1D1D1F; padding-top: 4px; }
     .obs { white-space: pre-line; } .acoes { text-align: center; margin-bottom: 16px; }
     .logo-oficina { max-height: 56px; max-width: 200px; object-fit: contain; display: block; margin-bottom: 6px; }
     @media print { .acoes { display: none; } body { padding: 0; } }
@@ -30,7 +31,7 @@ $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
 </head>
 <body>
 <div class="folha">
-  <div class="acoes"><button onclick="window.print()">Imprimir / salvar em PDF</button></div>
+  <div class="acoes"><button onclick="window.print()" style="height:36px;padding:0 16px;border:0;border-radius:6px;background:#1D1D1F;color:#fff;font:700 13px Arial,sans-serif;cursor:pointer">Imprimir / salvar em PDF</button></div>
   <header>
     <div>
       <?php if (!empty($oficina['logo_caminho'])): ?><img class="logo-oficina" src="./oficina-logo" alt=""><?php endif; ?>

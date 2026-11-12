@@ -1,12 +1,12 @@
 <?php /** Espera: $v, $historico */ $titulo = $v['placa']; ?>
 <div class="page-header">
   <div>
-    <h1 class="page-header__title"><?= e($v['placa']) ?> <?php if (!$v['ativo']): ?><span class="badge badge--neutral">Inativo</span><?php endif; ?></h1>
+    <h1 class="page-header__title"><?= e($v['placa']) ?> <?php if (!$v['ativo']): ?><span class="badge badge--muted">Inativo</span><?php endif; ?></h1>
     <p class="page-header__subtitle"><a href="./veiculos">Veículos</a> · <?= e(trim($v['modelo'] . ' ' . ($v['ano'] ?? ''))) ?></p>
   </div>
   <div class="page-header__actions acoes">
     <?php $rotaAtivo = 'veiculo-ativo'; $rotaExcluir = 'veiculo-excluir'; $registro = $v; $nome = 'este veículo'; require V2_RAIZ . '/app/views/layout/_ativo.php'; ?>
-    <a class="btn btn--primary btn--sm" href="./veiculo-form?id=<?= (int) $v['id'] ?>"><i class="bi bi-pencil"></i> Editar</a>
+    <a class="btn btn--primary btn--sm" href="./veiculo-form?id=<?= (int) $v['id'] ?>"><?= icone('edit') ?> Editar</a>
   </div>
 </div>
 
@@ -14,7 +14,7 @@
   <div class="card">
     <h2 class="card__titulo">Histórico do veículo</h2>
     <?php if (!$historico): ?>
-      <div class="vazio" style="padding:16px">Nenhum serviço registrado para este veículo.</div>
+      <div class="vazio">Nenhum serviço registrado para este veículo.</div>
     <?php endif; ?>
     <?php foreach ($historico as $os): [$r, $cor] = os_status($os['status']); ?>
       <div class="linha-os">

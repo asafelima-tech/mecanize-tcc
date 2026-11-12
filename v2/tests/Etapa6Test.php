@@ -241,4 +241,61 @@ final class Etapa6Test extends Cenario
         $this->expectException(ErroHttp::class);
         (new Oficina())->listarTodas();
     }
+
+    /* ── Telas do Design System ──────────────────────────────────────── */
+
+    public function testCalendarioDaAgendaMarcaSoDiasComHorarioAtivo(): void
+    {
+        $a = $this->agendar(['tecnico_id' => 12]);
+        $this->agendar(['tecnico_id' => 12, 'hora' => '14:00']);
+        $c = $this->agendar(['data' => '2030-05-12']);
+        (new Agendamento())->marcar($c, 'CANCELADO');
+
+        $dias = (new Agendamento())->diasComAgendamento('2030-05-01', '2030-06-01');
+        $this->assertSame(['2030-05-10' => 2], $dias, 'cancelado não marca o dia');
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertSame([], (new Agendamento())->diasComAgendamento('2030-05-01', '2030-06-01'), 'a oficina B não vê a agenda da A');
+    }
+
+    public function testGraficosDaTelaInicialContamSoAOficinaLogada(): void
+    {
+        $g = (new Painel())->graficos();
+        $this->assertSame(1, $g['status_mes']['abertas'], 'a OS de teste da oficina A está em orçamento');
+        $this->assertCount(7, $g['fluxo']);
+        $this->assertCount(6, $g['meses']);
+        $this->assertSame(array_sum(array_column($g['fluxo'], 'os')), $g['abertas_hoje'], 'as OS de hoje entram no último dia do fluxo');
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertSame(1, (new Painel())->graficos()['status_mes']['abertas'], 'a oficina B conta só a própria OS');
+    }
+
+    public function testRelatorioPorTecnicoESituacaoDasAbertasEResumoDaEquipe(): void
+    {
+        $os = new OrdemServico();
+        $id = $os->criar(['cliente_id' => 101, 'veiculo_id' => 101, 'tecnico_id' => 12, 'previsao_conclusao' => date('Y-m-d', strtotime('+3 days'))]);
+        $os->adicionarItem($id, ['descricao' => 'Revisão', 'valor_unitario' => '200']);
+        $os->aprovar($id, 'Cliente', null);
+        $os->iniciar($id);
+        $os->concluir($id);
+        $os->entregar($id, '');
+
+        $r = new Relatorio(date('Y-m-01'), date('Y-m-d'));
+        $d = array_column($r->desempenho(), null, 'tecnico');
+        $this->assertSame(1, (int) $d['Tiago Técnico']['os']);
+        $this->assertEqualsWithDelta(200.0, (float) $d['Tiago Técnico']['total'], 0.001);
+        $this->assertSame(1, $d['Tiago Técnico']['no_prazo'], 'ficou pronta antes da previsão');
+
+        $s = $r->situacaoDasAbertas();
+        $this->assertSame(1, $s['Concluídas']);
+        $this->assertSame(1, $s['Orçamento'], 'a OS do cenário');
+
+        $equipe = (new Usuario())->resumo();
+        $this->assertSame(2, $equipe['ativos']);
+        $this->assertSame(1, $equipe['admins']);
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertSame([], (new Relatorio(date('Y-m-01'), date('Y-m-d')))->desempenho(), 'a oficina B não vê o desempenho da A');
+        $this->assertSame(1, (new Usuario())->resumo()['total']);
+    }
 }

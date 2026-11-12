@@ -13,11 +13,11 @@
 final class Agendamento extends Modelo
 {
     public const SITUACOES = [
-        'AGENDADO'   => ['Agendado', 'info'],
-        'CONFIRMADO' => ['Confirmado', 'success'],
-        'CONCLUIDO'  => ['Atendido', 'neutral'],
-        'CANCELADO'  => ['Cancelado', 'danger'],
-        'FALTOU'     => ['Não compareceu', 'warning'],
+        'AGENDADO'   => ['Agendado', 'neutral'],
+        'CONFIRMADO' => ['Confirmado', 'info'],
+        'CONCLUIDO'  => ['Atendido', 'success'],
+        'CANCELADO'  => ['Cancelado', 'muted'],
+        'FALTOU'     => ['Não compareceu', 'danger'],
     ];
 
     public const ATIVOS = ['AGENDADO', 'CONFIRMADO'];
@@ -60,6 +60,19 @@ final class Agendamento extends Modelo
                                WHERE oficina_id = :oficina AND data_hora >= :ini AND data_hora < :fim GROUP BY status',
                      ['ini' => $inicio . ' 00:00:00', 'fim' => $fim . ' 00:00:00']) as $l) {
             $r[$l['status']] = (int) $l['n'];
+        }
+
+        return $r;
+    }
+
+    /** Dias do intervalo com horário ativo (agendado ou confirmado), para o calendário da agenda: [AAAA-MM-DD => quantidade]. */
+    public function diasComAgendamento(string $inicio, string $fim): array
+    {
+        $r = [];
+        foreach ($this->lista("SELECT DATE(data_hora) AS dia, COUNT(*) AS n FROM agendamentos
+                               WHERE oficina_id = :oficina AND data_hora >= :ini AND data_hora < :fim AND status IN ('AGENDADO','CONFIRMADO')
+                               GROUP BY DATE(data_hora)", ['ini' => $inicio . ' 00:00:00', 'fim' => $fim . ' 00:00:00']) as $l) {
+            $r[$l['dia']] = (int) $l['n'];
         }
 
         return $r;

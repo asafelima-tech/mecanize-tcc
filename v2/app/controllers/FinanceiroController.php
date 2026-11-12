@@ -3,8 +3,13 @@
 /** Contas a receber e a pagar, pagamentos, estornos e comissões. Só ADMIN. */
 final class FinanceiroController extends Controller
 {
+    /** Sem ?tipo=: visão geral do período (Design System, tela 16). Com ?tipo=RECEBER|PAGAR: as contas. */
     public function lista(): void
     {
+        if (!isset($_GET['tipo'])) {
+            $this->resumo();
+            return;
+        }
         $p = new Paginacao();
         $f = [
             'tipo'     => ($_GET['tipo'] ?? '') === 'PAGAR' ? 'PAGAR' : 'RECEBER',
@@ -15,6 +20,35 @@ final class FinanceiroController extends Controller
         ];
         $r = (new Lancamento())->listar($f, $p);
         $this->tela('financeiro/lista', ['contas' => $r['linhas'], 'saldo' => $r['saldo'], 'f' => $f, 'p' => $p]);
+    }
+
+    private function resumo(): void
+    {
+        $agrupar = in_array($_GET['agrupar'] ?? '', ['dia', 'semana', 'mes', 'ano'], true) ? $_GET['agrupar'] : 'mes';
+        $padrao = ['dia' => '-13 days', 'semana' => 'monday this week -11 weeks', 'mes' => 'first day of this month -5 months', 'ano' => 'first day of january this year -2 years'][$agrupar];
+        $data = fn (string $k) => ($d = DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($_GET[$k] ?? ''))) && $d->format('Y-m-d') === $_GET[$k] ? $d : null;
+        $ate = $data('ate') ?? new DateTimeImmutable('today');
+        $de  = $data('de') ?? (new DateTimeImmutable('today'))->modify($padrao);
+        if ($de > $ate) {
+            [$de, $ate] = [$ate, $de];
+        }
+        if ($de->diff($ate)->days > 3660) {
+            $de = $ate->modify('-10 years');
+        }
+
+        // Período anterior de mesmo tamanho, para as variações dos cartões.
+        $dias = $de->diff($ate)->days + 1;
+        $antes = new Relatorio($de->modify("-{$dias} days")->format('Y-m-d'), $de->modify('-1 day')->format('Y-m-d'));
+        $r = new Relatorio($de->format('Y-m-d'), $ate->format('Y-m-d'));
+        $p = new Paginacao();
+
+        $this->tela('financeiro/resumo', [
+            'agrupar' => $agrupar, 'de' => $de, 'ate' => $ate, 'busca' => trim((string) ($_GET['busca'] ?? '')),
+            'caixa' => $r->caixa(), 'anterior' => $antes->caixa(), 'sessoes' => $r->sessoesCaixa(),
+            'fluxo' => $r->fluxoNoTempo($agrupar), 'maiorSaida' => $r->maiorSaida(),
+            'movimentos' => $r->movimentos($p, trim((string) ($_GET['busca'] ?? ''))), 'p' => $p,
+            'abertas' => $r->contasEmAberto(),
+        ]);
     }
 
     public function ver(): void

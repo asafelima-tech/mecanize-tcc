@@ -11,7 +11,8 @@ final class EstoqueController extends Controller
             $f[$k] = trim((string) ($_GET[$k] ?? ''));
         }
         $m = new Estoque();
-        $this->tela('estoque/livro', ['movs' => $m->livro($f, $p), 'f' => $f, 'p' => $p, 'resumo' => $m->resumo()]);
+        $this->tela('estoque/livro', ['movs' => $m->livro($f, $p), 'f' => $f, 'p' => $p, 'resumo' => $m->resumo(),
+            'mes' => $m->resumoMes(), 'minimo' => $m->abaixoDoMinimo()]);
     }
 
     public function entrada(): void

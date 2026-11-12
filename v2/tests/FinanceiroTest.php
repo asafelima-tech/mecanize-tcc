@@ -209,4 +209,33 @@ final class FinanceiroTest extends Cenario
         $this->expectException(ErroHttp::class);
         (new Lancamento())->baixar($id, ['valor' => '1', 'forma' => 'PIX']);
     }
+
+    public function testVisaoGeralDoFinanceiroPorPeriodoDescontaEstorno(): void
+    {
+        $hoje = date('Y-m-d');
+        $aluguel = $this->conta(['valor' => '500']);
+        $pecas = $this->conta(['categoria' => 'PECAS', 'descricao' => 'Pastilhas', 'valor' => '300']);
+        $receita = $this->f->criar(['tipo' => 'RECEBER', 'categoria' => 'SERVICOS', 'descricao' => 'Serviço avulso', 'valor' => '900', 'vencimento' => $hoje]);
+        $this->f->baixar($aluguel, ['valor' => '500', 'forma' => 'PIX']);
+        $this->f->baixar($pecas, ['valor' => '300', 'forma' => 'PIX']);
+        $this->f->baixar($receita, ['valor' => '900', 'forma' => 'PIX']);
+        $movPecas = (int) $this->db->query("SELECT id FROM movimentacoes_financeiras WHERE lancamento_id = {$pecas}")->fetchColumn();
+        $this->f->estornar($movPecas, 'Lançado errado');
+
+        $r = new Relatorio(date('Y-m-01'), $hoje);
+        $fluxo = $r->fluxoNoTempo('mes');
+        $this->assertSame([date('Y-m')], array_keys($fluxo));
+        $this->assertEqualsWithDelta(900.0, $fluxo[date('Y-m')]['entradas'], 0.001);
+        $this->assertEqualsWithDelta(500.0, $fluxo[date('Y-m')]['saidas'], 0.001, 'o pagamento estornado sai da conta');
+
+        $this->assertSame('Aluguel', $r->maiorSaida()['descricao'], 'pagamento estornado não é a maior saída');
+        $p = new Paginacao();
+        $this->assertCount(4, $r->movimentos($p), 'três pagamentos e um estorno');
+        $this->assertSame(4, $p->total);
+        $this->assertCount(2, $r->movimentos(new Paginacao(), 'Pastilhas'), 'a busca acha o pagamento e o estorno');
+        $this->assertCount(7, (new Relatorio(date('Y-m-d', strtotime('-6 days')), $hoje))->fluxoNoTempo('dia'));
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertSame([], (new Relatorio(date('Y-m-01'), $hoje))->movimentos(new Paginacao()), 'a oficina B não vê os lançamentos da A');
+    }
 }

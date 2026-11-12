@@ -60,7 +60,8 @@ final class Erro
     /** CSS da página de erro embutido (a página não pode depender de um arquivo sendo servido). */
     public static function css(): string
     {
-        $arquivo = PROJETO_RAIZ . '/public/assets/css/erros.css';
+        // A tela de erro leva o CSS em linha: ela precisa aparecer mesmo quando o caminho dos arquivos falha.
+        $arquivo = V2_RAIZ . '/public/css/mecanize.css';
 
         return is_file($arquivo) ? (string) file_get_contents($arquivo) : '';
     }

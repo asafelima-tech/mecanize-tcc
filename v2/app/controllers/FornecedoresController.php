@@ -6,7 +6,8 @@ final class FornecedoresController extends Cadastro
     {
         $p = new Paginacao();
         $f = $this->filtros();
-        $this->tela('fornecedores/lista', ['fornecedores' => (new Fornecedor())->listar($f, $p), 'f' => $f, 'p' => $p]);
+        $m = new Fornecedor();
+        $this->tela('fornecedores/lista', ['fornecedores' => $m->listar($f, $p), 'f' => $f, 'p' => $p, 'resumo' => $m->resumo(), 'entradas' => $m->ultimasEntradas()]);
     }
 
     public function ver(): void

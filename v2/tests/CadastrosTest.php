@@ -191,4 +191,34 @@ final class CadastrosTest extends Cenario
         $this->entrarComo(self::ADMIN_B);
         $this->assertCount(2, $m->daMarca('Fiat'), 'as duas oficinas veem o mesmo catálogo');
     }
+
+    public function testNumerosEFiltrosDasListasDeClientesEVeiculos(): void
+    {
+        $pj = (new Cliente())->salvar($this->cliente(['tipo_pessoa' => 'PJ', 'nome' => 'Frota Ltda', 'documento' => '']));
+        (new Veiculo())->salvar(['cliente_id' => $pj, 'placa' => 'XYZ1A23', 'modelo_texto' => 'Van', 'combustivel' => 'Diesel']);
+
+        $r = (new Cliente())->resumo();
+        $this->assertSame(2, $r['ativos'], 'o cliente do cenário e o novo');
+        $this->assertSame(2, $r['novos_mes']);
+
+        $p = new Paginacao();
+        $pjs = (new Cliente())->listar(['tipo' => 'PJ', 'status' => 'ativos'], $p);
+        $this->assertSame([$pj], array_map('intval', array_column($pjs, 'id')));
+        $this->assertSame('XYZ1A23', $pjs[0]['placas']);
+
+        $diesel = (new Veiculo())->listar(['combustivel' => 'Diesel', 'status' => 'ativos'], new Paginacao());
+        $this->assertSame(['XYZ1A23'], array_column($diesel, 'placa_normalizada'));
+        $this->assertSame(2, (new Veiculo())->resumo()['ativos']);
+
+        // Recorrente: 4 OS em 12 meses (o cenário já tem uma).
+        for ($i = 0; $i < 3; $i++) {
+            (new OrdemServico())->criar(['cliente_id' => 101, 'veiculo_id' => 101]);
+        }
+        $this->assertSame(1, (new Cliente())->resumo()['recorrentes']);
+        $this->assertSame(101, (int) (new Cliente())->recorrentes()[0]['id']);
+
+        $this->entrarComo(self::ADMIN_B);
+        $this->assertSame(0, (new Cliente())->resumo()['recorrentes'], 'a oficina B não conta os clientes da A');
+        $this->assertSame([], (new Cliente())->listar(['tipo' => 'PJ', 'status' => 'ativos'], new Paginacao()));
+    }
 }

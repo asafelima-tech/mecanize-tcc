@@ -54,7 +54,7 @@ $fmt = fn($k, $v) => $k === 'licenca_valida_ate' ? data_br((string) $v) : ($k ==
     <div class="card">
       <h2 class="card__titulo">Administradores</h2>
       <?php foreach ($admins as $a): ?>
-        <div class="linha-os"><strong><?= e($a['nome']) ?></strong><?= $a['ativo'] ? '' : ' <span class="badge badge--neutral">inativo</span>' ?><div class="form-dica"><?= e($a['email']) ?><?= $a['telefone'] ? ' · ' . e(telefone_fmt($a['telefone'])) : '' ?></div></div>
+        <div class="linha-os"><strong><?= e($a['nome']) ?></strong><?= $a['ativo'] ? '' : ' <span class="badge badge--muted">inativo</span>' ?><div class="form-dica"><?= e($a['email']) ?><?= $a['telefone'] ? ' · ' . e(telefone_fmt($a['telefone'])) : '' ?></div></div>
       <?php endforeach; ?>
     </div>
   </div>

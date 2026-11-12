@@ -37,7 +37,7 @@ final class Notificacao extends Modelo
         $this->consultar('UPDATE notificacoes SET lida_em = COALESCE(lida_em, NOW()) WHERE id = :id AND oficina_id = :oficina AND usuario_id = :u',
             ['id' => $id, 'u' => Contexto::usuarioId()]);
 
-        return $n['link'] ?: './notificacoes';
+        return $n['link'] ?: './inicio';
     }
 
     public function lerTodas(): int

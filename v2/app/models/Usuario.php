@@ -152,6 +152,18 @@ final class Usuario extends Modelo
     }
 
     /** Ativos e limite do plano: [ativos, limite]. */
+    /** Números do topo da lista da equipe: total, ativos, administradores ativos e quem entrou nos últimos 30 dias. */
+    public function resumo(): array
+    {
+        $l = $this->linha("SELECT COUNT(*) AS total, SUM(ativo = 1) AS ativos, SUM(ativo = 1 AND perfil = 'ADMIN') AS admins,
+                                  SUM(criado_em >= NOW() - INTERVAL 30 DAY) AS novos
+                           FROM usuarios WHERE oficina_id = :oficina");
+        $novo = $this->valor('SELECT nome FROM usuarios WHERE oficina_id = :oficina AND criado_em >= NOW() - INTERVAL 30 DAY ORDER BY criado_em DESC, id DESC LIMIT 1');
+
+        return ['total' => (int) $l['total'], 'ativos' => (int) $l['ativos'], 'admins' => (int) $l['admins'],
+                'novos' => (int) $l['novos'], 'ultimo_novo' => $novo === false ? null : $novo];
+    }
+
     public function vagas(): array
     {
         $l = $this->linha('SELECT (SELECT COUNT(*) FROM usuarios WHERE oficina_id = :oficina AND ativo = 1) AS ativos,

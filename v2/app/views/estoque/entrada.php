@@ -46,11 +46,11 @@ $opcoes = function ($sel) use ($pecas) {
             <td><div class="form-field"><input name="itens[<?= $n ?>][quantidade]" class="ent-qtd" value="<?= e($l['quantidade'] ?? '1') ?>" inputmode="decimal"></div></td>
             <td><div class="form-field"><input name="itens[<?= $n ?>][custo_unitario]" class="ent-custo" value="<?= e($l['custo_unitario'] ?? '') ?>" inputmode="decimal"></div></td>
             <td class="num ent-sub">—</td>
-            <td><button type="button" class="btn btn--ghost btn--sm ent-remover" aria-label="Remover linha"><i class="bi bi-x-lg"></i></button></td>
+            <td><button type="button" class="btn btn--ghost btn--sm ent-remover" aria-label="Remover linha"><?= icone('close') ?></button></td>
           </tr>
         <?php endforeach; ?>
       </tbody>
-      <tfoot><tr><td colspan="3"><button type="button" class="btn btn--ghost btn--sm" id="ent-mais"><i class="bi bi-plus-lg"></i> Outra peça</button></td><td class="num"><strong id="ent-total">R$ 0,00</strong></td><td></td></tr></tfoot>
+      <tfoot><tr><td colspan="3"><button type="button" class="btn btn--ghost btn--sm" id="ent-mais"><?= icone('plus') ?> Outra peça</button></td><td class="num"><strong id="ent-total">R$ 0,00</strong></td><td></td></tr></tfoot>
     </table>
     <p class="form-dica">A peça não está na lista? <a href="./produto-form">Cadastre no catálogo</a> antes.</p>
   </div>

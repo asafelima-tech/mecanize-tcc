@@ -5,7 +5,7 @@
  * database/v2/schema.sql, com duas oficinas (A e B). Nunca toca no mecanize_db nem no mecanize_db_v2.
  *
  * Rodar (na raiz do projeto, no XAMPP):
- *   C:\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml
+ *   C:\Users\SENAI_2025\Progs\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml
  */
 
 declare(strict_types=1);

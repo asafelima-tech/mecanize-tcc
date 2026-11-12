@@ -52,6 +52,7 @@ ORCAMENTO → APROVADA → EM_EXECUCAO ⇄ AGUARDANDO_PECA → PRONTA → ENTREG
 cancelar: de qualquer situação antes de ENTREGUE (as peças baixadas voltam ao estoque)
 ```
 
+- **Novo orçamento.** Serviços e peças podem ser montados já na abertura (com o resumo de valores ao lado) ou depois, na tela da OS. Os itens montados na abertura passam pela mesma inclusão da tela da OS, na mesma transação da OS: se um item for recusado, nada é gravado e a tela volta com tudo preenchido.
 - **Valores da época.** Cada item guarda a própria descrição, quantidade, preço e desconto. Mudar o catálogo depois não altera nenhuma OS.
 - **Aprovação.** Registra quem aprovou e, se houver, a assinatura feita na tela. O total fica congelado em `valor_aprovado`, e uma cópia dos itens aprovados vai para o histórico.
   - O que entra depois aparece como **adicional**, separado do valor aprovado.
@@ -102,7 +103,7 @@ cancelar: de qualquer situação antes de ENTREGUE (as peças baixadas voltam ao
   - Ficam em `storage/oficinas/{oficina}/`, fora da pasta pública, com nome aleatório. O tipo é conferido pelo conteúdo do arquivo: só JPG, PNG, WEBP e PDF, até 5 MB.
   - São registro, como na v1: não se editam nem se apagam. Cada envio entra no histórico. No máximo 40 por OS ou conta.
   - Só abrem pela rota `anexo`, que confere a oficina e o perfil.
-- **Avisos** (sino no topo): quando uma OS para por falta de peça, os administradores recebem um aviso com o link da OS. É a alternativa simples à "solicitação de peça" da v1.
+- **Avisos** (sino no topo): quando uma OS para por falta de peça, os administradores recebem um aviso com o link da OS. É a alternativa simples à "solicitação de peça" da v1. Os avisos abrem numa janela ancorada no sino (não há tela de avisos): clicar num aviso abre a OS e o marca como lido; "Marcar todos como lidos" funciona sem sair da página.
 - **Tela inicial:** além das OS, mostra os próximos agendamentos, a situação do caixa e alertas (OS aguardando peça, orçamentos vencidos e, para o ADMIN, contas vencidas e peças no estoque mínimo).
 - **Relatórios** (ADMIN), por período:
   - faturamento (OS entregues), ticket médio e comparação com o período anterior;
@@ -116,6 +117,37 @@ cancelar: de qualquer situação antes de ENTREGUE (as peças baixadas voltam ao
   - altera plano, limite de usuários, situação e validade, com atalhos de renovação de +1 mês e +1 ano;
   - toda mudança fica no histórico da oficina com o antes e o depois; cancelar exige motivo;
   - não enxerga nada de dentro das oficinas.
+
+## Visual: Design System Mecanize (novembro de 2026)
+
+- **Um CSS só:** `public/css/mecanize.css`, com os tokens do Design System (cores, tipo, espaço, cantos, sombras, movimento) e os componentes. A v2 não carrega mais nenhum CSS, fonte ou pacote de ícones da v1.
+- **Preto, branco e cinzas.** Situações e alertas não usam cor:
+  - aberto/orçamento: contorno;
+  - em andamento: cinza com ponto meio cheio;
+  - aguardando: cinza com ponto anelado;
+  - concluído/pago: preenchido;
+  - alerta (vencido, falta): contorno reforçado;
+  - cancelado/inativo: texto secundário.
+- **Arial em dois pesos** (400 e 700), números tabulares em valores, datas e OS.
+- **Ícones próprios:** os 84 ícones do Design System em `app/core/Icones.php`, usados por `icone('nome')`.
+- **Tema claro e escuro:** chave na barra lateral, lembrada no navegador. A barra lateral fica escura nos dois temas e pode ser retraída para só os ícones.
+- **Logotipos:** em `public/img/`, a marca em preto (telas claras) e em branco (barra lateral).
+- **Tela de entrada** no modelo "11 · Exemplo · Login": cartão dividido, com a vitrine escura da marca à esquerda e o formulário à direita. Recuperar e redefinir senha usam a mesma moldura. No celular, a vitrine some e fica só o formulário.
+- O arquivo antigo `public/css/v2.css` não é mais usado e pode ser apagado.
+- **Telas no modelo "Telas do sistema" do Design System.** Só entra o que a v2 já faz, mais ajustes leves; funções que a v2 não tem ficam de fora.
+  - **Rodapé das tabelas** (`layout/_rodape.php`): "Mostrando 7 de 27 ordens" e os botões Anterior e Próxima. O antigo `_paginacao.php` agora usa este rodapé.
+  - **Ordens de serviço:** abas por situação com a contagem de cada uma, busca e técnico fora do card, e a tabela com telefone do cliente, modelo e placa, e as ações abrir e imprimir.
+  - **Kanban** (`ordens?modo=kanban`): uma coluna por situação em aberto, até 200 OS. Serve só para ver o andamento. A troca de situação continua na tela da OS, que confere estoque, aprovação e comissão.
+  - **Topo e menu:** caminho da tela ("Operação / Ordens de serviço / OS-0042"), situação do caixa (aberto por quem ou fechado) e o sino de avisos. O menu segue a ordem do Design System: Início; Operação; Financeiro; Cadastros; Gestão.
+  - **Início:** cartões (abertas, em andamento, aguardando peça, faturamento do mês com a variação), fluxo de OS × receita dos últimos 7 dias, situação das OS do mês com tempo médio até concluir e prontas no prazo, faturamento dos últimos 6 meses, ticket médio e peças mais vendidas, e as últimas OS. Os alertas (vencidos, estoque mínimo, agenda de hoje) continuam logo abaixo dos cartões.
+  - **Agenda:** navegação por dia, semana ou **mês**, números do período, horários agrupados por dia e o calendário do mês ao lado (os dias com horário marcado têm um ponto).
+  - **Caixa:** situação da sessão, dinheiro esperado na gaveta, entradas e saídas, entradas por forma, saídas por destino, últimos lançamentos e, para o ADMIN, as últimas sessões.
+  - **Financeiro:** a aba "Visão geral" mostra o dinheiro que entrou e saiu no período (diário, semanal, mensal ou anual), a evolução, entradas por forma, saídas por categoria e os pagamentos e recebimentos. As abas "A receber" e "A pagar" são as listas de contas de antes.
+  - **Clientes, Veículos, Peças e serviços, Estoque e Fornecedores:** números no topo e listas no modelo do Design System. Novos filtros: tipo de pessoa e "novos do mês" (clientes), marca, combustível e "novos do mês" (veículos), esgotados (peças). Clientes mostra os recorrentes; Estoque mostra as peças no mínimo; Fornecedores mostra as últimas entradas de mercadoria.
+  - **Relatórios:** cartões com comparação ao período anterior, faturamento no tempo, OS por situação, clientes que mais compraram e desempenho por técnico (OS, vendido, comissão, tempo médio e prontas no prazo). O detalhe que já existia continua abaixo.
+  - **Usuários:** números da equipe, abas ativos e inativos e o que cada perfil pode fazer.
+  - **Configurações:** menu de seções, dados da oficina com o logotipo, aparência (tema deste navegador), assinatura e alterações.
+  - **Ficou de fora, por não existir na v2:** busca geral (⌘K) e menu "Criar", Painel TV, leitura de placa, cliente balcão e VIP, pedidos de compra, lembrete por WhatsApp, capacidade dos mecânicos, último acesso dos usuários, exportar e baixar PDF (os relatórios imprimem e salvam em PDF pelo navegador), as abas de notificações, integrações e segurança, a densidade das tabelas e os campos razão social, número e bairro da oficina.
 
 ## Licença
 
@@ -138,14 +170,16 @@ O aviso aparece no topo da tela a partir de 7 dias antes do vencimento.
 Para criar um usuário da plataforma:
 
 ```
-C:\xampp\php\php.exe v2\bin\criar_usuario_plataforma.php "Seu Nome" voce@exemplo.com
+C:\Users\SENAI_2025\Progs\xampp\php\php.exe v2\bin\criar_usuario_plataforma.php "Seu Nome" voce@exemplo.com
 ```
 
 ## Testes
 
 ```
-C:\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml
+C:\Users\SENAI_2025\Progs\xampp\php\php.exe vendor\bin\phpunit -c v2\phpunit.xml
 ```
+
+Rode na raiz do projeto (`mecanize-tcc`). Em outro computador, troque o caminho do `php.exe` pelo do XAMPP de lá.
 
 Os testes criam e apagam um banco próprio (`mecanize_db_v2_teste`). Os bancos `mecanize_db` e `mecanize_db_v2` não são tocados.
 

@@ -9,10 +9,14 @@ final class AgendaController extends Controller
         $f = ['status' => (string) ($_GET['status'] ?? ''), 'tecnico' => (int) ($_GET['tecnico'] ?? 0)];
         $m = new Agendamento();
 
+        // Mês do calendário lateral: o da data escolhida, ou outro com ?mes=AAAA-MM (setas do calendário).
+        $mes = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) ($_GET['mes'] ?? '')) ? new DateTimeImmutable($_GET['mes'] . '-01') : $ref->modify('first day of this month');
+
         $this->tela('agenda/lista', [
-            'periodo' => $periodo, 'ini' => $ini, 'fim' => $fim, 'ref' => $ref, 'f' => $f,
+            'periodo' => $periodo, 'ini' => $ini, 'fim' => $fim, 'ref' => $ref, 'f' => $f, 'mes' => $mes,
             'agendamentos' => $m->porPeriodo($ini, $fim, $f),
             'resumo' => $m->resumo($ini, $fim),
+            'diasMarcados' => $m->diasComAgendamento($mes->format('Y-m-d'), $mes->modify('+1 month')->format('Y-m-d')),
             'tecnicos' => (new Usuario())->tecnicos(),
         ]);
     }
@@ -90,13 +94,18 @@ final class AgendaController extends Controller
             'clientes' => (new Cliente())->opcoes(), 'tecnicos' => (new Usuario())->tecnicos()]);
     }
 
-    /** dia | semana, a partir de ?data= (padrão: hoje). Devolve [periodo, início, fim exclusivo, referência]. */
+    /** dia | semana | mes, a partir de ?data= (padrão: hoje). Devolve [periodo, início, fim exclusivo, referência]. */
     private function periodo(): array
     {
-        $periodo = ($_GET['periodo'] ?? 'semana') === 'dia' ? 'dia' : 'semana';
+        $periodo = in_array($_GET['periodo'] ?? '', ['dia', 'mes'], true) ? $_GET['periodo'] : 'semana';
         $ref = new DateTimeImmutable($this->dataValida($_GET['data'] ?? '') ?? 'today');
         if ($periodo === 'dia') {
             return ['dia', $ref->format('Y-m-d'), $ref->modify('+1 day')->format('Y-m-d'), $ref];
+        }
+        if ($periodo === 'mes') {
+            $primeiro = $ref->modify('first day of this month');
+
+            return ['mes', $primeiro->format('Y-m-d'), $primeiro->modify('+1 month')->format('Y-m-d'), $ref];
         }
         $seg = $ref->modify('-' . ((int) $ref->format('N') - 1) . ' days');
 

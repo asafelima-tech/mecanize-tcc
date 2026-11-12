@@ -7,7 +7,7 @@
 </div>
 <div class="ficha">
   <div class="card card--tabela">
-    <?php if (!$pendentes): ?><div class="vazio"><i class="bi bi-percent"></i>Nenhuma comissão pendente.</div><?php else: ?>
+    <?php if (!$pendentes): ?><div class="vazio"><?= icone('percent', 32, 1.25) ?>Nenhuma comissão pendente.</div><?php else: ?>
       <div class="table-wrap"><table class="table">
         <thead><tr><th>Técnico</th><th class="num">OS</th><th>Desde</th><th class="num">A pagar</th><th></th></tr></thead>
         <tbody>

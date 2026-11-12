@@ -87,9 +87,9 @@ function os_numero($n): string
 function os_status(string $status): array
 {
     return [
-        'ORCAMENTO' => ['Orçamento', 'neutral'], 'APROVADA' => ['Aprovada', 'info'], 'EM_EXECUCAO' => ['Em execução', 'info'],
+        'ORCAMENTO' => ['Orçamento', 'neutral'], 'APROVADA' => ['Aprovada', 'neutral'], 'EM_EXECUCAO' => ['Em execução', 'info'],
         'AGUARDANDO_PECA' => ['Aguardando peça', 'warning'], 'PRONTA' => ['Pronta', 'success'], 'ENTREGUE' => ['Entregue', 'success'],
-        'RECUSADA' => ['Recusada', 'danger'], 'CANCELADA' => ['Cancelada', 'danger'],
+        'RECUSADA' => ['Recusada', 'muted'], 'CANCELADA' => ['Cancelada', 'muted'],
     ][$status] ?? [$status, 'neutral'];
 }
 
@@ -107,4 +107,17 @@ function url_com(array $troca): string
     $rota = trim((string) ($_GET['url'] ?? ''), '/');
 
     return './' . $rota . ($q ? '?' . http_build_query($q) : '');
+}
+
+/**
+ * Ícone do Design System (SVG em linha, cor herdada do texto). Tamanhos do DS: 16 tabela, 20 menu,
+ * 24 botão grande, 32 estado vazio. Sozinho num botão, o botão precisa de aria-label.
+ */
+function icone(string $nome, int $tamanho = 16, float $traco = 1.5, string $classe = ''): string
+{
+    $d = Icones::TRACOS[$nome] ?? Icones::TRACOS['info'];
+
+    return '<svg class="icone' . ($classe !== '' ? ' ' . e($classe) : '') . '" width="' . $tamanho . '" height="' . $tamanho
+        . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' . $traco
+        . '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' . $d . '"/></svg>';
 }

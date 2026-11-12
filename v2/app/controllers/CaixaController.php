@@ -12,6 +12,8 @@ final class CaixaController extends Controller
             'resumo' => $caixa ? $m->resumo((int) $caixa['id']) : null,
             'movimentos' => $caixa ? $m->movimentos((int) $caixa['id']) : [],
             'sugestao' => $m->ultimoFechamento(),
+            // Últimas sessões no pé da tela (o histórico completo continua só para o ADMIN).
+            'sessoes' => Contexto::perfil() === 'ADMIN' ? array_slice($m->historico(new Paginacao(1)), 0, 5) : [],
         ]);
     }
 
