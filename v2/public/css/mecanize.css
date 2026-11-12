@@ -2353,3 +2353,7 @@ input[type=radio]:not([data-nativo]):checked:focus-visible { box-shadow: inset 0
   .entrada-custo { width: 100%; }
   .entrada-qtd input { width: 40px; }
 }
+
+/* ── 23. Cadastro de fornecedor ───────────────────────────────────────── */
+/* Empresa: a marca da identidade é quadrada, como no resumo ao lado. */
+.identidade__avatar--quadrado { border-radius: 18px; }
