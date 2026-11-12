@@ -4,9 +4,9 @@ class Caixa
 {
     public $conn;
 
-    public function __construct()
+    public function __construct(?PDO $conn = null)
     {
-        $this->conn = new Database();
+        $this->conn = $conn ?? new Database();
     }
 
     /**
@@ -50,11 +50,22 @@ class Caixa
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
-            ':usuario_id' => $usuarioId,
-            ':valor'      => $this->parseMoney($valorAbertura),
-            ':obs'        => ($observacao !== null && trim($observacao) !== '') ? trim($observacao) : null,
-        ]);
+        try {
+            return $stmt->execute([
+                ':usuario_id' => $usuarioId,
+                ':valor'      => $this->parseMoney($valorAbertura),
+                ':obs'        => ($observacao !== null && trim($observacao) !== '') ? trim($observacao) : null,
+            ]);
+        } catch (\PDOException $e) {
+            // 23000 = violação de chave única (uq_caixa_um_aberto): outra
+            // requisição abriu o caixa entre a checagem acima e este INSERT.
+            // É a mesma situação de "já existe caixa aberto", não um erro.
+            if ($e->getCode() === '23000') {
+                return false;
+            }
+
+            throw $e;
+        }
     }
 
     /**
@@ -165,32 +176,19 @@ class Caixa
         return (float) $valor;
     }
 
-    public function fecharSePendenteExpirado($segundosLimite = 12)
+    /**
+     * O caixa aberto agora pertence a este usuário? (foi ele quem abriu)
+     *
+     * O caixa é uma gaveta só para a oficina inteira, mas quem responde por ela
+     * é quem a abriu. Sair do sistema (ou ser derrubado por inatividade) fecha o
+     * caixa SÓ de quem é o dono — antes, o logout de qualquer usuário fechava a
+     * gaveta de outro (e o técnico, que não pode fechar caixa, ficava preso na
+     * tela de saída).
+     */
+    public function ehDonoDoCaixaAberto($usuarioId): bool
     {
-        $sql = "SELECT * FROM caixa
-            WHERE status = 'ABERTO'
-              AND pendente_fechamento_em IS NOT NULL
-              AND pendente_fechamento_em <= (NOW() - INTERVAL :seg SECOND)
-            LIMIT 1";
+        $aberto = $this->getCaixaAberto();
 
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(':seg', (int) $segundosLimite, PDO::PARAM_INT);
-        $stmt->execute();
-        $aberto = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$aberto) {
-            return false;
-        }
-
-        require_once __DIR__ . '/MovimentacaoCaixa.php';
-        $mov    = new MovimentacaoCaixa();
-        $resumo = $mov->resumoSessao($aberto['id_caixa']);
-
-        return $this->fechar(
-            $aberto['usuario_abertura_id'],
-            $resumo['caixa_atual'],
-            'Fechado automaticamente — aba do navegador foi fechada',
-            $resumo['caixa_atual']
-        );
+        return $aberto && (int) $aberto['usuario_abertura_id'] === (int) $usuarioId;
     }
 }

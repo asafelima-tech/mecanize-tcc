@@ -1,7 +1,44 @@
 <?php
 // Variáveis esperadas do controller:
 // $ordensAbertas, $ordens, $ordensConcluidas, $ordensArquivadas
+
+// Excluir uma OS é DELETE definitivo, não desativação — restrito a ADMIN no
+// OrdemServicoController::delete(). Esconder o botão aqui é só coerência
+// visual; o que de fato impede a ação é o requireRole() lá.
+$podeExcluir = ($_SESSION['user_tipo'] ?? '') === 'ADMIN';
+
+// Retorno das ações de exclusão (OrdemServicoController::delete)
+$flashErro = [
+    'vinculos' => 'Esta ordem de serviço não pode ser excluída porque está vinculada a outros registros'
+        . (!empty($_GET['detalhe']) ? ' (' . $_GET['detalhe'] . ')' : '')
+        . '. Remova o vínculo antes de excluí-la.',
+    'exclusao' => 'Não foi possível excluir esta ordem de serviço.',
+][$_GET['erro'] ?? ''] ?? null;
+
+$flashOk = [
+    'excluido'    => 'Ordem de serviço excluída.',
+    'conferida'   => 'OS conferida e liberada para retirada. A cobrança foi gerada.',
+    'jaconferida' => 'Esta OS já tinha sido conferida.',
+    'devolvida'   => 'OS devolvida à execução.',
+    'entregue'    => 'Veículo entregue ao cliente.',
+    'jaentregue'  => 'Esta OS já tinha sido entregue.',
+    'cancelada'   => 'OS cancelada.',
+][$_GET['ok'] ?? ''] ?? null;
+
+// Erro vindo do fluxo (OrdemServicoFluxo): o texto explica o que impediu a etapa.
+if (($_GET['erro'] ?? '') === 'fluxo') {
+    $flashErro = $_GET['detalhe'] ?? 'Não foi possível concluir a etapa.';
+}
 ?>
+
+<?php if ($flashErro !== null): ?>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $flashErro;
+          require __DIR__ . '/../layout/_alerta.php'; ?>
+<?php endif; ?>
+<?php if ($flashOk !== null): ?>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = $flashOk;
+          require __DIR__ . '/../layout/_alerta.php'; ?>
+<?php endif; ?>
 
 <!-- ── Page Header ─────────────────────────────────────────── -->
 <div class="page-header">
@@ -30,6 +67,7 @@
     <div class="tabs">
         <button class="tabs__item is-active" data-tab="abertas">OS Abertas</button>
         <button class="tabs__item" data-tab="ativas">OS Em Andamento</button>
+        <button class="tabs__item" data-tab="prontas">Conferência e Retirada</button>
         <button class="tabs__item" data-tab="concluidas">OS Concluídas</button>
         <button class="tabs__item" data-tab="arquivadas">OS Arquivadas</button>
     </div>
@@ -81,21 +119,15 @@
                                                 <circle cx="12" cy="12" r="3" />
                                             </svg>
                                         </a>
-                                        <button type="button" class="row-action-btn success" title="Concluir OS"
-                                            onclick="abrirModalConcluir(<?= (int) $id ?>, '<?= htmlspecialchars($os['numero'] ?? $id, ENT_QUOTES) ?>')">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                                <polyline points="22 4 12 14.01 9 11.01" />
-                                            </svg>
-                                        </button>
                                         <a href="./editOrdemServico&id=<?= $id ?>" class="row-action-btn" title="Editar">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                             </svg>
                                         </a>
+                                        <?php if ($podeExcluir): ?>
                                         <form method="post" action="./deleteOrdemServico" style="display:inline;"
-                                            onsubmit="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
+                                            onsubmit="return confirm('Excluir esta Ordem de Serviço? Os produtos, serviços e mão de obra lançados nela são apagados junto, em definitivo.')">
                                             <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
                                             <button type="submit" class="row-action-btn danger" title="Excluir">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -104,6 +136,7 @@
                                                 </svg>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -180,21 +213,15 @@
                                                 <circle cx="12" cy="12" r="3" />
                                             </svg>
                                         </a>
-                                        <button type="button" class="row-action-btn success" title="Concluir OS"
-                                            onclick="abrirModalConcluir(<?= (int) $id ?>, '<?= htmlspecialchars($os['numero'] ?? $id, ENT_QUOTES) ?>')">
-                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                                <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                                                <polyline points="22 4 12 14.01 9 11.01" />
-                                            </svg>
-                                        </button>
                                         <a href="./editOrdemServico&id=<?= $id ?>" class="row-action-btn" title="Editar">
                                             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                                 <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                                 <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
                                             </svg>
                                         </a>
+                                        <?php if ($podeExcluir): ?>
                                         <form method="post" action="./deleteOrdemServico" style="display:inline;"
-                                            onsubmit="return confirm('Deseja realmente excluir esta Ordem de Serviço?')">
+                                            onsubmit="return confirm('Excluir esta Ordem de Serviço? Os produtos, serviços e mão de obra lançados nela são apagados junto, em definitivo.')">
                                             <input type="hidden" name="id_ordem_servico" value="<?= $id ?>">
                                             <button type="submit" class="row-action-btn danger" title="Excluir">
                                                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -203,6 +230,7 @@
                                                 </svg>
                                             </button>
                                         </form>
+                                        <?php endif; ?>
                                     </div>
                                 </td>
                             </tr>
@@ -217,6 +245,96 @@
         </div>
     </div>
     <!-- fim panel-ativas -->
+
+    <!-- ════ PANEL: OS PRONTAS PARA ENTREGA ════ -->
+    <div class="tab-panel" id="panel-prontas">
+        <div class="table-toolbar">
+            <div class="search-wrap">
+                <input type="text" id="busca-prontas"
+                    placeholder="Buscar por cliente, OS ou placa..."
+                    oninput="filtrarTabela('prontas')">
+            </div>
+            <input type="date" id="filtro-data-prontas" class="toolbar-select" onchange="filtrarTabela('prontas')">
+            <span class="text-muted fs-12" id="contador-prontas"><?= count($ordensProntas ?? []) ?> resultado(s)</span>
+        </div>
+        <div class="table-wrap">
+            <table class="table">
+                <thead>
+                    <tr>
+                        <th>ID da OS</th>
+                        <th>Cliente</th>
+                        <th>Veículo</th>
+                        <th>Status</th>
+                        <th>Data de Entrada</th>
+                        <th>Valor</th>
+                        <th>Ações</th>
+                    </tr>
+                </thead>
+                <tbody id="tbody-prontas">
+                    <?php if (!empty($ordensProntas)): ?>
+                        <?php foreach ($ordensProntas as $os):
+                            $id = $os['id_ordem_servico'] ?? $os['id'];
+                        ?>
+                            <tr>
+                                <td class="id-col">#<?= htmlspecialchars($os['numero'] ?? $id) ?></td>
+                                <td><?= htmlspecialchars($os['cliente'] ?? '-') ?></td>
+                                <td>
+                                    <?= htmlspecialchars($os['veiculo'] ?? '-') ?>
+                                    <?php if (!empty($os['placa'])): ?>
+                                        <div class="text-muted fs-12"><?= htmlspecialchars($os['placa']) ?></div>
+                                    <?php endif; ?>
+                                </td>
+                                <td>
+                                    <span class="badge <?= OrdemServico::classeBadgeStatus($os['status'] ?? '') ?>">
+                                        <span class="badge__dot"></span><?= OrdemServico::rotuloStatus($os['status'] ?? '') ?>
+                                    </span>
+                                </td>
+                                <td><?= !empty($os['data_abertura']) ? date('d/m/Y · H:i', strtotime($os['data_abertura'])) : '-' ?></td>
+                                <td>R$ <?= number_format($os['valor_total_os'] ?? 0, 2, ',', '.') ?></td>
+                                <td>
+                                    <div class="row-actions">
+                                        <a href="./viewOrdemServico&id=<?= $id ?>" class="row-action-btn primary" title="Visualizar">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+                                                <circle cx="12" cy="12" r="3" />
+                                            </svg>
+                                        </a>
+                                        <?php if (($os['status'] ?? '') === 'AGUARDANDO_CONFERENCIA' && $podeExcluir): ?>
+                                            <form action="./conferirOrdemServico" method="POST" style="display:inline;"
+                                                  onsubmit="return confirm('Conferir esta OS e liberar o veículo para retirada? Isso calcula as comissões e gera a cobrança.')">
+                                                <input type="hidden" name="id_ordem_servico" value="<?= (int) $id ?>">
+                                                <button type="submit" class="row-action-btn success" title="Conferir e liberar para retirada">
+                                                    <i class="bi bi-patch-check"></i>
+                                                </button>
+                                            </form>
+                                            <button type="button" class="row-action-btn" title="Devolver à execução"
+                                                data-id="<?= (int) $id ?>" data-numero="<?= htmlspecialchars($os['numero'] ?? $id) ?>"
+                                                onclick="abrirModalMotivo('devolver', this.dataset.id, this.dataset.numero)">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                        <?php elseif (($os['status'] ?? '') === 'AGUARDANDO_RETIRADA'): ?>
+                                            <button type="button" class="row-action-btn success" title="Entregar ao cliente"
+                                                data-id="<?= (int) $id ?>" data-numero="<?= htmlspecialchars($os['numero'] ?? $id) ?>"
+                                                onclick="abrirModalEntrega(this.dataset.id, this.dataset.numero)">
+                                                <i class="bi bi-box-arrow-right"></i>
+                                            </button>
+                                        <?php else: ?>
+                                            <span class="text-muted fs-12" title="Só o administrador confere e libera">Aguarda o administrador</span>
+                                        <?php endif; ?>
+                                    </div>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <tr>
+                            <td colspan="7" style="text-align:center;padding:48px 20px;color:var(--color-text-muted);">Nenhuma ordem aguardando conferência ou retirada.</td>
+                        </tr>
+                    <?php endif; ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <!-- fim panel-prontas -->
 
     <!-- ════ PANEL: CONCLUÍDAS ════ -->
     <div class="tab-panel" id="panel-concluidas">
@@ -354,93 +472,13 @@
 
 </section>
 
-<!-- ══════════════════════════════════════════════════════
-     MODAL — CONCLUIR OS
-     ══════════════════════════════════════════════════════ -->
-<div class="modal-overlay" id="modal-concluir" style="display:none;">
-    <div class="modal" style="max-width:460px;">
-        <div class="modal__header">
-            <div style="display:flex;align-items:center;gap:12px;">
-                <div style="width:40px;height:40px;background:var(--color-success-soft);color:var(--color-success);border-radius:var(--radius-md);display:inline-flex;align-items:center;justify-content:center;">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
-                </div>
-                <div>
-                    <div class="modal__title">Concluir Ordem de Serviço</div>
-                    <div class="modal__subtitle" id="concluir-ref">Confirma a conclusão desta OS?</div>
-                </div>
-            </div>
-            <button type="button" class="modal__close" onclick="fecharModalConcluir()">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                    <line x1="18" y1="6" x2="6" y2="18" />
-                    <line x1="6" y1="6" x2="18" y2="18" />
-                </svg>
-            </button>
-        </div>
-        <div class="modal__body" style="padding:20px 24px;">
-            <p style="font-size:12px;color:var(--color-text-muted);">Esta ação não poderá ser desfeita.</p>
+<?php
+$fluxoVoltar = 'lista';
+$fluxoOs = ['id' => 0, 'numero' => ''];
+require __DIR__ . '/_modaisFluxo.php';
+?>
 
-            <div class="form-field" style="margin-top:12px;">
-                <label>Forma de pagamento <span style="color:var(--color-danger)">*</span></label>
-                <!-- form="form-concluir": o <select> não é descendente do <form> (que só
-                     envolve o botão no rodapé), mas o atributo form associa mesmo assim,
-                     então o valor vai junto no submit sem precisar de input oculto duplicado. -->
-                <select name="forma_pagamento" id="h-concluir-forma-pagamento" form="form-concluir" required>
-                    <option value="DINHEIRO">Dinheiro</option>
-                    <option value="PIX">Pix</option>
-                    <option value="CARTAO">Cartão</option>
-                    <option value="BOLETO">Boleto</option>
-                </select>
-                <small style="color:var(--color-text-muted);font-size:11px;">
-                    O valor da OS é lançado automaticamente no caixa ao concluir.
-                </small>
-            </div>
-
-            <div style="margin-top:12px;">
-                <label style="font-size:11px;color:var(--color-text-muted);font-weight:600;">
-                    Assinatura do cliente <span style="font-weight:400;">(retirada do veículo, opcional)</span>
-                </label>
-                <canvas id="canvas-assinatura-concluir" width="380" height="130"
-                    style="width:100%;height:130px;margin-top:6px;background:#fff;border:1.5px dashed var(--color-border-strong);
-                           border-radius:var(--radius-md);cursor:crosshair;touch-action:none;"></canvas>
-                <button type="button" class="btn btn--ghost btn--sm" style="margin-top:8px;" onclick="assinaturaConcluir && assinaturaConcluir.limpar()">
-                    Limpar assinatura
-                </button>
-            </div>
-        </div>
-        <div class="modal__footer">
-            <button type="button" class="btn btn--ghost btn--sm" onclick="fecharModalConcluir()">Cancelar</button>
-            <form id="form-concluir" action="./concluirOrdemServico" method="POST" style="display:inline;"
-                onsubmit="document.getElementById('h-concluir-assinatura').value = (assinaturaConcluir ? assinaturaConcluir.dataUrl() : '');">
-                <input type="hidden" name="id_ordem_servico" id="h-concluir-id">
-                <input type="hidden" name="assinatura_cliente" id="h-concluir-assinatura">
-                <button type="submit" class="btn btn--sm" style="background:var(--color-success);color:#fff;border-color:var(--color-success);">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
-                        <polyline points="20 6 9 17 4 12" />
-                    </svg>
-                    Confirmar Conclusão
-                </button>
-            </form>
-        </div>
-    </div>
-</div>
-
-<script src="./assets/js/assinatura.js?v=<?= time() ?>"></script>
 <script>
-    var assinaturaConcluir = initAssinatura('canvas-assinatura-concluir');
-
-    function abrirModalConcluir(id, numero) {
-        document.getElementById('h-concluir-id').value = id;
-        document.getElementById('concluir-ref').textContent = 'OS #' + numero;
-        if (assinaturaConcluir) assinaturaConcluir.limpar();
-        document.getElementById('modal-concluir').style.display = 'flex';
-    }
-
-    function fecharModalConcluir() {
-        document.getElementById('modal-concluir').style.display = 'none';
-    }
 
     document.querySelectorAll('.tabs__item[data-tab]').forEach(tab => {
         tab.addEventListener('click', () => {

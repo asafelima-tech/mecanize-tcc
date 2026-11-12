@@ -33,9 +33,8 @@
 </div>
 
 <?php if (!empty($error)): ?>
-    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:20px;font-size:13px;">
-        <?= htmlspecialchars($error) ?>
-    </div>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 
 <!-- ── Stat Cards ── -->
@@ -228,6 +227,15 @@
                                         <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                             <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
                                             <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z" />
+                                        </svg>
+                                    </a>
+
+                                    <!-- Etiqueta -->
+                                    <a href="./etiquetaProduto?id=<?= $produto['id_produto'] ?>" target="_blank" rel="noopener" class="row-action-btn" title="Imprimir etiqueta">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="6 9 6 2 18 2 18 9" />
+                                            <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+                                            <rect x="6" y="14" width="12" height="8" />
                                         </svg>
                                     </a>
 

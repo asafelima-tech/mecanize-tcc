@@ -1,11 +1,7 @@
 <?php
 // Variável esperada do controller: $colunas (array associativo status => ['label' => ..., 'ordens' => [...]])
-$badgeStatus = [
-    'ABERTA'          => 'badge--info',
-    'EM_ANDAMENTO'    => 'badge--warning',
-    'AGUARDANDO_PECA' => 'badge--purple',
-    'CONCLUIDA'       => 'badge--success',
-];
+require_once __DIR__ . '/../../models/OrdemServico.php';
+$badgeStatus = OrdemServico::STATUS_BADGE;
 ?>
 
 <style>
@@ -71,15 +67,26 @@ $badgeStatus = [
         box-shadow: var(--shadow-sm);
         padding: 12px 14px;
         cursor: grab;
-        transition: box-shadow .12s, opacity .12s, transform .12s;
+        transition: box-shadow .12s;
+        /* Arraste próprio via Pointer Events (mouse e touch) — sem isso, um
+           toque no card tentava rolar a página em vez de iniciar o arraste.
+           Ver public/assets/js/kanban.js. */
+        touch-action: none;
+        user-select: none;
     }
 
     .kanban-card:hover {
         box-shadow: var(--shadow-md);
     }
 
+    /* O card É a própria "imagem fantasma" (JS aplica transform:translate
+       direto nele) — diferente do Drag-and-Drop HTML5 nativo antigo, que
+       desenhava o fantasma por conta própria e só esmaecia o original. */
     .kanban-card.is-dragging {
-        opacity: .4;
+        position: relative;
+        z-index: 100;
+        cursor: grabbing;
+        box-shadow: 0 14px 28px rgba(15, 23, 42, .28);
     }
 
     .kanban-card__numero {
@@ -154,7 +161,7 @@ $badgeStatus = [
                     <div class="kanban-column__empty">Nenhuma OS aqui.</div>
                 <?php else: ?>
                     <?php foreach ($coluna['ordens'] as $os): ?>
-                        <div class="kanban-card" draggable="true" data-id="<?= (int) $os['id_ordem_servico'] ?>">
+                        <div class="kanban-card" data-id="<?= (int) $os['id_ordem_servico'] ?>">
                             <div class="kanban-card__numero">OS #<?= htmlspecialchars($os['numero'] ?? $os['id_ordem_servico']) ?></div>
                             <div class="kanban-card__cliente"><?= htmlspecialchars($os['cliente'] ?? '-') ?></div>
                             <div class="kanban-card__veiculo">

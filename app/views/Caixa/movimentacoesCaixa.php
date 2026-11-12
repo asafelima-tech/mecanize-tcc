@@ -9,12 +9,9 @@ if (session_status() === PHP_SESSION_NONE) {
 // $ok            bool   — flash de sucesso (opcional)
 // $error         string — mensagem de erro (opcional)
 
-$formaLabel = [
-    'DINHEIRO' => 'Dinheiro',
-    'PIX'      => 'PIX',
-    'CARTAO'   => 'Cartão',
-    'BOLETO'   => 'Boleto',
-];
+// Mapa único em MovimentacaoCaixa: a tela não repete a lista de formas.
+require_once __DIR__ . '/../../models/MovimentacaoCaixa.php';
+$formaLabel = MovimentacaoCaixa::FORMA_LABEL;
 $catLabel = [
     'PECAS'  => 'Peças',
     'BANCO'  => 'Retirada p/ banco',
@@ -44,14 +41,12 @@ $brl = fn($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
 </div>
 
 <?php if (!empty($ok)): ?>
-    <div style="background:var(--color-success-soft);color:#166534;border:1px solid #BBF7D0;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        Movimentação registrada com sucesso.
-    </div>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = 'Movimentação registrada com sucesso.';
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 <?php if (!empty($error)): ?>
-    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= htmlspecialchars($error) ?>
-    </div>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 
 <!-- Sessão atual + Caixa atual -->
@@ -102,8 +97,8 @@ $brl = fn($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
                 <div class="form-field" style="margin-bottom:16px;" id="wrap-forma">
                     <label>Forma de pagamento <span style="color:var(--color-danger)">*</span></label>
                     <select name="forma_pagamento" id="forma_pagamento">
-                        <?php foreach ($formaLabel as $valor => $rotulo): ?>
-                            <option value="<?= $valor ?>"><?= $rotulo ?></option>
+                        <?php foreach (MovimentacaoCaixa::FORMAS as $valor): ?>
+                            <option value="<?= $valor ?>"><?= MovimentacaoCaixa::rotuloForma($valor) ?></option>
                         <?php endforeach; ?>
                     </select>
                     <small style="display:block;margin-top:6px;font-size:12px;color:var(--color-text-muted);">
@@ -254,14 +249,14 @@ $brl = fn($v) => 'R$ ' . number_format((float) $v, 2, ',', '.');
         user-select: none;
     }
     .mov-seg input:checked + .mov-seg__btn--entrada {
-        border-color: var(--color-success, #16A34A);
+        border-color: var(--color-success);
         background: var(--color-success-soft);
-        color: var(--color-success, #16A34A);
+        color: var(--color-success);
     }
     .mov-seg input:checked + .mov-seg__btn--saida {
-        border-color: var(--color-danger, #DC2626);
+        border-color: var(--color-danger);
         background: var(--color-danger-soft);
-        color: var(--color-danger, #DC2626);
+        color: var(--color-danger);
     }
     @media (max-width: 820px) {
         div[style*="grid-template-columns:minmax(0,1fr) minmax(0,1.1fr)"] {

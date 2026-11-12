@@ -65,14 +65,12 @@ $ehAdmin = ($_SESSION['user_tipo'] ?? null) === 'ADMIN';
 </div>
 
 <?php if (!empty($ok) && isset($flashOk[$ok])): ?>
-    <div style="background:var(--color-success-soft);color:#166534;border:1px solid #BBF7D0;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= $flashOk[$ok] ?>
-    </div>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = $flashOk[$ok];
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 <?php if (!empty($erro) && isset($flashErro[$erro])): ?>
-    <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:16px;font-size:13px;">
-        <?= $flashErro[$erro] ?>
-    </div>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $flashErro[$erro];
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
 <?php endif; ?>
 
 <!-- ── Navegação e filtros ── -->
@@ -123,23 +121,43 @@ $ehAdmin = ($_SESSION['user_tipo'] ?? null) === 'ADMIN';
 <!-- ── Contadores do período ── -->
 <section class="stat-grid" style="margin-bottom:24px;">
     <?php
+    // Um glifo por card, como no resto do sistema: os tons b1–b4 são pastéis
+    // muito próximos e não distinguem nada sozinhos — os quatro cards ficavam
+    // com o mesmo calendário e só o fundo mudava de matiz.
     $cards = [
-        ['label' => 'Total no período', 'valor' => $resumo['TOTAL'],      'ico' => 'b1'],
-        ['label' => 'Confirmados',      'valor' => $resumo['CONFIRMADO'], 'ico' => 'b2'],
-        ['label' => 'Aguardando confirmação', 'valor' => $resumo['AGENDADO'], 'ico' => 'b3'],
-        ['label' => 'Cancelados / faltas', 'valor' => $resumo['CANCELADO'] + $resumo['FALTOU'], 'ico' => 'b4'],
+        [
+            'label' => 'Total no período',
+            'valor' => $resumo['TOTAL'],
+            'ico'   => 'b1',
+            'svg'   => '<rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/>'
+                     . '<line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>',
+        ],
+        [
+            'label' => 'Confirmados',
+            'valor' => $resumo['CONFIRMADO'],
+            'ico'   => 'b2',
+            'svg'   => '<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+        ],
+        [
+            'label' => 'Aguardando confirmação',
+            'valor' => $resumo['AGENDADO'],
+            'ico'   => 'b3',
+            'svg'   => '<circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>',
+        ],
+        [
+            'label' => 'Cancelados / faltas',
+            'valor' => $resumo['CANCELADO'] + $resumo['FALTOU'],
+            'ico'   => 'b4',
+            'svg'   => '<circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/>'
+                     . '<line x1="9" y1="9" x2="15" y2="15"/>',
+        ],
     ];
     foreach ($cards as $card): ?>
         <div class="stat-card">
             <div class="stat-card__head">
                 <div class="stat-card__label"><?= $card['label'] ?></div>
-                <div class="stat-card__ico <?= $card['ico'] ?>">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                        <rect x="3" y="4" width="18" height="18" rx="2" />
-                        <line x1="16" y1="2" x2="16" y2="6" />
-                        <line x1="8" y1="2" x2="8" y2="6" />
-                        <line x1="3" y1="10" x2="21" y2="10" />
-                    </svg>
+                <div class="stat-card__icon <?= $card['ico'] ?>">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><?= $card['svg'] ?></svg>
                 </div>
             </div>
             <div class="stat-card__value"><?= (int) $card['valor'] ?></div>
@@ -266,7 +284,7 @@ $ehAdmin = ($_SESSION['user_tipo'] ?? null) === 'ADMIN';
     .periodo-tabs {
         display: inline-flex;
         gap: 4px;
-        background: var(--color-bg-subtle, #F1F5F9);
+        background: var(--color-bg-subtle);
         border-radius: var(--radius-md);
         padding: 4px;
     }

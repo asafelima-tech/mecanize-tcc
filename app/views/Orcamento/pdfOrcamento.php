@@ -43,6 +43,13 @@ $totalServicos = (float) ($orc['valor_total_servicos'] ?? 0);
 $subtotalOrc   = $totalPecas + $totalServicos;
 $descontoOrc   = (float) ($orc['desconto_total'] ?? 0);
 $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $descontoOrc));
+
+$docTipo   = "Orçamento";
+$docNumero = $orc["numero"] ?? ("#" . ($orc["id_orcamento"] ?? ""));
+$docStatus = $statusInfo;
+$docRodapeNota = !empty($orc["data_validade"])
+    ? "válido até " . date("d/m/Y", strtotime($orc["data_validade"]))
+    : "";
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
@@ -50,185 +57,52 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
 <head>
     <meta charset="UTF-8">
     <title>Orçamento <?= htmlspecialchars($orc['numero'] ?? '') ?> — Mecanize</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        @page { margin: 26px 34px 30px; }
-
-        body {
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 12px;
-            color: #111826;
-        }
-
-        .topbar {
-            height: 5px;
-            background: linear-gradient(135deg, #003BDD 0%, #0030C4 100%);
-            margin: -26px -34px 18px;
-        }
-
-        /* ---------- Cabeçalho ---------- */
-        table.doc-head { width: 100%; border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 18px; }
-        table.doc-head td { vertical-align: top; }
-
-        table.brand-row td { vertical-align: middle; }
-        .brand-mark {
-            width: 36px; height: 36px; border-radius: 9px;
-            background: linear-gradient(135deg, #003BDD 0%, #0030C4 100%);
-            color: #FFFFFF; text-align: center; font-size: 16px; font-weight: bold;
-            line-height: 36px;
-        }
-        .brand-name-cell { padding-left: 10px; }
-        .brand-name { font-size: 15px; font-weight: bold; color: #111826; }
-        .brand-meta { font-size: 9.5px; color: #64748B; margin-top: 2px; }
-
-        .doc-head__ref { text-align: right; }
-        .doc-head__ref .kicker { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #94A3B8; }
-        .doc-head__ref .numero { font-size: 20px; font-weight: bold; color: #003BDD; margin: 3px 0 7px; }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 11px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: bold;
-            background: <?= $statusInfo['bg'] ?>;
-            color: <?= $statusInfo['cor'] ?>;
-        }
-
-        /* ---------- Faixa de meta-dados ---------- */
-        table.meta-strip { width: 100%; margin-bottom: 18px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; }
-        table.meta-strip td { padding: 10px 16px; text-align: left; border-right: 1px solid #E2E8F0; }
-        table.meta-strip td:last-child { border-right: none; }
-        table.meta-strip .m-label { display: block; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 3px; }
-        table.meta-strip .m-value { font-size: 12px; font-weight: bold; color: #1E293B; }
-
-        /* ---------- Cards Cliente / Veículo ---------- */
-        table.grid2 { width: 100%; margin-bottom: 16px; }
-        table.grid2 td { width: 50%; vertical-align: top; }
-        table.grid2 td.pad-left { padding-left: 12px; }
-
-        .box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 14px; }
-        .box h3 { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 6px; }
-        .box p { font-size: 12px; color: #111826; line-height: 1.5; }
-        .box p.strong { font-weight: bold; font-size: 13px; }
-        .box p.sub { color: #64748B; font-size: 10.5px; margin-top: 2px; }
-
-        table.vehicle-stats { width: 100%; margin-top: 8px; }
-        table.vehicle-stats td { padding-top: 4px; border-top: 1px solid #E2E8F0; font-size: 11px; }
-        table.vehicle-stats .vs-label { color: #94A3B8; font-size: 9px; text-transform: uppercase; letter-spacing: .5px; display: block; }
-        table.vehicle-stats .vs-value { font-weight: bold; color: #1E293B; }
-
-        .section-title {
-            font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
-            color: #003BDD; padding-bottom: 6px; margin: 4px 0 8px;
-            border-bottom: 1.5px solid #E2E8F0;
-        }
-
-        /* ---------- Tabela de itens ---------- */
-        table.itens { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-        table.itens thead th {
-            text-align: left; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: .5px;
-            color: #003BDD; padding: 7px 6px; background: #EEF2FF; border-bottom: 2px solid #DBEAFE;
-        }
-        table.itens tbody td { padding: 7px 6px; border-bottom: 1px solid #E2E8F0; font-size: 11px; }
-        table.itens tbody tr:nth-child(even) td { background: #F8FAFC; }
-        table.itens td.num, table.itens th.num { text-align: right; }
-
-        /* ---------- Totais ---------- */
-        table.totais { width: 270px; margin-left: auto; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 4px 14px; }
-        table.totais td { padding: 5px 0; font-size: 11px; color: #1E293B; }
-        table.totais td.valor { text-align: right; }
-        .total-final { width: 270px; margin-left: auto; margin-top: 8px; background: linear-gradient(135deg, #003BDD 0%, #0030C4 100%); border-radius: 8px; padding: 10px 14px; }
-        .total-final table { width: 100%; }
-        .total-final td { color: #FFFFFF; font-size: 14px; font-weight: bold; }
-        .total-final td.valor { text-align: right; font-size: 16px; }
-
-        .obs-box { margin-top: 16px; padding: 12px 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; }
-        .obs-box h3 { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 5px; }
-        .obs-box p { font-size: 11px; line-height: 1.5; }
-
-        .garantia-box { margin-top: 14px; padding: 12px 14px; border: 1px dashed #CBD5E1; border-radius: 8px; }
-        .garantia-box h3 { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 5px; }
-        .garantia-box p { font-size: 9.5px; line-height: 1.55; color: #64748B; text-align: justify; }
-
-        .meta-line { margin-top: 14px; font-size: 10.5px; color: #64748B; }
-        .meta-line strong { color: #1E293B; }
-
-        table.assinaturas { width: 100%; margin-top: 46px; }
-        table.assinaturas td { width: 50%; text-align: center; padding-top: 6px; border-top: 1.5px solid #CBD5E1; font-size: 10px; color: #94A3B8; }
-
-        .doc-footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid #E2E8F0; text-align: center; font-size: 9px; color: #94A3B8; }
-    </style>
+    <?php require __DIR__ . "/../layout/_docPdfEstilos.php"; ?>
 </head>
 
 <body>
 
-    <div class="topbar"></div>
+    <?php require __DIR__ . "/../layout/_docPdfRodape.php"; ?>
+    <?php require __DIR__ . "/../layout/_docPdfCabecalho.php"; ?>
 
-    <table class="doc-head">
+    <table class="doc-meta">
         <tr>
-            <td style="width:55%;">
-                <table class="brand-row">
-                    <tr>
-                        <td style="width:36px;"><div class="brand-mark">M</div></td>
-                        <td class="brand-name-cell">
-                            <div class="brand-name"><?= htmlspecialchars(defined('EMPRESA_NOME') ? EMPRESA_NOME : 'Mecanize') ?></div>
-                            <div class="brand-meta">
-                                <?= htmlspecialchars(defined('EMPRESA_ENDERECO') ? EMPRESA_ENDERECO : '') ?><br>
-                                <?= htmlspecialchars(defined('EMPRESA_TELEFONE') ? EMPRESA_TELEFONE : '') ?>
-                                <?= defined('EMPRESA_CNPJ') ? ' · CNPJ: ' . htmlspecialchars(EMPRESA_CNPJ) : '' ?>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+            <td>
+                <span class="rot">Emitido em</span>
+                <span class="val"><?= !empty($orc['data_criacao']) ? date('d/m/Y', strtotime($orc['data_criacao'])) : '-' ?></span>
             </td>
-            <td class="doc-head__ref" style="width:45%;">
-                <div class="kicker">Orçamento</div>
-                <div class="numero"><?= htmlspecialchars($orc['numero'] ?? '#' . $orc['id_orcamento']) ?></div>
-                <span class="badge"><?= $statusInfo['label'] ?></span>
+            <td>
+                <span class="rot">Válido até</span>
+                <span class="val"><?= !empty($orc['data_validade']) ? date('d/m/Y', strtotime($orc['data_validade'])) : '-' ?></span>
+            </td>
+            <td>
+                <span class="rot">Responsável</span>
+                <span class="val"><?= htmlspecialchars($orc['mecanico_nome'] ?? '-') ?></span>
             </td>
         </tr>
     </table>
 
-    <table class="meta-strip">
+    <table class="doc-grid2">
         <tr>
             <td>
-                <span class="m-label">Emitido em</span>
-                <span class="m-value"><?= !empty($orc['data_criacao']) ? date('d/m/Y', strtotime($orc['data_criacao'])) : '-' ?></span>
-            </td>
-            <td>
-                <span class="m-label">Válido até</span>
-                <span class="m-value"><?= !empty($orc['data_validade']) ? date('d/m/Y', strtotime($orc['data_validade'])) : '-' ?></span>
-            </td>
-            <td>
-                <span class="m-label">Responsável</span>
-                <span class="m-value"><?= htmlspecialchars($orc['mecanico_nome'] ?? '-') ?></span>
-            </td>
-        </tr>
-    </table>
-
-    <table class="grid2">
-        <tr>
-            <td>
-                <div class="box">
+                <div class="doc-box">
                     <h3>Cliente</h3>
-                    <p class="strong"><?= htmlspecialchars($orc['cliente_nome'] ?? '-') ?></p>
+                    <p class="forte"><?= htmlspecialchars($orc['cliente_nome'] ?? '-') ?></p>
                     <?php if ($docCliente): ?><p class="sub"><?= $docCliente ?></p><?php endif; ?>
                     <?php if (!empty($orc['telefone_cliente'])): ?><p class="sub">Tel: <?= htmlspecialchars($orc['telefone_cliente']) ?></p><?php endif; ?>
                     <?php if ($enderecoCompleto): ?><p class="sub"><?= $enderecoCompleto ?></p><?php endif; ?>
                 </div>
             </td>
-            <td class="pad-left">
-                <div class="box">
+            <td class="dir">
+                <div class="doc-box">
                     <h3>Veículo</h3>
-                    <p class="strong"><?= htmlspecialchars($veiculoNome ?: ($orc['veiculo_modelo'] ?? '-')) ?></p>
+                    <p class="forte"><?= htmlspecialchars($veiculoNome ?: ($orc['veiculo_modelo'] ?? '-')) ?></p>
                     <p class="sub"><?= htmlspecialchars(strtoupper($orc['placa'] ?? '-')) ?></p>
-                    <table class="vehicle-stats">
+                    <table class="doc-veiculo">
                         <tr>
-                            <td><span class="vs-label">Ano</span><span class="vs-value"><?= htmlspecialchars($orc['ano_veiculo'] ?? '-') ?></span></td>
-                            <td><span class="vs-label">Cor</span><span class="vs-value"><?= htmlspecialchars($orc['cor_veiculo'] ?? '-') ?></span></td>
-                            <td><span class="vs-label">KM</span><span class="vs-value"><?= !empty($orc['km_veiculo']) ? number_format($orc['km_veiculo'], 0, ',', '.') : '-' ?></span></td>
+                            <td><span class="rot">Ano</span><span class="val"><?= htmlspecialchars($orc['ano_veiculo'] ?? '-') ?></span></td>
+                            <td><span class="rot">Cor</span><span class="val"><?= htmlspecialchars($orc['cor_veiculo'] ?? '-') ?></span></td>
+                            <td><span class="rot">KM</span><span class="val"><?= !empty($orc['km_veiculo']) ? number_format($orc['km_veiculo'], 0, ',', '.') : '-' ?></span></td>
                         </tr>
                     </table>
                 </div>
@@ -237,19 +111,19 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
     </table>
 
     <?php if (!empty($orc['defeito_relatado']) || !empty($orc['diagnostico'])): ?>
-        <table class="grid2">
+        <table class="doc-grid2">
             <tr>
                 <?php if (!empty($orc['defeito_relatado'])): ?>
                     <td>
-                        <div class="box">
+                        <div class="doc-box">
                             <h3>Problema Relatado</h3>
                             <p><?= nl2br(htmlspecialchars($orc['defeito_relatado'])) ?></p>
                         </div>
                     </td>
                 <?php endif; ?>
                 <?php if (!empty($orc['diagnostico'])): ?>
-                    <td class="pad-left">
-                        <div class="box">
+                    <td class="dir">
+                        <div class="doc-box">
                             <h3>Diagnóstico</h3>
                             <p><?= nl2br(htmlspecialchars($orc['diagnostico'])) ?></p>
                         </div>
@@ -280,8 +154,8 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
     ?>
 
     <?php if (!empty($pecas)): ?>
-        <div class="section-title">Peças / Produtos</div>
-        <table class="itens">
+        <div class="doc-secao">Peças / Produtos</div>
+        <table class="doc-tabela">
             <thead>
                 <tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor Unit.</th><th class="num">Desconto Unit.</th><th class="num">Total do Item</th></tr>
             </thead>
@@ -290,8 +164,8 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
     <?php endif; ?>
 
     <?php if (!empty($servicos)): ?>
-        <div class="section-title">Mão de Obra / Serviços</div>
-        <table class="itens">
+        <div class="doc-secao">Mão de Obra / Serviços</div>
+        <table class="doc-tabela">
             <thead>
                 <tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor Unit.</th><th class="num">Desconto Unit.</th><th class="num">Total do Item</th></tr>
             </thead>
@@ -299,30 +173,33 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
         </table>
     <?php endif; ?>
 
-    <table class="totais">
-        <tr><td>Total Peças</td><td class="valor">R$ <?= number_format($totalPecas, 2, ',', '.') ?></td></tr>
-        <tr><td>Total Serviços</td><td class="valor">R$ <?= number_format($totalServicos, 2, ',', '.') ?></td></tr>
-        <tr><td>Subtotal</td><td class="valor">R$ <?= number_format($subtotalOrc, 2, ',', '.') ?></td></tr>
-        <tr><td>Desconto</td><td class="valor">- R$ <?= number_format($descontoOrc, 2, ',', '.') ?></td></tr>
+    <!-- Totais e total geral sempre na mesma pagina -->
+    <div class="doc-fechamento">
+    <table class="doc-totais">
+        <tr><td>Total Peças</td><td class="num">R$ <?= number_format($totalPecas, 2, ',', '.') ?></td></tr>
+        <tr><td>Total Serviços</td><td class="num">R$ <?= number_format($totalServicos, 2, ',', '.') ?></td></tr>
+        <tr><td>Subtotal</td><td class="num">R$ <?= number_format($subtotalOrc, 2, ',', '.') ?></td></tr>
+        <tr><td>Desconto</td><td class="num">- R$ <?= number_format($descontoOrc, 2, ',', '.') ?></td></tr>
     </table>
-    <div class="total-final">
-        <table><tr><td>Total Geral</td><td class="valor">R$ <?= number_format($totalGeralOrc, 2, ',', '.') ?></td></tr></table>
+    <div class="doc-total-final">
+        <table><tr><td>Total Geral</td><td class="num">R$ <?= number_format($totalGeralOrc, 2, ',', '.') ?></td></tr></table>
+    </div>
     </div>
 
     <?php if (!empty($orc['observacoes'])): ?>
-        <div class="obs-box">
+        <div class="doc-box">
             <h3>Observações</h3>
             <p><?= nl2br(htmlspecialchars($orc['observacoes'])) ?></p>
         </div>
     <?php endif; ?>
 
     <?php if (!empty($orc['prazo_execucao'])): ?>
-        <div class="meta-line">
+        <div class="doc-box" style="margin-top:12px;">
             Prazo estimado de execução: <strong><?= htmlspecialchars($orc['prazo_execucao']) ?></strong>
         </div>
     <?php endif; ?>
 
-    <div class="garantia-box">
+    <div class="doc-garantia">
         <h3>Termos da Garantia</h3>
         <p>
             Este orçamento é válido até a data indicada acima. Após a aprovação e execução dos serviços aqui
@@ -336,21 +213,18 @@ $totalGeralOrc = (float) ($orc['valor_total_orcamento'] ?? ($subtotalOrc - $desc
         </p>
     </div>
 
-    <table class="assinaturas">
+    <table class="doc-assinaturas">
         <tr>
             <td>
-                <?php if (!empty($orc['assinatura_cliente'])): ?>
-                    <img src="<?= htmlspecialchars($orc['assinatura_cliente']) ?>" style="max-height:60px;display:block;margin:0 auto 4px;"><br>
-                <?php endif; ?>
+                <?php
+                $docAssinatura = $orc['assinatura_cliente'] ?? '';
+                require __DIR__ . '/../layout/_docPdfAssinatura.php';
+                ?>
                 Assinatura do Cliente
             </td>
             <td><?= htmlspecialchars($orc['mecanico_nome'] ?? 'Responsável Técnico') ?></td>
         </tr>
     </table>
-
-    <div class="doc-footer">
-        Documento gerado eletronicamente pelo Mecanize em <?= date('d/m/Y \à\s H:i') ?>
-    </div>
 
 </body>
 

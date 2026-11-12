@@ -4,7 +4,7 @@ class RelatorioController extends Controller
 {
     public function listRelatorio()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $relatorio = $this->model('Relatorio');
 

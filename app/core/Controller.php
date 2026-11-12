@@ -30,24 +30,67 @@ class Controller
         $tipo = $_SESSION['user_tipo'] ?? null;
 
         if (!in_array($tipo, $tiposPermitidos, true)) {
-            http_response_code(403);
-            $this->view('Site/403');
-            exit;
+            require_once __DIR__ . '/Erro.php';
+            Erro::exibir('sem-permissao');
         }
+    }
+
+    /**
+     * Encerra a requisição com a tela de "registro não encontrado".
+     *
+     * Existe porque o padrão anterior era um redirecionamento mudo pra
+     * listagem: quem clicava num item já excluído voltava pra lista sem
+     * entender se tinha clicado errado, se o sistema tinha travado ou se o
+     * registro sumiu. Agora a tela diz o que houve e leva de volta.
+     *
+     * @param string $entidade Nome do que não foi achado ("Cliente", "Ordem de serviço")
+     * @param string $voltar   Rota da listagem de origem
+     */
+    protected function naoEncontrado(string $entidade, string $voltar): void
+    {
+        require_once __DIR__ . '/Erro.php';
+
+        Erro::exibir('registro-inexistente', [
+            'entidade' => $entidade,
+            'voltar'   => $voltar,
+        ]);
     }
 
     public function view($view, $data = [])
     {
-        extract($data);
+        // EXTR_SKIP: sem isso, uma chave chamada "view" ou "data" dentro dos
+        // dados sobrescreveria a variável do próprio método e mudaria qual
+        // arquivo é incluído. Comportamento idêntico no uso atual.
+        extract($data, EXTR_SKIP);
 
-        // Views que não usam o layout padrão (sem sidebar/topbar)
+        // Views que não usam o layout padrão (sem sidebar/topbar).
         // Comparação sensível a maiúsculas: inclui as variações usadas pelos controllers.
-        // Views sem sidebar/topbar. Além das telas de tela cheia, entram aqui
-        // os fragmentos carregados por fetch (prefixo _), que substituem só um
-        // pedaço de uma página já renderizada.
-        $noLayout = ['auth/login', 'user/login', 'Usuarios/login', 'Site/termos', 'Site/privacidade', 'Site/painel', 'Site/rastreio', 'Site/rastreioNaoEncontrado', 'Usuarios/_tabelaUsuarios'];
+        // As telas de senha entram aqui pelo mesmo motivo do login: atendem quem
+        // está FORA do sistema (inclusive por link de e-mail), então não podem
+        // aparecer dentro da sidebar/topbar como se a pessoa já estivesse logada.
+        $noLayout = [
+            'auth/login',
+            'user/login',
+            'Usuarios/login',
+            'Usuarios/recuperarSenha',
+            'Usuarios/redefinirSenha',
+            'Site/termos',
+            'Site/privacidade',
+            'Site/painel',
+            'Site/rastreio',
+            // Portal do cliente: página própria, fora do sistema (o cliente não é usuário).
+            'Portal/caso',
+            'Portal/pagamentoSimulado',
+        ];
 
-        if (in_array($view, $noLayout)) {
+        // Fragmentos carregados por fetch (prefixo _) substituem só um pedaço
+        // de uma página já renderizada, então nunca levam layout junto.
+        // É regra por prefixo, e não uma lista: com lista, criar um fragmento
+        // novo e esquecer de registrá-lo aqui injeta header+footer inteiros
+        // dentro da tabela — falha silenciosa e confusa de diagnosticar.
+        $ehFragmento = str_starts_with(basename($view), '_');
+
+        if ($ehFragmento || in_array($view, $noLayout)) {
             require_once __DIR__ . "/../views/{$view}.php";
             return;
         }

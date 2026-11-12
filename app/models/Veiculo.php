@@ -343,7 +343,11 @@ class Veiculo
                 ano               = :ano,
                 cor               = :cor,
                 combustivel       = :combustivel,
-                observacoes       = :observacoes
+                observacoes       = :observacoes,
+                dados_incompletos = (
+                    :marca_ref = (SELECT id_marca FROM marcas_veiculos WHERE nome = 'Não informado' LIMIT 1)
+                    OR :modelo_ref IN (SELECT id_modelo FROM modelos_veiculos WHERE nome = 'Não informado')
+                )
             WHERE id_veiculo = :id_veiculo";
 
         $stmt = $this->conn->prepare($sql);
@@ -359,6 +363,8 @@ class Veiculo
                 ':cor'               => $data['cor'] ?: null,
                 ':combustivel'       => $data['combustivel'] ?: null,
                 ':observacoes'       => $data['observacoes'] ?: null,
+                ':marca_ref'         => $data['marca_id'],
+                ':modelo_ref'        => $data['modelo_id'],
                 ':id_veiculo'        => $id,
             ]);
         } catch (\PDOException $e) {

@@ -15,20 +15,66 @@ class MovimentacaoCaixa
 {
     public $conn;
 
-    /** Formas de pagamento aceitas em ENTRADA (case do enum). */
-    public const FORMAS = ['DINHEIRO', 'PIX', 'CARTAO', 'BOLETO'];
+    /**
+     * Formas de pagamento oferecidas nas telas (case do enum).
+     *
+     * Débito e crédito são separados porque só o crédito costuma ter
+     * parcelamento e taxa de maquininha — somar os dois num "CARTAO" escondia
+     * exatamente o que o financeiro precisa enxergar.
+     */
+    public const FORMAS = ['DINHEIRO', 'PIX', 'CARTAO_DEBITO', 'CARTAO_CREDITO', 'BOLETO', 'TRANSFERENCIA'];
+
+    /**
+     * Valor que existe no banco mas não é mais oferecido. Fica aqui para que
+     * lançamento antigo continue somando nos relatórios em vez de sumir — o
+     * enum da tabela também o mantém.
+     */
+    public const FORMAS_LEGADAS = ['CARTAO'];
+
+    /** Rótulo de cada forma, para o mapa não ser repetido em cada tela. */
+    public const FORMA_LABEL = [
+        'DINHEIRO'       => 'Dinheiro',
+        'PIX'            => 'PIX',
+        'CARTAO_DEBITO'  => 'Cartão de débito',
+        'CARTAO_CREDITO' => 'Cartão de crédito',
+        'BOLETO'         => 'Boleto',
+        'TRANSFERENCIA'  => 'Transferência',
+        'CARTAO'         => 'Cartão (registro antigo)',
+    ];
+
+    /** Formas oferecidas + as que só existem no histórico. */
+    public static function formasTodas(): array
+    {
+        return array_merge(self::FORMAS, self::FORMAS_LEGADAS);
+    }
+
+    /** Rótulo legível de uma forma; devolve a própria chave se não conhecer. */
+    public static function rotuloForma(?string $forma): string
+    {
+        return self::FORMA_LABEL[$forma] ?? ($forma ?: '-');
+    }
 
     /** Categorias aceitas em SAÍDA manual (case do enum). */
     public const CATEGORIAS_SAIDA = ['PECAS', 'BANCO', 'OUTRO'];
 
-    public function __construct()
+    public function __construct(?PDO $conn = null)
     {
-        $this->conn = new Database();
+        $this->conn = $conn ?? new Database();
     }
 
     /**
-     * Registra uma movimentação. Retorna false se o valor for <= 0
-     * (a validação dos enums fica a cargo do controller).
+     * Registra uma movimentação e devolve o ID do lançamento criado.
+     * Retorna false se o valor for <= 0 (a validação dos enums fica a cargo
+     * do controller).
+     *
+     * O ID é o que permite amarrar o lançamento à sua origem — a compra de
+     * peça no estoque, a parcela da OS — e, com isso, saber que aquilo já
+     * foi lançado e não deve ser lançado de novo.
+     *
+     * $chave torna o lançamento IDEMPOTENTE: com a mesma chave (ex.: "PARCELA:7"),
+     * repetir a chamada não cria outra linha — devolve o id da que já existe. É o
+     * que protege o livro-caixa de clique duplo, aba antiga e reenvio de webhook.
+     * A unicidade é do banco (uq_mov_caixa_chave), não só deste if.
      */
     public function registrar(
         $caixaId,
@@ -39,7 +85,8 @@ class MovimentacaoCaixa
         $descricao,
         $usuarioId,
         $origem = 'MANUAL',
-        $osId = null
+        $osId = null,
+        ?string $chave = null
     ) {
         $valorNum = $this->parseMoney($valor);
 
@@ -47,27 +94,60 @@ class MovimentacaoCaixa
             return false;
         }
 
+        if ($chave !== null) {
+            $existente = $this->idPorChave($chave);
+
+            if ($existente !== null) {
+                return $existente;
+            }
+        }
+
         $sql = "INSERT INTO movimentacoes_caixa (
                     caixa_id, tipo, forma_pagamento, categoria, valor,
-                    descricao, usuario_id, origem, ordem_servico_id
+                    descricao, usuario_id, origem, ordem_servico_id, chave_idempotencia
                 ) VALUES (
                     :caixa_id, :tipo, :forma, :categoria, :valor,
-                    :descricao, :usuario_id, :origem, :os_id
+                    :descricao, :usuario_id, :origem, :os_id, :chave
                 )";
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
-            ':caixa_id'   => $caixaId,
-            ':tipo'       => $tipo,
-            ':forma'      => ($formaPagamento !== null && $formaPagamento !== '') ? $formaPagamento : null,
-            ':categoria'  => ($categoria !== null && $categoria !== '') ? $categoria : null,
-            ':valor'      => $valorNum,
-            ':descricao'  => ($descricao !== null && trim($descricao) !== '') ? trim($descricao) : null,
-            ':usuario_id' => $usuarioId,
-            ':origem'     => $origem,
-            ':os_id'      => $osId,
-        ]);
+        try {
+            $ok = $stmt->execute([
+                ':caixa_id'   => $caixaId,
+                ':tipo'       => $tipo,
+                ':forma'      => ($formaPagamento !== null && $formaPagamento !== '') ? $formaPagamento : null,
+                ':categoria'  => ($categoria !== null && $categoria !== '') ? $categoria : null,
+                ':valor'      => $valorNum,
+                ':descricao'  => ($descricao !== null && trim($descricao) !== '') ? trim($descricao) : null,
+                ':usuario_id' => $usuarioId,
+                ':origem'     => $origem,
+                ':os_id'      => $osId,
+                ':chave'      => $chave,
+            ]);
+        } catch (\PDOException $e) {
+            // Outra requisição gravou a mesma chave entre o SELECT e o INSERT.
+            if ($chave !== null && $e->getCode() === '23000') {
+                $existente = $this->idPorChave($chave);
+
+                if ($existente !== null) {
+                    return $existente;
+                }
+            }
+
+            throw $e;
+        }
+
+        return $ok ? (int) $this->conn->lastInsertId() : false;
+    }
+
+    private function idPorChave(string $chave): ?int
+    {
+        $stmt = $this->conn->prepare('SELECT id_movimentacao FROM movimentacoes_caixa WHERE chave_idempotencia = ?');
+        $stmt->execute([$chave]);
+        $id = $stmt->fetchColumn();
+
+        return $id === false ? null : (int) $id;
     }
 
     /**
@@ -101,7 +181,7 @@ class MovimentacaoCaixa
         $valorAbertura = (float) ($stmt->fetchColumn() ?: 0);
 
         // Entradas por forma de pagamento (zeradas por padrão)
-        $entradas = array_fill_keys(self::FORMAS, 0.0);
+        $entradas = array_fill_keys(self::formasTodas(), 0.0);
 
         $stmt = $this->conn->prepare("
             SELECT forma_pagamento, COALESCE(SUM(valor), 0) AS total
@@ -171,7 +251,7 @@ class MovimentacaoCaixa
         $params = [':inicio' => $inicio . ' 00:00:00', ':fim' => $fim . ' 23:59:59'];
 
         // Entradas por forma de pagamento (zeradas por padrão)
-        $entradas = array_fill_keys(self::FORMAS, 0.0);
+        $entradas = array_fill_keys(self::formasTodas(), 0.0);
 
         $stmt = $this->conn->prepare("
             SELECT forma_pagamento, COALESCE(SUM(valor), 0) AS total

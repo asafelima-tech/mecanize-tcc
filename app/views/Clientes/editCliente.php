@@ -342,12 +342,17 @@ if (session_status() === PHP_SESSION_NONE) {
     <div class="cliente-edit-footer">
 
         <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
-        <a href="./deleteCliente&id=<?= (int)$cliente['id_cliente'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja desativar este cliente?')">
-            <i class="bi bi-person-x"></i>
-            Desativar Cliente
-        </a>
+        <!-- Fora do <form> de edição: form aninhado não existe em HTML, e este
+             POST vai para outra rota. -->
+        <form method="post" action="./deleteCliente" style="display:inline;"
+            onsubmit="return confirm('Deseja desativar este cliente?')">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= (int) $cliente['id_cliente'] ?>">
+            <button type="submit" class="btn btn--danger-ghost">
+                <i class="bi bi-person-x"></i>
+                Desativar Cliente
+            </button>
+        </form>
         <?php endif; ?>
 
         <div class="cliente-edit-footer__right">

@@ -317,6 +317,15 @@
         <?php endif; ?>
 
         <div class="os-edit-footer__right">
+            <!-- Abre em outra aba de propósito: imprimir etiqueta não pode
+                 custar as alterações ainda não salvas do formulário. -->
+            <a href="./etiquetaProduto?id=<?= (int) $produto['id_produto'] ?>"
+               target="_blank" rel="noopener"
+               class="btn btn--ghost">
+                <i class="bi bi-printer"></i>
+                Imprimir Etiqueta
+            </a>
+
             <a href="./listProduto" class="btn btn--ghost">
                 <i class="bi bi-x-lg"></i>
                 Cancelar

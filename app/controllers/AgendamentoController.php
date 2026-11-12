@@ -37,6 +37,8 @@ class AgendamentoController extends Controller
      */
     public function save()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $agendamento = $this->model('Agendamento');
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -100,6 +102,8 @@ class AgendamentoController extends Controller
      */
     public function edit()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $agendamento = $this->model('Agendamento');
 
         $id = (int) ($_POST['id_agendamento'] ?? $_GET['id'] ?? 0);
@@ -155,6 +159,8 @@ class AgendamentoController extends Controller
      */
     public function status()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listAgendamentos');
             exit;
@@ -176,7 +182,7 @@ class AgendamentoController extends Controller
             exit;
         }
 
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $id = (int) ($_POST['id_agendamento'] ?? 0);
         $ok = $id && $this->model('Agendamento')->excluir($id);
@@ -195,6 +201,8 @@ class AgendamentoController extends Controller
      */
     public function gerarOrdemServico()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listAgendamentos');
             exit;

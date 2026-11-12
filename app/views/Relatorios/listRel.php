@@ -40,7 +40,7 @@
 
     <div class="stat-card">
         <div class="stat-card__head">
-            <div class="stat-card__label">Faturamento Total</div>
+            <div class="stat-card__label" title="OS entregues no mês — não é dinheiro recebido (veja o Financeiro)">Faturamento bruto (mês)</div>
             <div class="stat-card__icon b1">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="1" x2="12" y2="23" />
@@ -169,12 +169,17 @@
         <div class="card__body">
             <div class="bar-list">
                 <?php
+                // Rampa azul do design system, do estágio mais avançado ao mais
+                // inicial. Antes cada linha tinha uma cor própria (laranja de
+                // aviso, roxo, cinza), o que dava a impressão de que "Aguardando
+                // Peça" era um alerta — cor de estado não pode ser usada para
+                // identificar categoria.
                 $statusItems = [
-                    ['label' => 'Concluídas',       'key' => 'concluidas',        'cor' => 'var(--color-primary)',       'default' => 0],
-                    ['label' => 'Em Manutenção',     'key' => 'em_manutencao',     'cor' => 'var(--color-info)',          'default' => 0],
-                    ['label' => 'Aguardando Peça',   'key' => 'aguardando_peca',   'cor' => 'var(--color-warning)',       'default' => 0],
-                    ['label' => 'Diagnóstico',       'key' => 'diagnostico',       'cor' => '#7C3AED',                    'default' => 0],
-                    ['label' => 'Arquivadas',        'key' => 'arquivadas',        'cor' => 'var(--color-border-strong)', 'default' => 0],
+                    ['label' => 'Concluídas',       'key' => 'concluidas',        'cor' => 'var(--chart-ordinal-1)', 'default' => 0],
+                    ['label' => 'Em Manutenção',     'key' => 'em_manutencao',     'cor' => 'var(--chart-ordinal-2)', 'default' => 0],
+                    ['label' => 'Aguardando Peça',   'key' => 'aguardando_peca',   'cor' => 'var(--chart-ordinal-3)', 'default' => 0],
+                    ['label' => 'Diagnóstico',       'key' => 'diagnostico',       'cor' => 'var(--chart-ordinal-4)', 'default' => 0],
+                    ['label' => 'Arquivadas',        'key' => 'arquivadas',        'cor' => 'var(--chart-ordinal-5)', 'default' => 0],
                 ];
                 $maxOS = max(array_map(fn($s) => (int)($graficoStatus[$s['key']] ?? $s['default']), $statusItems)) ?: 1;
                 foreach ($statusItems as $item):
@@ -187,7 +192,7 @@
                             <span style="color:<?= $item['cor'] ?>;font-weight:600;"><?= $val ?></span>
                         </div>
                         <div class="bar">
-                            <span style="width:<?= $pct ?>%;background:<?= $item['cor'] ?>;"></span>
+                            <span style="width:<?= $pct ?>%;--barra-cor:<?= $item['cor'] ?>;"></span>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -224,7 +229,7 @@
                                 </div>
                             </div>
                             <div class="prod-item__bar">
-                                <div class="bar"><span style="width:<?= $pct ?>%;background:var(--color-primary);"></span></div>
+                                <div class="bar"><span style="width:<?= $pct ?>%;"></span></div>
                             </div>
                         </div>
                     <?php endforeach;
@@ -243,8 +248,8 @@
     Chart.defaults.font.size = 11;
     Chart.defaults.color = "#64748B";
 
-    const labelsGrafico = <?= json_encode($labelsGrafico          ?? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul']) ?>;
-    const dadosReceita = <?= json_encode($graficoReceita         ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
+    const labelsGrafico = <?= json_para_script($labelsGrafico          ?? ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul']) ?>;
+    const dadosReceita = <?= json_para_script($graficoReceita         ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
 
     function initCharts() {
         const el = document.getElementById("barChart");

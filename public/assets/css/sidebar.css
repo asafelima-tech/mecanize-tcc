@@ -666,6 +666,8 @@ body.sidebar-collapsed .sidebar__logout-label {
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
+  /* respiro entre sino, caixa e usuário (antes ficavam encostados) */
+  gap: 10px;
 }
 
 .topbar__user {
@@ -713,6 +715,31 @@ body.sidebar-collapsed .sidebar__logout-label {
 
   .topbar__user-info {
     display: none;
+  }
+
+  /* sino + caixa + usuário cabem em telas estreitas: o nome no caixa encolhe com reticências */
+  .topbar__right {
+    gap: 6px;
+    min-width: 0;
+    flex-shrink: 1;
+  }
+
+  .topbar-bell,
+  .topbar__user {
+    flex-shrink: 0;
+  }
+
+  .topbar__right > a[href="./caixaMovimentacoes"],
+  .topbar__right > a[href="./abrirCaixa"] {
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .topbar__right > a[href="./caixaMovimentacoes"] > span:last-child,
+  .topbar__right > a[href="./abrirCaixa"] > span:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .topbar__user {
@@ -824,12 +851,14 @@ body.sidebar-collapsed .sidebar__logout-label {
     height: 100vh;
     z-index: 1100;
     transform: translateX(-100%);
-    transition: transform .25s ease;
-    box-shadow: 2px 0 24px rgba(15, 23, 42, .22);
+    transition: transform .25s ease, box-shadow .25s ease;
+    /* Fechada, a gaveta fica fora da tela: a sombra dela NÃO pode vazar para a borda esquerda do conteúdo. */
+    box-shadow: none;
   }
 
   body.mobile-nav-open .sidebar {
     transform: translateX(0);
+    box-shadow: 2px 0 24px rgba(15, 23, 42, .22);
   }
 
   /* botão flutuante de recolher não faz sentido no mobile */
@@ -854,14 +883,14 @@ body.sidebar-collapsed .sidebar__logout-label {
     visibility: visible;
   }
 
-  /* ── Apenas Dashboard, Relatórios e Documentos no menu ── */
-  .sidebar__nav>li {
-    display: none;
-  }
-
-  .sidebar__nav>li.mob-nav {
-    display: block;
-  }
+  /* Menu completo na gaveta mobile — antes só Dashboard/Relatórios/
+     Documentos apareciam (".mob-nav" funcionava como allowlist), decisão
+     revertida a pedido: quem acessa pelo celular deve conseguir operar o
+     sistema todo, não só consultar. A visibilidade por papel continua
+     decidida no PHP de header.php (ADMIN-only, operaCaixa, técnico) —
+     aqui só garante que o que o servidor já renderizou apareça na gaveta.
+     ".mob-nav" no HTML virou inofensivo (não é mais lido por nenhuma regra
+     de CSS), sem necessidade de removê-lo do header.php agora. */
 
   /* ── Neutraliza o estado "recolhido" dentro da gaveta ── */
   body.sidebar-collapsed .sidebar {
@@ -1196,4 +1225,213 @@ body.sidebar-collapsed .sidebar__logout-label {
     opacity: 1;
     transform: translateY(-50%) translateX(0);
   }
+}
+
+/* =========================================================
+   GRUPOS DO MENU (seções que abrem e fecham)
+
+   O cabeçalho do grupo é uma linha como as demais (mesmo ícone, altura,
+   raio e cores); abaixo dele os itens aparecem recuados, presos a uma
+   linha-guia fina. O item da página atual mantém o destaque de sempre
+   (fundo + traço na borda) e o grupo que o contém abre sozinho.
+   ========================================================= */
+.sidebar__nav li { position: relative; }
+
+.sidebar__group-toggle {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  padding: 9px 14px;
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--color-sidebar-text);
+  font: inherit;
+  font-size: 13px;
+  font-weight: 500;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  cursor: pointer;
+  transition: background .15s, color .15s, padding .25s ease, justify-content .25s ease;
+}
+
+.sidebar__group-toggle:hover {
+  background: var(--color-sidebar-hover);
+  color: var(--color-sidebar-text-active);
+}
+
+.sidebar__group-toggle:focus-visible,
+.sidebar__nav li a:focus-visible {
+  outline: 2px solid var(--color-sidebar-accent);
+  outline-offset: -2px;
+}
+
+/* o grupo onde a pessoa está fica com o texto em destaque, sem competir com o item ativo */
+.sidebar__group.is-active-group > .sidebar__group-toggle {
+  color: var(--color-sidebar-text-active);
+}
+
+.sidebar__group-toggle .label {
+  flex: 1 1 auto;
+  min-width: 0;
+  text-align: left;
+}
+
+.sidebar__chevron {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  margin-left: auto;
+  opacity: .65;
+  transition: transform .2s ease, opacity .15s;
+}
+
+.sidebar__group-toggle:hover .sidebar__chevron { opacity: 1; }
+
+.sidebar__group.is-open > .sidebar__group-toggle .sidebar__chevron { transform: rotate(180deg); }
+
+/* contador de mensagens/avisos (mesmo visual de antes) */
+.sidebar__badge {
+  display: inline-block;
+  min-width: 18px;
+  padding: 0 5px;
+  border-radius: 9px;
+  background: var(--color-danger, #DC2626);
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.sidebar__nav li a .sidebar__badge { margin-left: auto; }
+
+/* grupo aberto: o contador já aparece no próprio item, não repete no cabeçalho */
+.sidebar__group.is-open > .sidebar__group-toggle .sidebar__badge { display: none; }
+
+/* abre/fecha animando a altura (sem medir nada em JavaScript) */
+.sidebar__sub-wrap {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows var(--sub-anim, .22s) ease;
+}
+
+.sidebar__group.is-open > .sidebar__sub-wrap { grid-template-rows: 1fr; }
+
+.sidebar__sub {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-height: 0;
+  margin: 0 0 0 23px;
+  padding: 0 0 0 10px;
+  overflow: hidden;
+  border-left: 1px solid color-mix(in srgb, var(--color-sidebar-text) 24%, transparent);
+}
+
+.sidebar__sub li:first-child { margin-top: 2px; }
+.sidebar__sub li:last-child { margin-bottom: 4px; }
+
+.sidebar__sub li a {
+  padding: 8px 12px;
+}
+
+/* o traço do item ativo continua encostado na borda da sidebar: recuo = margem + linha-guia + preenchimento + calha da nav */
+.sidebar__sub li.is-active a::before {
+  left: -46px;
+}
+
+/* ── Barra recolhida: só os ícones; o grupo abre a barra ao ser clicado ── */
+body.sidebar-collapsed .sidebar__group-toggle {
+  position: relative;
+  justify-content: center;
+  align-items: center;
+  padding: 0;
+  gap: 0;
+  width: var(--sidebar-item);
+  height: var(--sidebar-item);
+  margin-inline: auto;
+}
+
+body.sidebar-collapsed .sidebar__chevron,
+body.sidebar-collapsed .sidebar__sub-wrap {
+  display: none;
+}
+
+body.sidebar-collapsed .sidebar__group.is-active-group > .sidebar__group-toggle {
+  background: var(--color-sidebar-active-bg);
+  color: var(--color-sidebar-text-active);
+}
+
+body.sidebar-collapsed .sidebar__group.is-active-group > .sidebar__group-toggle::before {
+  content: "";
+  position: absolute;
+  left: -6px;
+  top: 0;
+  width: 3px;
+  height: 100%;
+  background: var(--color-sidebar-accent);
+  border-radius: 0 3px 3px 0;
+}
+
+/* sem espaço para o número: vira um ponto no canto do ícone */
+body.sidebar-collapsed .sidebar__nav li a,
+body.sidebar-collapsed .sidebar__group-toggle { position: relative; }
+
+body.sidebar-collapsed .sidebar__badge,
+body.sidebar-collapsed .sidebar__group.is-open > .sidebar__group-toggle .sidebar__badge {
+  display: block;
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  min-width: 8px;
+  width: 8px;
+  height: 8px;
+  padding: 0;
+  margin: 0;
+  border-radius: 50%;
+  font-size: 0;
+  line-height: 0;
+}
+
+/* ── Gaveta do celular: o estado "recolhido" não vale ali ── */
+@media (max-width: 768px) {
+  body.sidebar-collapsed .sidebar__group-toggle {
+    justify-content: flex-start;
+    padding: 9px 14px;
+    gap: 12px;
+    width: 100%;
+    height: auto;
+    margin-inline: 0;
+  }
+
+  body.sidebar-collapsed .sidebar__chevron { display: block; }
+  body.sidebar-collapsed .sidebar__sub-wrap { display: grid; }
+
+  body.sidebar-collapsed .sidebar__group.is-active-group > .sidebar__group-toggle { background: transparent; }
+  body.sidebar-collapsed .sidebar__group.is-active-group > .sidebar__group-toggle::before { display: none; }
+
+  body.sidebar-collapsed .sidebar__badge {
+    position: static;
+    width: auto;
+    min-width: 18px;
+    height: auto;
+    padding: 0 5px;
+    border-radius: 9px;
+    font-size: 10px;
+    line-height: 18px;
+  }
+
+  body.sidebar-collapsed .sidebar__group.is-open > .sidebar__group-toggle .sidebar__badge { display: none; }
+
+  /* na gaveta os itens são maiores: alvo de toque confortável */
+  .sidebar__sub li a { padding: 10px 12px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .sidebar__sub-wrap, .sidebar__chevron { transition: none; }
 }

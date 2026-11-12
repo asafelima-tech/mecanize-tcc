@@ -1,16 +1,64 @@
 <?php
 
+require_once __DIR__ . '/../core/Dinheiro.php';
+
+require_once __DIR__ . '/../models/OrdemServicoFluxo.php';
+require_once __DIR__ . '/../core/Historico.php';
+require_once __DIR__ . '/../models/AutorizacaoCliente.php';
+
 class OrdemServicoController extends Controller
 {
-    public function listRelatorio()
+    private function fluxo(): OrdemServicoFluxo
     {
-        $ordemServico = $this->model('OrdemServico');
+        return new OrdemServicoFluxo();
+    }
 
-        $dados = [
-            'ordens' => method_exists($ordemServico, 'listRelatorio') ? $ordemServico->listRelatorio() : []
-        ];
+    private function usuarioId(): int
+    {
+        return (int) ($_SESSION['user_id_usuario'] ?? 0);
+    }
 
-        $this->view('Ordens_Servico/relatorio', $dados);
+    private function papel(): string
+    {
+        return (string) ($_SESSION['user_tipo'] ?? '');
+    }
+
+    /** Só POST: ação que muda dado nunca roda por GET (link, prefetch, favorito). */
+    private function exigirPost(string $voltar = './listOrdemServico'): void
+    {
+        if (($_SERVER['REQUEST_METHOD'] ?? 'GET') !== 'POST') {
+            header('Location: ' . $voltar);
+            exit;
+        }
+    }
+
+    /**
+     * Para onde voltar depois de uma ação. A tela de origem manda `voltar`
+     * (lista | view | tecnico); qualquer outro valor cai na lista — nunca um
+     * endereço vindo da requisição.
+     */
+    private function destino(int $id, string $query = ''): string
+    {
+        switch ($_POST['voltar'] ?? 'lista') {
+            case 'view':
+                $base = './viewOrdemServico?id=' . $id;
+                break;
+            case 'tecnico':
+                $base = './viewOSTecnico?id=' . $id;
+                break;
+            default:
+                return './listOrdemServico' . ($query !== '' ? '?' . $query : '');
+        }
+
+        return $base . ($query !== '' ? '&' . $query : '');
+    }
+
+    /** ok=<codigo> ou erro=fluxo&detalhe=<texto> — as telas mostram a mensagem (escapada). */
+    private function resultado(array $r, string $codigoOk): string
+    {
+        return $r['ok']
+            ? 'ok=' . $codigoOk
+            : 'erro=fluxo&detalhe=' . urlencode((string) $r['erro']);
     }
 
     public function list()
@@ -24,28 +72,38 @@ class OrdemServicoController extends Controller
     }
 
     /**
-     * Quadro Kanban (Aberta / Em Andamento / Aguardando Peça / Concluída),
-     * alternativa visual à listagem em tabela de ./listOrdemServico.
+     * Quadro Kanban, uma coluna por etapa do fluxo, alternativa visual à
+     * listagem em tabela de ./listOrdemServico.
      */
     public function kanban()
     {
         $ordem = $this->model('OrdemServico');
 
-        $dados = [
-            'colunas' => [
-                'ABERTA'          => ['label' => 'Aberta',          'ordens' => $ordem->listarAbertas($_GET)],
-                'EM_ANDAMENTO'    => ['label' => 'Em Andamento',    'ordens' => $ordem->listarEmAndamento($_GET)],
-                'AGUARDANDO_PECA' => ['label' => 'Aguardando Peça', 'ordens' => $ordem->listarAguardandoPeca($_GET)],
-                'CONCLUIDA'       => ['label' => 'Concluída',       'ordens' => $ordem->listarConcluidas($_GET)],
-            ],
+        $colunas = [];
+        $listar  = [
+            'ABERTA'                 => fn() => $ordem->listarAbertas($_GET),
+            'EM_ANDAMENTO'           => fn() => $ordem->listarEmAndamento($_GET),
+            'AGUARDANDO_PECA'        => fn() => $ordem->listarAguardandoPeca($_GET),
+            'AGUARDANDO_CONFERENCIA' => fn() => $ordem->listarAguardandoConferencia($_GET),
+            'AGUARDANDO_RETIRADA'    => fn() => $ordem->listarAguardandoRetirada($_GET),
+            'CONCLUIDA'              => fn() => $ordem->listarConcluidas($_GET),
         ];
 
-        $this->view('Ordens_Servico/kanbanOrdemServico', $dados);
+        foreach ($listar as $status => $buscar) {
+            $colunas[$status] = ['label' => OrdemServico::rotuloStatus($status), 'ordens' => $buscar()];
+        }
+
+        $this->view('Ordens_Servico/kanbanOrdemServico', ['colunas' => $colunas]);
     }
 
     /**
      * Move a OS pra outra coluna do Kanban (drag-and-drop). Chamado via
      * fetch() — responde JSON, não redireciona.
+     *
+     * Arrastar é só outro jeito de pedir uma transição: passa pelo mesmo
+     * OrdemServicoFluxo dos botões, com as mesmas regras, papéis e efeitos.
+     * Pular etapa (ABERTA → entregue), reabrir OS já recebida ou levar uma OS
+     * direto a "concluída" sem os efeitos dela deixou de ser possível.
      */
     public function moverStatus()
     {
@@ -60,27 +118,22 @@ class OrdemServicoController extends Controller
         $id     = (int) ($_POST['id_ordem_servico'] ?? 0);
         $status = strtoupper(trim($_POST['status'] ?? ''));
 
-        $ordemServico = $this->model('OrdemServico');
-
         if (!$id || !in_array($status, OrdemServico::STATUS_KANBAN, true)) {
             http_response_code(400);
             echo json_encode(['sucesso' => false, 'erro' => 'Dados inválidos.']);
             exit;
         }
 
-        $sucesso = $ordemServico->atualizarStatus($id, $status);
+        // Cancelar e devolver à execução exigem um motivo: têm tela própria.
+        $r = $this->fluxo()->transicionar($id, $status, $this->usuarioId(), $this->papel());
 
-        if ($sucesso && $status === 'CONCLUIDA') {
-            $this->notificarClienteVeiculoPronto($ordemServico, $id);
-        }
-
-        echo json_encode(['sucesso' => $sucesso]);
+        echo json_encode(['sucesso' => $r['ok'], 'erro' => $r['erro']]);
         exit;
     }
 
     public function visualizar()
     {
-        $id = $_GET['id'] ?? null;
+        $id = (int) ($_GET['id'] ?? 0);
 
         if (!$id) {
             header('Location: ./listOrdemServico');
@@ -91,20 +144,28 @@ class OrdemServicoController extends Controller
         $ordem        = $ordemServico->getById($id);
 
         if (!$ordem) {
-            header('Location: ./listOrdemServico');
-            exit;
+            $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
         }
 
-        $tokenRastreio = $ordemServico->getOuCriarToken((int) $id);
+        $tokenRastreio = $ordemServico->getOuCriarToken($id);
+        $pagamento     = $this->model('OrdemServicoPagamento');
 
-        $dados = [
-            'ordem_servico'   => $ordem,
-            'itens_os'        => $ordemServico->getItensByOS($id),
-            'mao_obra_os'     => $ordemServico->getMaoObraByOS($id),
-            'linkRastreio'    => $this->urlAbsoluta('rastrear?token=' . $tokenRastreio),
-        ];
-
-        $this->view('Ordens_Servico/viewOrdemServico', $dados);
+        $this->view('Ordens_Servico/viewOrdemServico', [
+            'ordem_servico' => $ordem,
+            'itens_os'      => $ordemServico->getItensByOS($id, true),
+            'tecnicos_os'   => $ordemServico->getTecnicosDaOS($id),
+            'linkRastreio'  => $this->urlAbsoluta('rastrear?token=' . $tokenRastreio),
+            'historico'     => Historico::da($ordemServico->conn, 'OS', $id),
+            'autorizacoes'  => $this->model('AutorizacaoCliente')->listar($ordem['ocorrencia_id'] ?? null, $id),
+            'canaisAutorizacao' => AutorizacaoCliente::CANAIS,
+            'bloqueiosAutorizacao' => $this->model('AutorizacaoCliente')->bloqueiosDaOs($id),
+            'parcelas'      => $pagamento->parcelas($id),
+            'resumoCobranca' => $pagamento->resumo($id),
+            'destinosPermitidos' => OrdemServicoFluxo::destinosPermitidos((string) $ordem['status'], $this->papel()),
+            'erro'          => $_GET['erro'] ?? null,
+            'detalhe'       => $_GET['detalhe'] ?? null,
+            'sucesso'       => $_GET['ok'] ?? null,
+        ]);
     }
 
     /**
@@ -123,8 +184,7 @@ class OrdemServicoController extends Controller
         $os           = $ordemServico->getById($id);
 
         if (!$os) {
-            header('Location: ./listOrdemServico');
-            exit;
+            $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
         }
 
         $itens = $ordemServico->getItensByOS($id);
@@ -157,12 +217,7 @@ class OrdemServicoController extends Controller
                 return;
             }
 
-            try {
-                $sucesso = $ordemServico->create($_POST);
-            } catch (\Throwable $e) {
-                $sucesso = false;
-                $erroCreate = $e->getMessage();
-            }
+            $sucesso = $ordemServico->create($_POST);
 
             if ($sucesso) {
                 // OS aberta a partir da agenda: marca o agendamento como
@@ -176,8 +231,10 @@ class OrdemServicoController extends Controller
                 exit;
             }
 
+            $erroCreate = $ordemServico->getLastError();
+
             $dados          = $this->dadosFormularioOS($ordemServico);
-            $dados['error'] = !empty($erroCreate)
+            $dados['error'] = $erroCreate !== ''
                 ? 'Erro ao cadastrar ordem de serviço: ' . $erroCreate
                 : 'Erro ao cadastrar ordem de serviço.';
             $dados['old']   = $_POST;
@@ -197,90 +254,89 @@ class OrdemServicoController extends Controller
         $this->view('Ordens_Servico/saveOrdemServico', $dados);
     }
 
-   
     public function edit()
-{
-    $ordemServico = $this->model('OrdemServico');
+    {
+        $ordemServico = $this->model('OrdemServico');
 
-    if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-        $id = $_POST['id_ordem_servico'] ?? null;
+        if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+            $id = $_POST['id_ordem_servico'] ?? null;
+
+            if (!$id) {
+                header('Location: ./listOrdemServico');
+                exit;
+            }
+
+            $validator = (new Validator($_POST))
+                ->required('numero', 'Número da OS')
+                ->required('cliente_id', 'Cliente')
+                ->required('veiculo_id', 'Veículo');
+
+            if ($validator->fails()) {
+                $this->view('Ordens_Servico/editOrdemServico', $this->dadosEdicao($ordemServico, (int) $id, $validator->firstError()));
+                return;
+            }
+
+            if (!$ordemServico->update($_POST)) {
+                $erro = $ordemServico->getLastError();
+
+                $this->view('Ordens_Servico/editOrdemServico', $this->dadosEdicao(
+                    $ordemServico,
+                    (int) $id,
+                    $erro !== '' ? 'Erro ao salvar alterações: ' . $erro : 'Erro ao salvar alterações.'
+                ));
+                return;
+            }
+
+            // O formulário também permite alternar entre as etapas de execução.
+            // Os dados já foram salvos; a mudança de etapa passa pelo fluxo e,
+            // se for recusada, a tela avisa em vez de fingir que mudou.
+            $novo  = strtoupper(trim((string) ($_POST['status'] ?? '')));
+            $atual = $ordemServico->statusAtual((int) $id);
+
+            if ($novo !== '' && $atual !== null && $novo !== $atual && in_array($novo, OrdemServico::STATUS_TECNICO, true)) {
+                $r = $this->fluxo()->transicionar((int) $id, $novo, $this->usuarioId(), $this->papel());
+
+                if (!$r['ok']) {
+                    header('Location: ./listOrdemServico?erro=fluxo&detalhe=' . urlencode('Dados salvos, mas a etapa não mudou: ' . $r['erro']));
+                    exit;
+                }
+            }
+
+            header('Location: ./listOrdemServico');
+            exit;
+        }
+
+        $id = $_GET['id'] ?? null;
 
         if (!$id) {
             header('Location: ./listOrdemServico');
             exit;
         }
 
-        $validator = (new Validator($_POST))
-            ->required('numero', 'Número da OS')
-            ->required('status', 'Status')
-            ->in('status', ['ABERTA', 'EM_ANDAMENTO', 'AGUARDANDO_PECA', 'CONCLUIDA', 'CANCELADA'], 'Status')
-            ->required('cliente_id', 'Cliente')
-            ->required('veiculo_id', 'Veículo');
+        $ordem = $ordemServico->getById($id);
 
-        if ($validator->fails()) {
-            $dados = $this->dadosFormularioOS($ordemServico);
-            $dados['ordem_servico'] = array_merge($ordemServico->getById($id) ?: [], $_POST);
-            $dados['itens_os']      = $ordemServico->getItensByOS($id);
-            $dados['mao_obra_os']   = $ordemServico->getMaoObraByOS($id);
-            $dados['error']         = $validator->firstError();
-            $dados['old']           = $_POST;
-            $this->view('Ordens_Servico/editOrdemServico', $dados);
-            return;
+        if (!$ordem) {
+            $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
         }
 
-        $sucesso = $ordemServico->update($_POST);
+        $this->view('Ordens_Servico/editOrdemServico', $this->dadosEdicao($ordemServico, (int) $id));
+    }
 
-        if ($sucesso) {
-            header('Location: ./listOrdemServico');
-            exit;
-        }
-
-        $erroDetalhado = method_exists($ordemServico, 'getLastError')
-            ? $ordemServico->getLastError()
-            : '';
-
+    private function dadosEdicao($ordemServico, int $id, ?string $erro = null): array
+    {
         $dados = $this->dadosFormularioOS($ordemServico);
 
-        $dados['ordem_servico'] = array_merge(
-            $ordemServico->getById($id) ?: [],
-            $_POST
-        );
+        $dados['ordem_servico'] = array_merge($ordemServico->getById($id) ?: [], $erro !== null ? $_POST : []);
+        $dados['itens_os']      = $ordemServico->getItensByOS($id);
+        $dados['tecnicos_os']   = $ordemServico->getTecnicosDaOS($id);
 
-        $dados['itens_os'] = $ordemServico->getItensByOS($id);
-        $dados['mao_obra_os'] = $ordemServico->getMaoObraByOS($id);
+        if ($erro !== null) {
+            $dados['error'] = $erro;
+            $dados['old']   = $_POST;
+        }
 
-        $dados['error'] = !empty($erroDetalhado)
-            ? 'Erro ao salvar alterações: ' . $erroDetalhado
-            : 'Erro ao salvar alterações.';
-
-        $dados['old'] = $_POST;
-
-        $this->view('Ordens_Servico/editOrdemServico', $dados);
-        return;
+        return $dados;
     }
-
-    $id = $_GET['id'] ?? null;
-
-    if (!$id) {
-        header('Location: ./listOrdemServico');
-        exit;
-    }
-
-    $ordem = $ordemServico->getById($id);
-
-    if (!$ordem) {
-        header('Location: ./listOrdemServico');
-        exit;
-    }
-
-    $dados = $this->dadosFormularioOS($ordemServico);
-
-    $dados['ordem_servico'] = $ordem;
-    $dados['itens_os']      = $ordemServico->getItensByOS($id);
-    $dados['mao_obra_os']   = $ordemServico->getMaoObraByOS($id);
-
-    $this->view('Ordens_Servico/editOrdemServico', $dados);
-}
 
     private function dadosFormularioOS($ordemServico)
     {
@@ -296,10 +352,7 @@ class OrdemServicoController extends Controller
 
     public function delete()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-            header('Location: ./listOrdemServico');
-            exit;
-        }
+        $this->exigirPost();
 
         $id = $_POST['id_ordem_servico'] ?? null;
 
@@ -309,126 +362,284 @@ class OrdemServicoController extends Controller
         }
 
         $ordemServico = $this->model('OrdemServico');
-        $ordemServico->delete($id);
 
-        header('Location: ./listOrdemServico');
+        // OS com agendamento, movimentação de estoque, lançamento de caixa ou
+        // recebimento é história: não se apaga, se cancela. Antes isso virava
+        // PDOException e tela 500; agora diz o que impede.
+        $vinculos = $ordemServico->vinculos($id);
+
+        if (!empty($vinculos)) {
+            header('Location: ./listOrdemServico?erro=vinculos&detalhe=' . urlencode(implode(', ', $vinculos)));
+            exit;
+        }
+
+        if (!$ordemServico->delete($id)) {
+            header('Location: ./listOrdemServico?erro=exclusao');
+            exit;
+        }
+
+        header('Location: ./listOrdemServico?ok=excluido');
         exit;
     }
 
-    public function concluir()
+    /* ── Etapas do ciclo de vida ──────────────────────────────────────────
+     * Cada uma é uma transição do OrdemServicoFluxo: o controller só traduz o
+     * formulário e a resposta. As regras (quem pode, de onde para onde, efeitos,
+     * idempotência) moram lá, e valem igual para o botão, o Kanban e o técnico.
+     */
+
+    /** ADMIN confere o serviço do técnico e libera o veículo para retirada. */
+    public function conferir()
     {
-        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+        $this->exigirPost();
+
+        $id = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $r  = $this->fluxo()->transicionar($id, 'AGUARDANDO_RETIRADA', $this->usuarioId(), $this->papel());
+
+        // O aviso de "veículo pronto" nasce na própria transição (OrdemServicoFluxo → Comunicacao).
+        header('Location: ' . $this->destino($id, $this->resultado($r, $r['repetido'] ? 'jaconferida' : 'conferida')));
+        exit;
+    }
+
+    /** ADMIN devolve a OS à execução, com o motivo, para o técnico corrigir. */
+    public function reprovarConferencia()
+    {
+        $this->exigirPost();
+
+        $id = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $r  = $this->fluxo()->transicionar($id, 'EM_ANDAMENTO', $this->usuarioId(), $this->papel(), [
+            'motivo' => $_POST['motivo'] ?? '',
+        ]);
+
+        header('Location: ' . $this->destino($id, $this->resultado($r, 'devolvida')));
+        exit;
+    }
+
+    /** Entrega do veículo ao cliente (assinatura e, se for o caso, recebimento no balcão). */
+    public function entregar()
+    {
+        $this->exigirPost();
+
+        $id = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $r  = $this->fluxo()->transicionar($id, 'CONCLUIDA', $this->usuarioId(), $this->papel(), [
+            'assinatura_cliente' => $_POST['assinatura_cliente'] ?? null,
+            'receber_forma'      => !empty($_POST['receber_agora']) ? (string) ($_POST['forma_pagamento'] ?? '') : '',
+        ]);
+
+        header('Location: ' . $this->destino($id, $this->resultado($r, $r['repetido'] ? 'jaentregue' : 'entregue')));
+        exit;
+    }
+
+    public function cancelar()
+    {
+        $this->exigirPost();
+
+        $id = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $r  = $this->fluxo()->transicionar($id, 'CANCELADA', $this->usuarioId(), $this->papel(), [
+            'motivo' => $_POST['motivo'] ?? '',
+        ]);
+
+        header('Location: ' . $this->destino($id, $this->resultado($r, 'cancelada')));
+        exit;
+    }
+
+    /* ── Autorização do cliente durante a execução ──────────────────────────
+     * Quando o serviço cresce além do que o cliente autorizou, a equipe pede uma
+     * autorização complementar; a OS não segue para conferência até a resposta.
+     */
+
+    public function solicitarComplemento()
+    {
+        $this->exigirPost();
+
+        $osId = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $r = $this->model('AutorizacaoCliente')->solicitarComplemento(
+            $osId,
+            (float) str_replace(',', '.', (string) ($_POST['valor_adicional'] ?? 0)),
+            (string) ($_POST['motivo'] ?? ''),
+            $this->usuarioId()
+        );
+
+        header('Location: ' . $this->destino($osId, $this->resultado($r, 'complementosolicitado')));
+        exit;
+    }
+
+    public function decidirAutorizacao()
+    {
+        $this->exigirPost();
+
+        $osId = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $r = $this->model('AutorizacaoCliente')->decidir(
+            (int) ($_POST['id_autorizacao'] ?? 0),
+            ($_POST['decisao'] ?? '') === 'aprovar',
+            (string) ($_POST['canal'] ?? ''),
+            (string) ($_POST['evidencia'] ?? ''),
+            $this->usuarioId()
+        );
+
+        header('Location: ' . $this->destino($osId, $this->resultado($r, 'complementodecidido')));
+        exit;
+    }
+
+    /* ── Peças: consumo e devolução ───────────────────────────────────────── */
+
+    /** Confirma que a peça lançada foi usada — é aqui, e só aqui, que o estoque baixa. */
+    public function consumirPeca()
+    {
+        $this->exigirPost();
+
+        $itemId = (int) ($_POST['id_item'] ?? 0);
+        $osId   = (int) ($_POST['id_ordem_servico'] ?? 0);
+
+        $r = ConsumoEstoque::consumir(new Database(), $itemId, $this->usuarioId());
+
+        header('Location: ' . $this->destino($osId, $this->resultado($r, $r['repetido'] ? 'pecajaconsumida' : 'pecaconsumida')));
+        exit;
+    }
+
+    /** Reserva a peça para a OS: tira a quantidade do disponível das outras OS, sem baixar o estoque. */
+    public function reservarPeca()
+    {
+        $this->exigirPost();
+
+        $itemId = (int) ($_POST['id_item'] ?? 0);
+        $osId   = (int) ($_POST['id_ordem_servico'] ?? 0);
+
+        $r = ConsumoEstoque::reservar(new Database(), $itemId, $this->usuarioId());
+
+        header('Location: ' . $this->destino($osId, $this->resultado($r, $r['repetido'] ? 'pecajareservada' : 'pecareservada')));
+        exit;
+    }
+
+    public function liberarReserva()
+    {
+        $this->exigirPost();
+
+        $itemId = (int) ($_POST['id_item'] ?? 0);
+        $osId   = (int) ($_POST['id_ordem_servico'] ?? 0);
+
+        $r = ConsumoEstoque::liberarReserva(new Database(), $itemId, $this->usuarioId());
+
+        header('Location: ' . $this->destino($osId, $this->resultado($r, 'reservaliberada')));
+        exit;
+    }
+
+    public function devolverPeca()
+    {
+        $this->exigirPost();
+
+        $itemId = (int) ($_POST['id_item'] ?? 0);
+        $osId   = (int) ($_POST['id_ordem_servico'] ?? 0);
+
+        $r = ConsumoEstoque::devolver(new Database(), $itemId, $this->usuarioId(), (string) ($_POST['justificativa'] ?? ''));
+
+        if ($r['ok']) {
+            $this->model('OrdemServico')->recalcularTotais($osId);
+        }
+
+        header('Location: ' . $this->destino($osId, $this->resultado($r, 'pecadevolvida')));
+        exit;
+    }
+
+    /**
+     * Tela do pagamento da OS: plano (à vista/parcelado) e situação das parcelas.
+     */
+    public function pagamento()
+    {
+        $id = (int) ($_GET['id'] ?? 0);
+
+        if ($id <= 0) {
             header('Location: ./listOrdemServico');
             exit;
         }
-
-        $id = $_POST['id_ordem_servico'] ?? null;
-
-        if (!$id) {
-            header('Location: ./listOrdemServico');
-            exit;
-        }
-
-        // Assinatura capturada no canvas do modal de conclusão. Exige PNG
-        // especificamente (único formato que o canvas emite) em vez de
-        // qualquer "data:image/*" — vai direto pra uma <img> num PDF com
-        // acesso remoto habilitado (Dompdf), então aceitar outros tipos
-        // (ex.: SVG) seria superfície de ataque sem ganho funcional.
-        $assinatura = trim($_POST['assinatura_cliente'] ?? '');
-        $assinatura = ($assinatura !== '' && str_starts_with($assinatura, 'data:image/png;base64,')) ? $assinatura : null;
 
         $ordemServico = $this->model('OrdemServico');
+        $ordem        = $ordemServico->getById($id);
 
-        if ($ordemServico->concluir($id, $assinatura)) {
-            $this->registrarRecebimentoNoCaixa($ordemServico, $id);
+        if (!$ordem) {
+            $this->naoEncontrado('Ordem de serviço', './listOrdemServico');
         }
 
-        $this->notificarClienteVeiculoPronto($ordemServico, $id);
+        $pagamento = $this->model('OrdemServicoPagamento');
 
-        header('Location: ./listOrdemServico');
+        $this->view('Ordens_Servico/pagamentoOrdemServico', [
+            'os'       => $ordem,
+            'plano'    => $pagamento->plano($id),
+            'parcelas' => $pagamento->parcelas($id),
+            'resumo'   => $pagamento->resumo($id),
+            'erro'     => $_GET['erro'] ?? null,
+            'sucesso'  => $_GET['ok'] ?? null,
+        ]);
+    }
+
+    /** Grava o plano de pagamento e gera as parcelas. */
+    public function salvarPagamento()
+    {
+        $id = (int) ($_POST['id_ordem_servico'] ?? 0);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $id <= 0) {
+            header('Location: ./listOrdemServico');
+            exit;
+        }
+
+        $pagamento = $this->model('OrdemServicoPagamento');
+        $ok        = $pagamento->salvarPlano($id, $_POST);
+
+        header('Location: ./pagamentoOrdemServico?id=' . $id . ($ok ? '&ok=plano' : '&erro=plano'));
+        exit;
+    }
+
+    /** Estorno do recebimento de uma parcela (só administrador, com justificativa). */
+    public function estornarParcela()
+    {
+        $id        = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $parcelaId = (int) ($_POST['id_parcela'] ?? 0);
+
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $id <= 0 || $parcelaId <= 0) {
+            header('Location: ./listOrdemServico');
+            exit;
+        }
+
+        $r = $this->model('OrdemServicoPagamento')->estornarParcela($parcelaId, (string) ($_POST['justificativa'] ?? ''), $_SESSION['user_id_usuario'] ?? null);
+
+        header('Location: ./pagamentoOrdemServico?id=' . $id . ($r['ok'] ? '&ok=estorno' : '&erro=' . urlencode((string) $r['erro'])));
         exit;
     }
 
     /**
-     * Lança o valor da OS concluída como ENTRADA no caixa da sessão aberta —
-     * antes disso, concluir uma OS nunca refletia no livro-caixa (o schema já
-     * tinha origem='OS'/categoria='OS' prontos, mas nada os preenchia), então
-     * o "caixa atual" e o faturamento do dashboard podiam divergir sem
-     * qualquer aviso. Uma falha aqui é registrada mas não desfaz a conclusão
-     * da OS (o técnico já entregou o veículo; um caixa fechado ou uma falha
-     * de banco não pode travar esse fluxo — cai para lançamento manual).
+     * Baixa de uma parcela: marca como paga e lança a entrada no caixa.
+     *
+     * O lançamento e a baixa vivem no model, na mesma transação e com a parcela
+     * travada — é o que impede o mesmo recebimento de entrar duas vezes se a tela
+     * for reenviada.
      */
-    private function registrarRecebimentoNoCaixa($ordemServico, $id): void
+    public function pagarParcela()
     {
-        try {
-            $movCaixa = $this->model('MovimentacaoCaixa'); // garante a classe carregada antes de usar MovimentacaoCaixa::FORMAS
+        $id        = (int) ($_POST['id_ordem_servico'] ?? 0);
+        $parcelaId = (int) ($_POST['id_parcela'] ?? 0);
 
-            $formaPagamento = $_POST['forma_pagamento'] ?? null;
-            if (!in_array($formaPagamento, MovimentacaoCaixa::FORMAS, true)) {
-                return;
-            }
-
-            $caixa  = $this->model('Caixa');
-            $aberto = $caixa->getCaixaAberto();
-            if (!$aberto) {
-                return;
-            }
-
-            $ordem = $ordemServico->getById($id);
-            $valor = (float) ($ordem['valor_total_os'] ?? 0);
-            if ($valor <= 0) {
-                return;
-            }
-
-            $movCaixa->registrar(
-                $aberto['id_caixa'],
-                'ENTRADA',
-                $valor,
-                $formaPagamento,
-                'OS',
-                'OS ' . ($ordem['numero_os'] ?? ('#' . $id)),
-                $_SESSION['user_id_usuario'] ?? null,
-                'OS',
-                $id
-            );
-        } catch (\Throwable $e) {
-            error_log('[concluir OS] Falha ao lançar recebimento no caixa: ' . $e->getMessage());
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || $id <= 0 || $parcelaId <= 0) {
+            header('Location: ./listOrdemServico');
+            exit;
         }
+
+        $pagamento = $this->model('OrdemServicoPagamento');
+
+        // Taxa do meio de pagamento (maquininha/operadora), registrada À PARTE do valor da parcela.
+        $taxa = trim((string) ($_POST['taxa'] ?? '')) !== '' ? Dinheiro::parse($_POST['taxa']) : null;
+
+        $erro = $pagamento->pagarParcela(
+            $parcelaId,
+            (string) ($_POST['forma_pagamento'] ?? ''),
+            $_SESSION['user_id_usuario'] ?? null,
+            $taxa
+        );
+
+        $destino = './pagamentoOrdemServico?id=' . $id
+            . ($erro ? '&erro=' . urlencode($erro) : '&ok=parcela');
+
+        header('Location: ' . $destino);
+        exit;
     }
 
-    /**
-     * Avisa o cliente por e-mail que o veículo está pronto para retirada.
-     * Falha de envio não pode impedir o fluxo principal de conclusão da OS
-     * (mesmo padrão usado na recuperação de senha em UserController).
-     */
-    private function notificarClienteVeiculoPronto($ordemServico, $id): void
-    {
-        try {
-            $ordem = $ordemServico->getById($id);
-            if (!$ordem || empty($ordem['cliente_id'])) {
-                return;
-            }
-
-            $cliente = $this->model('Cliente')->findById($ordem['cliente_id']);
-            if (!$cliente || empty($cliente['email'])) {
-                return;
-            }
-
-            $corpo = "<p>Olá, " . htmlspecialchars($cliente['nome']) . ".</p>"
-                . "<p>Seu veículo (placa " . htmlspecialchars($ordem['placa'] ?? '') . "), referente à OS nº "
-                . htmlspecialchars($ordem['numero_os'] ?? '') . ", está pronto para retirada.</p>";
-
-            // Link de rastreio público (sem login) — a página já existe e o
-            // token já é gerado pra tela de detalhe da OS; sem isso o cliente
-            // recebia o aviso e não tinha como ver o serviço pela internet.
-            $link = $this->urlAbsoluta('rastrear?token=' . $ordemServico->getOuCriarToken((int) $id));
-            $corpo .= '<p>Acompanhe os detalhes do serviço em: <a href="' . htmlspecialchars($link) . '">'
-                . htmlspecialchars($link) . '</a></p>';
-
-            require_once __DIR__ . '/../core/Mailer.php';
-            (new Mailer())->enviar($cliente['email'], 'Seu veículo está pronto - Mecanize', $corpo);
-        } catch (\Throwable $e) {
-            error_log('[OS concluir] Falha ao enviar notificação: ' . $e->getMessage());
-        }
-    }
 }

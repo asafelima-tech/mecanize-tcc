@@ -17,7 +17,30 @@ $totalAprovados      = $totalAprovados      ?? count($orcamentosAprovados);
 $totalRecusados      = $totalRecusados      ?? count($orcamentosRecusados);
 $valorTotalPendente  = $valorTotalPendente  ?? array_sum(array_column($orcamentosPendentes, 'valor_total'));
 $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovados) ? ($valorTotalPendente / max($totalPendentes, 1)) : 0);
+
+// Retorno das ações (OrcamentoController): sucesso=<codigo> | erro=<codigo>&detalhe=<texto do servidor>
+$flashOk = [
+    '1'          => 'Orçamento criado.',
+    'aprovado'   => 'Orçamento aprovado e ordem de serviço criada.',
+    'jaaprovado' => 'Este orçamento já estava aprovado — nada foi duplicado.',
+    'recusado'   => 'Orçamento recusado. Nenhuma OS foi criada.',
+    'jarecusado' => 'Este orçamento já estava recusado.',
+    'reaberto'   => 'Orçamento reaberto: voltou para pendentes.',
+    'enviado'    => 'Orçamento marcado como enviado ao cliente.',
+    'jaenviado'  => 'Este orçamento já tinha sido enviado.',
+][$_GET['sucesso'] ?? ''] ?? null;
+
+$flashErro = in_array($_GET['erro'] ?? '', ['aprovacao', 'recusa', 'reabertura', 'envio'], true)
+    ? ($_GET['detalhe'] ?? 'Não foi possível concluir a ação.')
+    : null;
 ?>
+
+<?php if ($flashOk !== null): ?>
+    <?php $alertaTipo = 'sucesso'; $alertaMensagem = $flashOk; require __DIR__ . '/../layout/_alerta.php'; ?>
+<?php endif; ?>
+<?php if ($flashErro !== null): ?>
+    <?php $alertaTipo = 'erro'; $alertaMensagem = $flashErro; require __DIR__ . '/../layout/_alerta.php'; ?>
+<?php endif; ?>
 
 <!-- ── Page Header ── -->
 <div class="page-header">
@@ -37,7 +60,7 @@ $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovad
 </div>
 
 <!-- ── Stat Cards ── -->
-<section class="stat-grid" style="grid-template-columns:repeat(4,1fr);">
+<section class="stat-grid">
 
     <div class="stat-card">
         <div class="stat-card__head">
@@ -438,6 +461,13 @@ $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovad
                                                 <circle cx="12" cy="12" r="3" />
                                             </svg>
                                         </a>
+                                        <form action="./reabrirOrcamento" method="POST" style="display:inline;"
+                                              onsubmit="return confirm('Reabrir este orçamento para negociar de novo? Ele volta para pendentes.')">
+                                            <input type="hidden" name="id_orcamento" value="<?= (int) $id ?>">
+                                            <button type="submit" class="row-action-btn" title="Reabrir orçamento">
+                                                <i class="bi bi-arrow-counterclockwise"></i>
+                                            </button>
+                                        </form>
                                     </div>
                                 </td>
                             </tr>
@@ -606,8 +636,10 @@ $ticketMedio         = $ticketMedio         ?? (($totalPendentes + $totalAprovad
         document.getElementById('h-aprovar-id').value = id;
         document.getElementById('aprovar-numero').textContent = numero;
         document.getElementById('aprovar-cliente').textContent = cliente;
-        if (assinaturaAprovar) assinaturaAprovar.limpar();
         document.getElementById('modal-aprovar').style.display = 'flex';
+        // Só depois do modal ficar visível (canvas começa display:none) —
+        // ajusta a resolução do canvas pro tamanho real na tela e já limpa.
+        if (assinaturaAprovar) assinaturaAprovar.redimensionar();
     }
 
     function fecharAprovar() {

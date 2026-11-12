@@ -1,18 +1,29 @@
-<?php /** Tabela de sessões de caixa (tela 15 do Design System). Espera: $caixas */ ?>
-<div class="table-wrap"><table class="table">
-  <thead><tr><th>#</th><th>Situação</th><th>Aberto por</th><th>Abertura</th><th class="num">Valor abertura</th><th>Fechado por</th><th>Fechamento</th><th class="num">Valor fechamento</th><th class="num">Diferença</th></tr></thead>
+<?php
+/**
+ * Tabela de sessões de caixa (histórico e últimas sessões no caixa atual). Espera: $caixas
+ * Cinco colunas em vez de nove: quem abriu e quando, quem fechou e quando, a gaveta (abertura → contado)
+ * e a conferência (sobra, falta ou conferido). Os dados são os mesmos de antes.
+ */
+?>
+<div class="table-wrap"><table class="table tabela-sessoes">
+  <thead><tr><th>Sessão</th><th>Abertura</th><th>Fechamento</th><th class="num">Gaveta</th><th class="num">Conferência</th></tr></thead>
   <tbody>
-    <?php foreach ($caixas as $c): $dif = $c['status'] === 'FECHADO' && $c['valor_esperado'] !== null ? (float) $c['valor_fechamento'] - (float) $c['valor_esperado'] : null; ?>
+    <?php foreach ($caixas as $c): $dif = $c['status'] === 'FECHADO' && $c['valor_esperado'] !== null ? (float) $c['valor_fechamento'] - (float) $c['valor_esperado'] : null; $aberto = $c['status'] === 'ABERTO'; ?>
       <tr data-href="./caixa-ver?id=<?= (int) $c['id'] ?>">
-        <td><a href="./caixa-ver?id=<?= (int) $c['id'] ?>">#<?= (int) $c['id'] ?></a></td>
-        <td><?= $c['status'] === 'ABERTO' ? '<span class="badge badge--success">Aberto</span>' : '<span class="badge badge--neutral">Fechado</span>' ?></td>
-        <td><?= e($c['aberto_por_nome'] ?? '—') ?></td>
-        <td class="secundario tabular"><?= date('d/m H:i', strtotime($c['aberto_em'])) ?></td>
-        <td class="num"><?= dinheiro($c['valor_abertura']) ?></td>
-        <td><?= e($c['fechado_por_nome'] ?? '—') ?></td>
-        <td class="secundario tabular"><?= $c['fechado_em'] ? date('d/m H:i', strtotime($c['fechado_em'])) : '—' ?></td>
-        <td class="num"><?= $c['valor_fechamento'] !== null ? dinheiro($c['valor_fechamento']) : '—' ?></td>
-        <td class="num"><?php if ($dif === null): ?>—<?php elseif (abs($dif) < 0.005): ?><strong><?= dinheiro(0) ?></strong><?php else: ?><strong><?= $dif > 0 ? '+ ' : '− ' ?><?= dinheiro(abs($dif)) ?></strong> <span class="secundario"><?= $dif > 0 ? 'sobra' : 'falta' ?></span><?php endif; ?></td>
+        <td>
+          <span class="tabela-sessoes__id">
+            <a href="./caixa-ver?id=<?= (int) $c['id'] ?>"><strong class="tabular">#<?= (int) $c['id'] ?></strong></a>
+            <?= $aberto ? '<span class="badge badge--success">Aberto</span>' : '<span class="badge badge--neutral">Fechado</span>' ?>
+          </span>
+        </td>
+        <td><?= e($c['aberto_por_nome'] ?? '—') ?><span class="sub tabular"><?= date('d/m/Y H:i', strtotime($c['aberto_em'])) ?></span></td>
+        <td><?php if ($aberto): ?><span class="secundario">Em uso</span><?php else: ?><?= e($c['fechado_por_nome'] ?? '—') ?><span class="sub tabular"><?= $c['fechado_em'] ? date('d/m/Y H:i', strtotime($c['fechado_em'])) : '—' ?></span><?php endif; ?></td>
+        <td class="num"><?= dinheiro($c['valor_abertura']) ?><span class="sub"><?= $c['valor_fechamento'] !== null ? 'contado ' . dinheiro($c['valor_fechamento']) : 'troco inicial' ?></span></td>
+        <td class="num">
+          <?php if ($dif === null): ?><span class="secundario">—</span>
+          <?php elseif (abs($dif) < 0.005): ?><span class="tabela-sessoes__ok"><?= icone('check', 13, 2.25) ?> Conferido</span>
+          <?php else: ?><strong><?= $dif > 0 ? '+ ' : '− ' ?><?= dinheiro(abs($dif)) ?></strong><span class="sub"><?= $dif > 0 ? 'sobra na gaveta' : 'falta na gaveta' ?></span><?php endif; ?>
+        </td>
       </tr>
     <?php endforeach; ?>
   </tbody>

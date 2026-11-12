@@ -4,6 +4,37 @@ class UserController extends Controller
 {
     const POR_PAGINA = 10;
 
+    /**
+     * Traduz o ?retorno= da tela de login numa rota interna segura.
+     *
+     * Só aceita rota registrada em config/routes.php: sem essa checagem, o
+     * parâmetro viraria um redirecionamento aberto — bastaria mandar pra
+     * alguém um link de login com retorno pra um site externo, e a pessoa
+     * sairia do sistema achando que continuava dentro dele.
+     */
+    private function destinoAposLogin(string $retorno): string
+    {
+        $retorno = trim($retorno);
+
+        if ($retorno === '') {
+            // Técnico não usa o dashboard financeiro — cai direto na própria
+            // central de trabalho.
+            return (($_SESSION['user_tipo'] ?? '') === 'TECNICO') ? './painelTecnico' : './home';
+        }
+
+        // Separa a rota dos parâmetros e valida só a rota.
+        $partes = explode('&', $retorno, 2);
+        $rota   = $partes[0];
+
+        require __DIR__ . '/../../config/routes.php';
+
+        if (!isset($routes[$rota])) {
+            return './home';
+        }
+
+        return './' . $retorno;
+    }
+
     public function login()
     {
         if (session_status() === PHP_SESSION_NONE) {
@@ -18,16 +49,15 @@ class UserController extends Controller
 
             $userData = ($email !== '' && $senha !== '') ? $userModel->getUserByEmail($email) : null;
 
-            // Checado ANTES de validar a senha: se a conta já está bloqueada por
-            // excesso de tentativas, nem vale a pena gastar um password_verify().
-            if ($userData && $userModel->estaBloqueado($userData)) {
-                $this->view('Usuarios/login', [
-                    'error' => 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em ' .
-                        $userModel->minutosBloqueioRestante($userData) . ' minuto(s).'
-                ]);
-                return;
-            }
-
+            // A SENHA É VALIDADA PRIMEIRO, de propósito.
+            //
+            // Antes o bloqueio e a conta inativa eram checados na frente, e a
+            // tela respondia coisas diferentes para "e-mail existe e está
+            // bloqueado" e "e-mail não existe" — quem estivesse sondando
+            // descobria quais e-mails têm conta aqui sem saber nenhuma senha.
+            // Agora quem erra a senha recebe sempre a mesma frase; as mensagens
+            // específicas só aparecem para quem provou ser dono da conta.
+            // Custo: um password_verify() a mais quando a conta está bloqueada.
             $senhaValida = $userData && password_verify($senha, $userData['senha']);
 
             if (!$senhaValida) {
@@ -43,6 +73,16 @@ class UserController extends Controller
                 return;
             }
 
+            // Senha certa: daqui para baixo quem está do outro lado é o dono da
+            // conta, então as mensagens podem ser específicas.
+            if ($userModel->estaBloqueado($userData)) {
+                $this->view('Usuarios/login', [
+                    'error' => 'Conta temporariamente bloqueada por excesso de tentativas. Tente novamente em ' .
+                        $userModel->minutosBloqueioRestante($userData) . ' minuto(s).'
+                ]);
+                return;
+            }
+
             $userModel->resetarTentativas($userData['id_usuario']);
 
             if ($userData['ativo'] != 1) {
@@ -52,28 +92,14 @@ class UserController extends Controller
                 return;
             }
 
-            if (($userData['tipo'] ?? '') === 'ATENDENTE') {
-                date_default_timezone_set('America/Sao_Paulo');
-
-                $diaSemana = (int) date('N');
-                $horaAtual = date('H:i');
-
-                $podeEntrar = false;
-
-                if ($diaSemana >= 1 && $diaSemana <= 5 && $horaAtual >= '07:00' && $horaAtual < '18:00') {
-                    $podeEntrar = true;
-                }
-
-                if ($diaSemana === 6 && $horaAtual >= '07:00' && $horaAtual < '13:00') {
-                    $podeEntrar = true;
-                }
-
-                if (!$podeEntrar) {
-                    $this->view('Usuarios/login', [
-                        'error' => 'Acesso permitido para atendentes de segunda a sexta das 07:00 às 18:00 e aos sábados das 07:00 às 13:00.'
-                    ]);
-                    return;
-                }
+            // Horário de acesso: regra SÓ do atendente (Sessao::foraDoHorario
+            // devolve false para ADMIN e TÉCNICO). A mesma função é reforçada a
+            // cada requisição no public/index.php.
+            if (Sessao::foraDoHorario($userData['tipo'] ?? null)) {
+                $this->view('Usuarios/login', [
+                    'error' => 'Acesso fora do horário permitido. ' . Sessao::MENSAGEM_JANELA
+                ]);
+                return;
             }
 
             // Gera um novo ID de sessão ao autenticar — sem isso, um ID de
@@ -83,20 +109,45 @@ class UserController extends Controller
 
             $_SESSION['logged'] = true;
 
-            foreach ($userData as $key => $value) {
-                $_SESSION["user_$key"] = $value;
-            }
+            // Campo a campo, e não um foreach sobre o SELECT *.
+            //
+            // Do jeito anterior, o HASH DA SENHA e o controle de bloqueio
+            // iam parar no arquivo de sessão do servidor, onde não têm
+            // nenhuma utilidade: qualquer leitura desses arquivos (backup,
+            // pasta temporária compartilhada, outro site no mesmo host)
+            // entregava material para quebrar a senha offline.
+            $_SESSION['user_id_usuario']    = $userData['id_usuario'];
+            $_SESSION['user_nome']          = $userData['nome'];
+            $_SESSION['user_email']         = $userData['email'];
+            $_SESSION['user_telefone']      = $userData['telefone'] ?? null;
+            $_SESSION['user_tipo']          = $userData['tipo'];
+            $_SESSION['user_ativo']         = $userData['ativo'];
 
-            header('Location: ./home');
+            // Carimbo usado para revalidar a conta a cada requisição — ver o
+            // bloco de sessão em public/index.php.
+            $_SESSION['user_atualizado_em'] = $userData['atualizado_em'] ?? null;
+            $_SESSION['ultimo_acesso']      = time();
+
+            // Volta pra onde a pessoa tentou ir antes de cair na tela de login,
+            // em vez de largar no Início e obrigar a navegar tudo de novo.
+            header('Location: ' . $this->destinoAposLogin($_POST['retorno'] ?? ''));
             exit;
         }
 
-        // Aviso exibido quando o atendente é desconectado por fim do expediente.
-        $aviso = !empty($_GET['expirado'])
-            ? 'Seu horário de acesso foi encerrado. Atendentes têm acesso de segunda a sexta das 07:00 às 18:00 e aos sábados das 07:00 às 13:00.'
-            : null;
+        // Cada saída forçada chega com o SEU motivo (?motivo=...) e a mensagem
+        // vem de Sessao::mensagem() — aqui ninguém deduz um motivo a partir de
+        // outro. "Sair" não traz motivo: login limpo, sem aviso. O parâmetro
+        // antigo ?expirado= era usado para tudo e a tela o lia como "horário":
+        // links antigos agora viram "sessão inválida", nunca "horário".
+        $aviso = Sessao::mensagem($_GET['motivo'] ?? null)
+            ?? (!empty($_GET['expirado']) ? Sessao::mensagem(Sessao::SESSAO_INVALIDA) : null);
 
-        $this->view('Usuarios/login', ['aviso' => $aviso]);
+        // Carregado no formulário pra sobreviver ao POST — é o que leva a
+        // pessoa de volta pra tela que ela tentou abrir antes de logar.
+        $this->view('Usuarios/login', [
+            'aviso'   => $aviso,
+            'retorno' => $_GET['retorno'] ?? '',
+        ]);
     }
 
     public function logout()
@@ -106,30 +157,46 @@ class UserController extends Controller
         }
 
         $usuarioId  = $_SESSION['user_id_usuario'] ?? null;
-        $expirado   = !empty($_GET['expirado']);
+        $tipo       = $_SESSION['user_tipo'] ?? null;
         $confirmado = !empty($_GET['confirmado']);
 
-        // Logout voluntário com caixa aberto e sem confirmação: manda para a
-        // tela de fechamento em vez de sair direto. O logout forçado por fim
-        // de expediente (expirado=1) NUNCA passa por essa trava — o usuário
-        // já não está mais ali para confirmar nada.
-        if ($usuarioId && !$expirado && !$confirmado) {
+        // Logout FORÇADO por uma regra do sistema (inatividade, horário, conta…)
+        // traz o motivo guardado na SESSÃO por Sessao::encerrar() — nunca da URL,
+        // onde qualquer um digitaria `?expirado=1` para pular o fechamento do
+        // caixa. Sem motivo na sessão, é o logout manual ("Sair").
+        $motivo  = Sessao::motivoPendente();
+        $forcado = $motivo !== null;
+
+        // O caixa é uma gaveta só para a oficina, mas responde por ela quem a
+        // abriu. Sair do sistema só mexe no caixa de QUEM É O DONO dele: antes,
+        // o logout de qualquer usuário fechava a gaveta de outro — e o técnico,
+        // empurrado para a tela de fechamento, levava um 403 e não conseguia sair.
+        $ehDono = false;
+
+        if ($usuarioId) {
             try {
-                $caixa = $this->model('Caixa');
-                if ($caixa->getCaixaAberto()) {
-                    header('Location: ./fecharCaixa?logout=1');
-                    exit;
-                }
+                $ehDono = $this->model('Caixa')->ehDonoDoCaixaAberto($usuarioId);
             } catch (\Throwable $e) {
                 // Falha na checagem não pode impedir o logout.
             }
         }
 
-        // Se houver caixa aberto, ele é fechado automaticamente ao sair,
-        // registrando o dinheiro apurado na gaveta (abertura + entradas em
-        // dinheiro − saídas), calculado a partir das movimentações da sessão.
-        // Uma eventual falha aqui não pode impedir o logout.
-        if ($usuarioId) {
+        // Logout voluntário do dono, sem confirmação: manda para a tela de
+        // fechamento em vez de sair direto. O logout forçado NUNCA passa por
+        // essa trava — o usuário já não está mais ali para confirmar nada.
+        if ($ehDono && !$forcado && !$confirmado) {
+            header('Location: ./fecharCaixa?logout=1');
+            exit;
+        }
+
+        // O caixa do dono é fechado automaticamente ao sair, registrando o
+        // dinheiro apurado na gaveta (abertura + entradas em dinheiro −
+        // saídas), calculado a partir das movimentações da sessão. Uma queda
+        // forçada do ADMIN NÃO fecha o caixa (o ADMIN só visita). Uma eventual
+        // falha aqui não pode impedir o logout.
+        $fechaCaixa = $ehDono && !($forcado && $tipo === 'ADMIN');
+
+        if ($fechaCaixa) {
             try {
                 $caixa  = $this->model('Caixa');
                 $aberto = $caixa->getCaixaAberto();
@@ -137,12 +204,18 @@ class UserController extends Controller
                 if ($aberto) {
                     $resumo = $this->model('MovimentacaoCaixa')->resumoSessao($aberto['id_caixa']);
 
+                    $observacoes = [
+                        Sessao::INATIVIDADE      => 'Fechado automaticamente — sessão expirada por inatividade',
+                        Sessao::HORARIO          => 'Fechado automaticamente ao expirar o horário de acesso',
+                        Sessao::CONTA_ALTERADA   => 'Fechado automaticamente — sessão encerrada por alteração na conta',
+                        Sessao::CONTA_DESATIVADA => 'Fechado automaticamente — conta desativada',
+                        Sessao::SESSAO_INVALIDA  => 'Fechado automaticamente — sessão inválida',
+                    ];
+
                     $caixa->fechar(
                         $usuarioId,
                         $resumo['caixa_atual'],
-                        $expirado
-                            ? 'Fechado automaticamente ao expirar o horário de acesso'
-                            : 'Fechado automaticamente ao sair do sistema',
+                        $observacoes[$motivo] ?? 'Fechado automaticamente ao sair do sistema',
                         $resumo['caixa_atual']
                     );
                 }
@@ -154,13 +227,13 @@ class UserController extends Controller
         session_unset();
         session_destroy();
 
-        header('Location: ' . ($expirado ? './login?expirado=1' : './login'));
+        header('Location: ' . ($forcado ? './login?motivo=' . urlencode($motivo) : './login'));
         exit;
     }
 
     public function novos30dList()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         header('Content-Type: application/json; charset=utf-8');
 
@@ -180,7 +253,7 @@ class UserController extends Controller
      */
     public function perfilJson()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         header('Content-Type: application/json; charset=utf-8');
 
@@ -207,7 +280,7 @@ class UserController extends Controller
 
     public function list()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $usuario = $this->model('User');
 
@@ -295,7 +368,7 @@ class UserController extends Controller
      */
     public function exportar()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $usuario = $this->model('User');
 
@@ -349,30 +422,59 @@ class UserController extends Controller
     }
 
     /**
-     * Ativa/desativa um usuário (chamado pelo clique no badge de status
-     * da listagem: href="./toggleStatusUsuario&id=X").
+     * Ativa/desativa um usuário (clique no badge de status da listagem, que
+     * agora é um formulário POST).
      */
     public function toggleStatus()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
-        $id = $_GET['id'] ?? null;
-
-        if ($id !== null && ctype_digit((string) $id)) {
-            $usuario = $this->model('User');
-            $usuario->toggleStatus((int) $id);
+        // POST em vez de GET: como link, bastava a URL ser carregada de
+        // qualquer lugar — um <img> numa página externa, por exemplo — para
+        // desativar um usuário na sessão de um ADMIN logado. O gate de CSRF
+        // do sistema só cobre POST.
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id'])) {
+            header('Location: ./listUsuarios');
+            exit;
         }
 
-        // Volta pra listagem preservando busca/tipo/status/página em que o
-        // usuário estava, em vez de sempre resetar pra página 1 sem filtro.
-        $destino = $_SERVER['HTTP_REFERER'] ?? './listUsuarios';
-        header('Location: ' . $destino);
+        if (ctype_digit((string) $_POST['id'])) {
+            $usuario = $this->model('User');
+            $usuario->toggleStatus((int) $_POST['id']);
+        }
+
+        header('Location: ' . $this->urlListaUsuarios());
         exit;
+    }
+
+    /**
+     * Volta para a listagem preservando aba/busca/tipo/página.
+     *
+     * Os valores vêm do campo `retorno` do próprio formulário, e só as chaves
+     * conhecidas são remontadas. Antes isso era feito com $_SERVER['HTTP_REFERER'],
+     * que é enviado pelo cliente: bastava forjar o cabeçalho para o sistema
+     * redirecionar a pessoa para qualquer endereço externo depois da ação.
+     */
+    private function urlListaUsuarios(): string
+    {
+        parse_str($_POST['retorno'] ?? '', $params);
+
+        $query = array_filter(
+            [
+                'aba'    => $params['aba']    ?? '',
+                'busca'  => $params['busca']  ?? '',
+                'tipo'   => $params['tipo']   ?? '',
+                'pagina' => $params['pagina'] ?? '',
+            ],
+            fn($v) => is_string($v) && trim($v) !== ''
+        );
+
+        return './listUsuarios' . ($query ? '?' . http_build_query($query) : '');
     }
 
     public function visualizar()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         if (empty($_GET['id'])) {
             header('Location: ./listUsuarios');
@@ -386,8 +488,7 @@ class UserController extends Controller
         ];
 
         if (!$dados['dados_usuario']) {
-            header('Location: ./listUsuarios');
-            exit;
+            $this->naoEncontrado('Usuário', './listUsuarios');
         }
 
         $this->view('Usuarios/viewUsuario', $dados);
@@ -395,7 +496,7 @@ class UserController extends Controller
 
     public function save()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $usuario = $this->model('User');
 
@@ -423,7 +524,21 @@ class UserController extends Controller
                 return;
             }
 
-            if ($usuario->create($_POST)) {
+            $novoId = $usuario->create($_POST);
+
+            if ($novoId) {
+                // Regra de remuneração é um cadastro à parte (tabela própria) —
+                // uma falha aqui não pode fazer parecer que o usuário não foi
+                // criado. Manda pra edição do técnico recém-criado com o erro,
+                // em vez de perder os dados básicos já salvos.
+                if (($_POST['tipo'] ?? '') === 'TECNICO' && !empty($_POST['remuneracao_tipo'])) {
+                    $erroRegra = $this->salvarRegraRemuneracao($novoId, $_POST);
+                    if ($erroRegra !== true) {
+                        header('Location: ./editUsuario?id=' . $novoId . '&erro=' . urlencode($erroRegra));
+                        exit;
+                    }
+                }
+
                 header('Location: ./listUsuarios');
                 exit;
             }
@@ -440,7 +555,7 @@ class UserController extends Controller
 
     public function edit()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $usuario = $this->model('User');
 
@@ -455,8 +570,7 @@ class UserController extends Controller
             $usuarioAtual = $usuario->findById($id);
 
             if (!$usuarioAtual) {
-                header('Location: ./listUsuarios');
-                exit;
+                $this->naoEncontrado('Usuário', './listUsuarios');
             }
 
             $validator = new Validator($_POST);
@@ -499,6 +613,18 @@ class UserController extends Controller
             }
 
             if ($usuario->update($dados)) {
+                if ($dados['tipo'] === 'TECNICO') {
+                    $erroRegra = $this->salvarRegraRemuneracao((int) $id, $_POST);
+                    if ($erroRegra !== true) {
+                        $this->view('Usuarios/editUsuario', [
+                            'usuario' => $dados,
+                            'regra'   => array_merge(['tipo' => $_POST['remuneracao_tipo'] ?? ''], $_POST),
+                            'error'   => $erroRegra,
+                        ]);
+                        return;
+                    }
+                }
+
                 header('Location: ./listUsuarios');
                 exit;
             }
@@ -520,23 +646,57 @@ class UserController extends Controller
         ];
 
         if (!$dados['usuario']) {
-            header('Location: ./listUsuarios');
-            exit;
+            $this->naoEncontrado('Usuário', './listUsuarios');
+        }
+
+        if ($dados['usuario']['tipo'] === 'TECNICO') {
+            $dados['regra'] = $this->model('TecnicoRemuneracao')->buscarRegraAtiva((int) $_GET['id']);
+        }
+
+        if (!empty($_GET['erro'])) {
+            $dados['error'] = $_GET['erro'];
         }
 
         $this->view('Usuarios/editUsuario', $dados);
     }
 
+    /**
+     * Grava a regra de remuneração de um técnico a partir dos campos do
+     * formulário de usuário (prefixo `remuneracao_`, ver
+     * Usuarios/saveUsuario.php e editUsuario.php). Devolve true, ou a
+     * mensagem de erro do model pra mostrar de volta no formulário.
+     */
+    private function salvarRegraRemuneracao(int $tecnicoId, array $post)
+    {
+        $categorias = [];
+        foreach (($post['remuneracao_categoria'] ?? []) as $i => $categoria) {
+            $categorias[] = [
+                'categoria'  => $categoria,
+                'percentual' => $post['remuneracao_categoria_pct'][$i] ?? null,
+            ];
+        }
+
+        return $this->model('TecnicoRemuneracao')->salvar($tecnicoId, [
+            'tipo'                 => $post['remuneracao_tipo'] ?? '',
+            'percentual'           => $post['remuneracao_percentual'] ?? null,
+            'valor_fixo'           => $post['remuneracao_valor_fixo'] ?? null,
+            'comissao_base_extra'  => $post['remuneracao_base_extra'] ?? null,
+            'observacoes'          => $post['remuneracao_observacoes'] ?? null,
+            'categorias'           => $categorias,
+        ]);
+    }
+
     public function delete()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
-        if (empty($_GET['id'])) {
+        // Exclusão só por POST — ver o comentário em toggleStatus().
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id'])) {
             header('Location: ./listUsuarios');
             exit;
         }
 
-        $id = (int) $_GET['id'];
+        $id = (int) $_POST['id'];
 
         // Excluir a si mesmo deixaria a sessão apontando pra um usuário que
         // não existe mais — todo request seguinte quebraria.
@@ -597,7 +757,7 @@ class UserController extends Controller
                 'email'      => trim($_POST['email'] ?? ''),
                 'telefone'   => trim($_POST['telefone'] ?? ''),
                 // 'tipo' NUNCA vem do próprio formulário de perfil — só o admin,
-                // via UserController::edit() (que já exige requireRole(['ADMIN'])),
+                // via UserController::edit() (que já exige requireRole(Permissao::PAPEIS_ADMIN)),
                 // pode mudar o papel de alguém. Ignorar qualquer 'tipo' postado
                 // aqui evita que o próprio usuário se promova a ADMIN.
                 'tipo'       => $usuarioAtual['tipo'],
@@ -700,12 +860,19 @@ class UserController extends Controller
 
         $erro = null;
 
+        // A mesma régua da redefinição por token e do cadastro de usuário:
+        // trocar a própria senha também aceitava senha de um caractere.
+        $validator = (new Validator($_POST))
+            ->required('nova_senha', 'Nova senha')
+            ->min('nova_senha', 6, 'Nova senha')
+            ->matches('nova_senha', 'confirmar_senha', 'Confirmação de senha');
+
         if ($senhaAtual === '' || $novaSenha === '' || $confirmar === '') {
             $erro = 'Preencha todos os campos de senha.';
         } elseif (!password_verify($senhaAtual, $usuario['senha'])) {
             $erro = 'Senha atual incorreta.';
-        } elseif ($novaSenha !== $confirmar) {
-            $erro = 'A nova senha e a confirmação não coincidem.';
+        } elseif ($validator->fails()) {
+            $erro = $validator->firstError();
         }
 
         if ($erro) {
@@ -763,6 +930,18 @@ class UserController extends Controller
             if ($usuario && $usuario['ativo'] == 1) {
                 try {
                     $reset = $this->model('PasswordReset');
+
+                    // Teto de 3 pedidos por hora e por conta: o formulário é
+                    // público, então sem isso qualquer um dispara e-mail sem
+                    // limite na caixa de um usuário cadastrado. Passando do
+                    // teto, o envio é pulado em silêncio — a tela responde a
+                    // mesma mensagem de sempre, que já é idêntica para e-mail
+                    // existente e inexistente, então nada é revelado.
+                    if ($reset->pedidosNaUltimaHora((int) $usuario['id_usuario']) >= 3) {
+                        $this->view('Usuarios/recuperarSenha', ['mensagem' => $mensagem]);
+                        return;
+                    }
+
                     $token = $reset->criar($usuario['id_usuario']);
 
                     $link = $this->urlAbsoluta('redefinir-senha?token=' . $token);
@@ -816,13 +995,20 @@ class UserController extends Controller
         }
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-            $novaSenha = $_POST['nova_senha']      ?? '';
-            $confirmar = $_POST['confirmar_senha'] ?? '';
+            $novaSenha = $_POST['nova_senha'] ?? '';
 
-            if ($novaSenha === '' || $novaSenha !== $confirmar) {
+            // Mesma régua de save() e edit(): sem isto, a redefinição por link
+            // de e-mail era o caminho para deixar a conta com uma senha de um
+            // caractere — justamente o fluxo usado por quem já perdeu o acesso.
+            $validator = (new Validator($_POST))
+                ->required('nova_senha', 'Nova senha')
+                ->min('nova_senha', 6, 'Nova senha')
+                ->matches('nova_senha', 'confirmar_senha', 'Confirmação de senha');
+
+            if ($validator->fails()) {
                 $this->view('Usuarios/redefinirSenha', [
                     'token' => $token,
-                    'error' => 'As senhas não coincidem ou estão vazias.',
+                    'error' => $validator->firstError(),
                 ]);
                 return;
             }

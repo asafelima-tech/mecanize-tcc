@@ -15,6 +15,15 @@ class PasswordReset
      */
     public function criar($usuarioId, $minutosValidade = 30)
     {
+        // Pedir um link novo invalida os anteriores. Sem isto, cada pedido
+        // deixava mais um token vivo por 30 minutos: um link antigo que tivesse
+        // vazado (caixa de e-mail alheia, histórico, encaminhamento) continuava
+        // abrindo a conta. É também o que a pessoa espera ao pedir outro link.
+        $limpeza = $this->conn->prepare(
+            "UPDATE password_resets SET usado = 1 WHERE usuario_id = ? AND usado = 0"
+        );
+        $limpeza->execute([$usuarioId]);
+
         $token = bin2hex(random_bytes(32));
 
         $sql = "INSERT INTO password_resets (usuario_id, token, expira_em)
@@ -44,6 +53,24 @@ class PasswordReset
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([':token' => $token]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
+    }
+
+    /**
+     * Quantos pedidos de recuperação essa conta fez na última hora.
+     *
+     * Serve para não transformar o formulário público de "esqueci a senha" num
+     * botão de spam contra a caixa de e-mail de qualquer usuário cadastrado.
+     */
+    public function pedidosNaUltimaHora(int $usuarioId): int
+    {
+        $sql = "SELECT COUNT(*) FROM password_resets
+                WHERE usuario_id = ?
+                  AND criado_em >= NOW() - INTERVAL 1 HOUR";
+
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$usuarioId]);
+
+        return (int) $stmt->fetchColumn();
     }
 
     /**

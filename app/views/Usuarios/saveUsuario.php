@@ -2,6 +2,7 @@
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
+require_once __DIR__ . '/../../models/TecnicoRemuneracao.php';
 ?>
 
 <!-- MODAL OVERLAY -->
@@ -44,6 +45,7 @@ if (session_status() === PHP_SESSION_NONE) {
 
         <!-- FORM envolve BODY + FOOTER -->
         <form action="./saveUsuario" method="POST" id="formCriarUsuario">
+            <?= csrf_field() ?>
 
             <!-- BODY -->
             <div class="modal__body">
@@ -165,7 +167,7 @@ if (session_status() === PHP_SESSION_NONE) {
                                 <span style="color:var(--color-danger)">*</span>
                             </label>
 
-                            <select name="tipo" required>
+                            <select name="tipo" id="campo-tipo" required onchange="alternarSecaoRemuneracao()">
                                 <option value="ADMIN">Administrador</option>
                                 <option value="TECNICO">Técnico</option>
                                 <option value="ATENDENTE" selected>Atendente</option>
@@ -225,6 +227,22 @@ if (session_status() === PHP_SESSION_NONE) {
 
                     </div>
 
+                </div>
+
+                <!-- ③ REGRA DE REMUNERAÇÃO (só pra TÉCNICO) -->
+                <div class="form-section" id="secao-remuneracao" style="display:none;margin-bottom:0;">
+
+                    <div class="form-section__title">
+                        <span class="ico-wrap ico" style="
+                            width:22px;height:22px;background: var(--color-primary-soft);
+                            color: var(--color-primary);border-radius: var(--radius-sm);
+                            display:inline-flex;align-items:center;justify-content:center;
+                            font-size:11px;font-weight:700;
+                        ">③</span>
+                        Regra de Remuneração
+                    </div>
+
+                    <?php require __DIR__ . '/_camposRegraRemuneracao.php'; ?>
                 </div>
 
             </div><!-- fecha modal__body -->

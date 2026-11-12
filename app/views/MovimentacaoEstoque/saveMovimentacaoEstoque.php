@@ -1,4 +1,6 @@
 <?php
+// Formas de pagamento vêm do model — a tela não repete a lista.
+require_once __DIR__ . '/../../models/MovimentacaoCaixa.php';
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
@@ -172,7 +174,7 @@ if (!isset($produtos)) {
                                 </label>
 
                                 <label class="toggle-option <?= (($old['tipo'] ?? '') === 'SAIDA') ? 'is-active' : '' ?>"
-                                    style="flex:1; justify-content:center; border-radius:0 var(--radius-sm) var(--radius-sm) 0; border-left:none;">
+                                    style="flex:1; justify-content:center; border-radius:0; border-left:none;">
                                     <input
                                         type="radio"
                                         name="tipo"
@@ -186,6 +188,23 @@ if (!isset($produtos)) {
                                         <polyline points="19 12 12 19 5 12" />
                                     </svg>
                                     Saída
+                                </label>
+
+                                <label class="toggle-option <?= (($old['tipo'] ?? '') === 'AJUSTE') ? 'is-active' : '' ?>"
+                                    style="flex:1; justify-content:center; border-radius:0 var(--radius-sm) var(--radius-sm) 0; border-left:none;"
+                                    title="Correção de contagem: inventário, perda, avaria">
+                                    <input
+                                        type="radio"
+                                        name="tipo"
+                                        value="AJUSTE"
+                                        <?= (($old['tipo'] ?? '') === 'AJUSTE') ? 'checked' : '' ?>
+                                        required>
+                                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
+                                        stroke="currentColor" stroke-width="2.5"
+                                        stroke-linecap="round" stroke-linejoin="round">
+                                        <path d="M12 20h9" /><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4Z" />
+                                    </svg>
+                                    Ajuste
                                 </label>
 
                             </div>
@@ -203,6 +222,51 @@ if (!isset($produtos)) {
                                 value="<?= htmlspecialchars($old['quantidade'] ?? '') ?>"
                                 placeholder="0"
                                 required>
+                        </div>
+
+                        <!-- Ajuste: correção de contagem. Precisa dizer se o estoque sobe ou desce e
+                             por quê — o histórico não é editável, então o motivo é parte do registro. -->
+                        <div class="form-field" id="wrap-sentido" style="display:none;">
+                            <label>O estoque deve <span style="color:var(--color-danger)">*</span></label>
+                            <select name="sentido" id="sentido" data-no-ts>
+                                <option value="">Selecione...</option>
+                                <option value="+" <?= (($old['sentido'] ?? '') === '+') ? 'selected' : '' ?>>Aumentar (achei mais peças)</option>
+                                <option value="-" <?= (($old['sentido'] ?? '') === '-') ? 'selected' : '' ?>>Diminuir (perda, avaria, contagem menor)</option>
+                            </select>
+                        </div>
+
+                        <div class="form-field" id="wrap-justificativa" style="display:none;grid-column:1 / -1;">
+                            <label>Motivo do ajuste <span style="color:var(--color-danger)">*</span></label>
+                            <textarea name="justificativa" id="justificativa" rows="2" maxlength="255"
+                                placeholder="Ex.: contagem de inventário de 08/10; caixa avariada no transporte."><?= htmlspecialchars($old['justificativa'] ?? '') ?></textarea>
+                        </div>
+
+                        <!-- Pagamento da compra: só faz sentido na ENTRADA (compra de
+                             peça). O JS no fim do arquivo esconde o bloco na saída. -->
+                        <div class="form-field" id="wrap-forma-pagamento">
+                            <label>Forma de pagamento</label>
+                            <select name="forma_pagamento" id="forma_pagamento">
+                                <option value="">Não informar</option>
+                                <?php foreach (MovimentacaoCaixa::FORMAS as $forma): ?>
+                                    <option value="<?= $forma ?>"
+                                        <?= (($old['forma_pagamento'] ?? '') === $forma) ? 'selected' : '' ?>>
+                                        <?= MovimentacaoCaixa::rotuloForma($forma) ?>
+                                    </option>
+                                <?php endforeach; ?>
+                            </select>
+                        </div>
+
+                        <div class="form-field" id="wrap-lancar-caixa">
+                            <label>Financeiro</label>
+                            <label style="display:flex;align-items:center;gap:8px;font-size:13px;font-weight:500;margin-top:6px;">
+                                <input type="checkbox" name="lancar_no_caixa" value="1"
+                                    <?= (!isset($old['tipo']) || ($old['lancar_no_caixa'] ?? '1')) ? 'checked' : '' ?>
+                                    style="width:16px;height:16px;">
+                                Lançar a compra como saída no caixa
+                            </label>
+                            <small style="display:block;margin-top:6px;font-size:11px;color:var(--color-text-muted);">
+                                Desmarque se essa compra já foi lançada no caixa à mão — assim ela não entra duas vezes.
+                            </small>
                         </div>
 
                     </div>
@@ -303,7 +367,9 @@ if (!isset($produtos)) {
         const qtd = parseFloat(document.getElementById('quantidade').value) || 0;
         const estoque = estoqueSelecionado();
 
-        if (tipo === 'SAIDA' && estoque !== null && qtd > estoque) {
+        const retira = tipo === 'SAIDA' || (tipo === 'AJUSTE' && document.getElementById('sentido').value === '-');
+
+        if (retira && estoque !== null && qtd > estoque) {
             e.preventDefault();
             alert('Não é possível registrar uma saída de ' + qtd +
                 ' unidade(s): o estoque atual é de apenas ' + estoque + '.');
@@ -322,4 +388,23 @@ if (!isset($produtos)) {
     document.getElementById('modalNovaMovimentacao').addEventListener('click', function(e) {
         if (e.target === this) window.location.href = './listMovimentacaoEstoque';
     });
+</script>
+<script>
+    // Pagamento só existe na compra: numa saída de estoque não há dinheiro
+    // saindo do caixa, então os campos somem em vez de ficarem inertes.
+    (function () {
+        const blocos = ['wrap-forma-pagamento', 'wrap-lancar-caixa'].map(id => document.getElementById(id));
+        const blocosAjuste = ['wrap-sentido', 'wrap-justificativa'].map(id => document.getElementById(id));
+
+        function aplicar() {
+            const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
+            blocos.forEach(bloco => { if (bloco) bloco.style.display = tipo === 'ENTRADA' ? '' : 'none'; });
+            blocosAjuste.forEach(bloco => { if (bloco) bloco.style.display = tipo === 'AJUSTE' ? '' : 'none'; });
+            document.getElementById('sentido').required = tipo === 'AJUSTE';
+            document.getElementById('justificativa').required = tipo === 'AJUSTE';
+        }
+
+        document.querySelectorAll('input[name="tipo"]').forEach(radio => radio.addEventListener('change', aplicar));
+        aplicar();
+    })();
 </script>

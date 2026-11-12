@@ -12,9 +12,13 @@
 | $produtos       — array de produtos
 | $servicos       — array de serviços
 | $itens_os       — array de itens já salvos (produtos + mão de obra)
-| $mao_obra_os    — array com tecnico_id e valor_mao_obra
+| $tecnicos_os    — array de técnicos atribuídos à OS (OrdemServico::getTecnicosDaOS)
 |--------------------------------------------------------------------------
 */
+
+// Excluir OS é DELETE definitivo e restrito a ADMIN (OrdemServicoController).
+// Esconder o botão é coerência visual; o requireRole() é o que impede a ação.
+$podeExcluir = ($_SESSION['user_tipo'] ?? '') === 'ADMIN';
 ?>
 
 <div class="page-header">
@@ -33,10 +37,12 @@
     <div class="page-header__actions">
         <?php
         $statusMap = [
-            'ABERTA'          => ['label' => 'Aberta',           'color' => 'var(--color-info)',    'bg' => 'var(--color-info-soft)'],
-            'EM_ANDAMENTO'    => ['label' => 'Em Andamento',     'color' => 'var(--color-warning)', 'bg' => 'var(--color-warning-soft)'],
-            'AGUARDANDO_PECA' => ['label' => 'Aguardando Peça',  'color' => 'var(--color-warning)', 'bg' => 'var(--color-warning-soft)'],
-            'CONCLUIDA'       => ['label' => 'Concluída',        'color' => 'var(--color-success)', 'bg' => 'var(--color-success-soft)'],
+            'ABERTA'          => ['label' => OrdemServico::rotuloStatus('ABERTA'),          'color' => 'var(--color-info)',    'bg' => 'var(--color-info-soft)'],
+            'EM_ANDAMENTO'    => ['label' => OrdemServico::rotuloStatus('EM_ANDAMENTO'),    'color' => 'var(--color-warning)', 'bg' => 'var(--color-warning-soft)'],
+            'AGUARDANDO_PECA' => ['label' => OrdemServico::rotuloStatus('AGUARDANDO_PECA'), 'color' => 'var(--color-warning)', 'bg' => 'var(--color-warning-soft)'],
+            'AGUARDANDO_CONFERENCIA' => ['label' => OrdemServico::rotuloStatus('AGUARDANDO_CONFERENCIA'), 'color' => '#4b5563', 'bg' => '#6c757d1a'],
+            'AGUARDANDO_RETIRADA'    => ['label' => OrdemServico::rotuloStatus('AGUARDANDO_RETIRADA'),    'color' => 'var(--color-info)', 'bg' => 'var(--color-info-soft)'],
+            'CONCLUIDA'       => ['label' => OrdemServico::rotuloStatus('CONCLUIDA'),       'color' => 'var(--color-success)', 'bg' => 'var(--color-success-soft)'],
             'CANCELADA'       => ['label' => 'Cancelada',        'color' => 'var(--color-danger)',  'bg' => 'var(--color-danger-soft)'],
         ];
         $currentStatus = $ordem_servico['status'] ?? 'ABERTA';
@@ -79,14 +85,24 @@
                     </div>
 
                     <div class="form-field">
-                        <label>Status</label>
-                        <select name="status" required>
-                            <option value="ABERTA" <?= ($ordem_servico['status'] ?? '') == 'ABERTA'          ? 'selected' : '' ?>>Aberta</option>
-                            <option value="EM_ANDAMENTO" <?= ($ordem_servico['status'] ?? '') == 'EM_ANDAMENTO'    ? 'selected' : '' ?>>Em Andamento</option>
-                            <option value="AGUARDANDO_PECA" <?= ($ordem_servico['status'] ?? '') == 'AGUARDANDO_PECA' ? 'selected' : '' ?>>Aguardando Peça</option>
-                            <option value="CONCLUIDA" <?= ($ordem_servico['status'] ?? '') == 'CONCLUIDA'       ? 'selected' : '' ?>>Concluída</option>
-                            <option value="CANCELADA" <?= ($ordem_servico['status'] ?? '') == 'CANCELADA'       ? 'selected' : '' ?>>Cancelada</option>
-                        </select>
+                        <label>Etapa</label>
+                        <?php
+                        $etapaAtual   = $ordem_servico['status'] ?? 'ABERTA';
+                        $etapaEditavel = in_array($etapaAtual, OrdemServico::STATUS_TECNICO, true);
+                        ?>
+                        <?php if ($etapaEditavel): ?>
+                            <select name="status" required>
+                                <?php foreach (OrdemServico::STATUS_TECNICO as $etapa): ?>
+                                    <option value="<?= $etapa ?>" <?= $etapaAtual === $etapa ? 'selected' : '' ?>><?= OrdemServico::rotuloStatus($etapa) ?></option>
+                                <?php endforeach; ?>
+                            </select>
+                        <?php else: ?>
+                            <!-- Conferência, retirada, entrega e cancelamento são etapas com regras
+                                 próprias (quem pode, motivo, efeitos): têm botão na tela da OS. -->
+                            <input type="hidden" name="status" value="<?= htmlspecialchars($etapaAtual) ?>">
+                            <input type="text" value="<?= htmlspecialchars(OrdemServico::rotuloStatus($etapaAtual)) ?>" readonly disabled>
+                            <small style="color:var(--color-text-muted);font-size:11px;">Esta etapa muda pelos botões da tela da OS.</small>
+                        <?php endif; ?>
                     </div>
 
                     <div class="form-field">
@@ -96,8 +112,9 @@
                     </div>
 
                     <div class="form-field">
-                        <label>Data de Conclusão</label>
-                        <input type="datetime-local" name="data_conclusao"
+                        <label>Data de Entrega</label>
+                        <!-- Só leitura: a data é carimbada pelo sistema quando o veículo é entregue. -->
+                        <input type="datetime-local" readonly disabled
                             value="<?= !empty($ordem_servico['data_conclusao']) ? date('Y-m-d\TH:i', strtotime($ordem_servico['data_conclusao'])) : '' ?>">
                     </div>
 
@@ -153,61 +170,50 @@
             </div>
         </div>
 
-        <!-- 3. MECÂNICO -->
+        <!-- 3. TÉCNICOS RESPONSÁVEIS -->
         <div class="card">
             <div class="card__header">
                 <div class="card__title">
                     <span class="ico-wrap ico" aria-hidden="true"><i class="bi bi-person-gear"></i></span>
-                    3. Mecânico Responsável
+                    3. Técnicos Responsáveis
                 </div>
             </div>
             <div class="card__body">
-                <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
-
-                    <div class="form-field">
-                        <label>Mecânico</label>
-                        <select name="mecanico_id" id="mecanico_id" onchange="atualizarMecanico()">
-                            <option value="">Selecione o mecânico</option>
-                            <?php foreach ($mecanicos as $m): ?>
-                                <option value="<?= htmlspecialchars($m['id']) ?>"
-                                    data-nome="<?= htmlspecialchars($m['nome']) ?>"
-                                    <?= ($mao_obra_os['tecnico_id'] ?? null) == $m['id'] ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($m['nome']) ?>
-                                </option>
-                            <?php endforeach; ?>
-                        </select>
-                    </div>
-
-                    <div class="form-field" id="mec-comissao-wrap" style="display:none;">
-                        <label>Comissão do Técnico <span style="font-size:11px;font-weight:400;color:var(--color-text-muted);">(% sobre serviços)</span></label>
-                        <div style="position:relative;">
-                            <input type="number" id="mec-comissao-pct" min="0" max="100" step="0.1"
-                                value="<?= htmlspecialchars($ordem_servico['comissao_pct'] ?? '') ?>"
-                                placeholder="Ex.: 30"
-                                style="width:100%;box-sizing:border-box;padding-right:36px;"
-                                oninput="recalcularComissao()">
-                            <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--color-text-muted);">%</span>
-                        </div>
-                    </div>
-
-                    <div id="mec-preview" style="display:none;align-items:center;grid-column:1/-1;">
-                        <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);width:100%;box-sizing:border-box;">
-                            <div id="mec-avatar" style="width:36px;height:36px;border-radius:50%;background:var(--color-primary-soft);color:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">--</div>
-                            <div style="flex:1;">
-                                <div id="mec-nome" style="font-size:13px;font-weight:600;"></div>
-                                <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">
-                                    Comissão: <strong id="mec-pct-label" style="color:var(--color-primary);">—</strong>
-                                    &nbsp;→&nbsp;
-                                    <strong id="mec-valor-calculado" style="color:var(--color-primary);">R$ 0,00</strong>
-                                    <span style="margin-left:4px;color:var(--color-text-muted);font-size:10px;">(sobre total de serviços)</span>
-                                </div>
-                            </div>
-                            <span class="badge badge--success">Incluído na OS</span>
-                        </div>
-                    </div>
-
-                    <input type="hidden" name="valor_mao_obra" id="valor_mao_obra" value="<?= $mao_obra_os['valor_mao_obra'] ?? 0 ?>">
-                    <input type="hidden" name="comissao_pct" id="h-comissao-pct" value="0">
+                <?php
+                $tecnicosAtribuidos = [];
+                foreach (($tecnicos_os ?? []) as $t) {
+                    $tecnicosAtribuidos[(int) $t['tecnico_id']] = $t;
+                }
+                ?>
+                <div id="lista-tecnicos-os" style="display:flex;flex-direction:column;gap:8px;">
+                    <?php if (empty($mecanicos)): ?>
+                        <p class="fs-12 text-secondary">Nenhum técnico cadastrado ainda.</p>
+                    <?php endif; ?>
+                    <?php foreach ($mecanicos as $m):
+                        $mid = (int) $m['id'];
+                        $atribuido = $tecnicosAtribuidos[$mid] ?? null;
+                        $jaCalculado = $atribuido && !empty($atribuido['calculado_em']);
+                    ?>
+                        <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--color-border);border-radius:var(--radius-md);<?= $jaCalculado ? '' : 'cursor:pointer;' ?>">
+                            <input type="checkbox" name="tecnicos[]" value="<?= $mid ?>"
+                                style="width:18px;height:18px;flex-shrink:0;"
+                                <?= $atribuido ? 'checked' : '' ?>
+                                <?= $jaCalculado ? 'disabled' : 'onchange="atualizarPreviewTecnicos()"' ?>>
+                            <?php if ($jaCalculado): ?>
+                                <!-- disabled não envia o valor no POST — reenvia por hidden, senão o técnico some da OS ao salvar -->
+                                <input type="hidden" name="tecnicos[]" value="<?= $mid ?>">
+                            <?php endif; ?>
+                            <span style="flex:1;font-size:13px;font-weight:600;"><?= htmlspecialchars($m['nome']) ?></span>
+                            <span class="fs-12 text-secondary" data-preview-tecnico="<?= $mid ?>">
+                                <?php if ($jaCalculado): ?>
+                                    Comissão já calculada: <strong style="color:var(--color-primary);">R$ <?= number_format((float) $atribuido['valor_mao_obra'], 2, ',', '.') ?></strong>
+                                    <?= $atribuido['status_pagamento'] === 'PAGO' ? ' · paga' : ' · pendente de pagamento' ?>
+                                <?php elseif (empty($m['regra_tipo'])): ?>
+                                    Sem regra de remuneração cadastrada
+                                <?php endif; ?>
+                            </span>
+                        </label>
+                    <?php endforeach; ?>
                 </div>
             </div>
         </div>
@@ -308,7 +314,7 @@
                 </div>
             </div>
             <div class="card__body">
-                <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:14px;">
+                <div class="form-row-5">
 
                     <div style="background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:12px 14px;">
                         <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:4px;">Total em Peças</div>
@@ -348,12 +354,18 @@
     <!-- FOOTER DE AÇÕES -->
     <div class="os-edit-footer">
 
-        <a href="./deleteOrdemServico&id=<?= $ordem_servico['id_ordem_servico'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja excluir esta ordem de serviço? Esta ação não pode ser desfeita.')">
-            <i class="bi bi-trash"></i>
-            Excluir Ordem
-        </a>
+        <?php if ($podeExcluir): ?>
+            <!-- Era um <a> GET, e o controller só aceita POST: o botão pedia
+                 confirmação, voltava pra listagem e não excluía nada. Agora
+                 envia o formulário logo abaixo do </form> principal (form não
+                 pode ser aninhado, daí o atributo form=""). -->
+            <button type="submit" form="formExcluirOS"
+                class="btn btn--danger-ghost"
+                onclick="return confirm('Excluir esta ordem de serviço? Os produtos, serviços e mão de obra lançados nela são apagados junto, em definitivo.')">
+                <i class="bi bi-trash"></i>
+                Excluir Ordem
+            </button>
+        <?php endif; ?>
 
         <div class="os-edit-footer__right">
             <a href="javascript:history.back()" class="btn btn--ghost">
@@ -369,6 +381,15 @@
     </div>
 
 </form>
+
+<?php if ($podeExcluir): ?>
+    <!-- Alvo do botão "Excluir Ordem" do rodapé. Fica fora do formulário de
+         edição porque HTML não permite <form> aninhado. O token CSRF é
+         injetado automaticamente no submit por public/assets/js/csrf.js. -->
+    <form method="post" action="./deleteOrdemServico" id="formExcluirOS" hidden>
+        <input type="hidden" name="id_ordem_servico" value="<?= (int) $ordem_servico['id_ordem_servico'] ?>">
+    </form>
+<?php endif; ?>
 
 
 <!-- ============================================================
@@ -456,7 +477,7 @@
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div class="form-row-2" style="margin-bottom:16px;">
                 <div class="form-field" id="custom-campo-fixo">
                     <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:6px;">
                         Valor (R$) <span style="color:var(--color-danger)">*</span>
@@ -576,19 +597,31 @@
    DADOS DE CATÁLOGO (PHP → JS)
 ---------------------------------------------------------------- */
     const CATALOGO = {
-        produto: <?= json_encode($produtos, JSON_UNESCAPED_UNICODE) ?>,
-        servico: <?= json_encode($servicos, JSON_UNESCAPED_UNICODE) ?>
+        produto: <?= json_para_script($produtos) ?>,
+        servico: <?= json_para_script($servicos) ?>
     };
 
-    const MECANICOS_DATA = <?= json_encode(array_map(fn($m) => [
-                                'id'   => $m['id']   ?? null,
-                                'nome' => $m['nome'] ?? '',
+    const MECANICOS_DATA = <?= json_para_script(array_map(fn($m) => [
+                                'id'         => $m['id']   ?? null,
+                                'nome'       => $m['nome'] ?? '',
+                                'regraTipo'  => $m['regra_tipo'] ?? null,
+                                'percentual' => $m['regra_percentual'] !== null ? (float) $m['regra_percentual'] : null,
+                                'valorFixo'  => $m['regra_valor_fixo'] !== null ? (float) $m['regra_valor_fixo'] : null,
+                                'baseExtra'  => $m['regra_base_extra'] ?? null,
                             ], $mecanicos), JSON_UNESCAPED_UNICODE) ?>;
+
+    // Técnicos cuja comissão já foi calculada (OS concluída) — checkbox
+    // deles vem desabilitado no HTML; usado aqui só pra somar o valor real
+    // (não estimado) no resumo financeiro.
+    const TECNICOS_JA_CALCULADOS = <?= json_para_script(array_values(array_map(fn($t) => [
+                                'id'    => (int) $t['tecnico_id'],
+                                'valor' => (float) $t['valor_mao_obra'],
+                            ], array_filter($tecnicos_os ?? [], fn($t) => !empty($t['calculado_em']))))) ?>;
 
     /* ----------------------------------------------------------------
        ESTADO DA OS — pré-populado com itens existentes
     ---------------------------------------------------------------- */
-    let osItens = <?= json_encode(array_map(function ($it) {
+    let osItens = <?= json_para_script(array_map(function ($it) {
                         return [
                             'id'       => $it['id'],
                             'nome'     => $it['nome'],
@@ -597,7 +630,11 @@
                             'qty'      => (float)($it['qty'] ?? 1),
                             'preco'    => (float)($it['preco'] ?? 0),
                             'custom'   => (bool)($it['custom'] ?? false),
-                            'pct'      => null,
+                            'pct'      => isset($it['pct']) && $it['pct'] !== '' ? (float) $it['pct'] : null,
+                            // Identidade da linha no banco: volta no submit para o servidor
+                            // saber qual linha é qual (não apagar e recriar tudo).
+                            'row_id'   => isset($it['row_id']) ? (int) $it['row_id'] : null,
+                            'status_item' => $it['status_item'] ?? null,
                         ];
                     }, $itens_os ?? []), JSON_UNESCAPED_UNICODE) ?>;
 
@@ -615,10 +652,6 @@
             .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
     }
 
-    function iniciaisMecanico(nome) {
-        return nome.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
-    }
-
     function totalPecasOS() {
         return osItens.reduce((acc, it) => it.tipo === 'produto' ? acc + it.preco * it.qty : acc, 0);
     }
@@ -628,41 +661,68 @@
     }
 
     /* ----------------------------------------------------------------
-       MECÂNICO
+       TÉCNICOS — prévia de comissão (estimativa; quem calcula de verdade
+       é sempre o servidor, na finalização da OS).
     ---------------------------------------------------------------- */
-    function atualizarMecanico() {
-        const sel = document.getElementById('mecanico_id');
-        const opt = sel.options[sel.selectedIndex];
-        const prev = document.getElementById('mec-preview');
-        const comissaoWrap = document.getElementById('mec-comissao-wrap');
+    function estimarComissaoTecnico(tecnico) {
+        const totalOS = totalPecasOS() + totalServicosOS();
+        const totalServicos = totalServicosOS();
+        const totalPecas = totalPecasOS();
 
-        if (!opt || !opt.value) {
-            prev.style.display = 'none';
-            comissaoWrap.style.display = 'none';
-            document.getElementById('mec-comissao-pct').value = '';
-            document.getElementById('valor_mao_obra').value = '0';
-            document.getElementById('h-comissao-pct').value = '0';
-            recalcular();
-            return;
+        switch (tecnico.regraTipo) {
+            case 'PERCENTUAL_TOTAL':
+                return { valor: totalOS * (tecnico.percentual || 0) / 100, texto: null };
+            case 'PERCENTUAL_SERVICOS':
+                return { valor: totalServicos * (tecnico.percentual || 0) / 100, texto: null };
+            case 'PERCENTUAL_PECAS':
+                return { valor: totalPecas * (tecnico.percentual || 0) / 100, texto: null };
+            case 'PERCENTUAL_TIPO_SERVICO':
+                return { valor: 0, texto: 'Calculado por categoria de serviço na finalização' };
+            case 'VALOR_FIXO_SERVICO': {
+                const qtd = osItens.filter(it => it.tipo === 'servico').length;
+                return { valor: (tecnico.valorFixo || 0) * qtd, texto: null };
+            }
+            case 'SALARIO_FIXO':
+                return { valor: 0, texto: 'Salário fixo mensal (não gera comissão por OS)' };
+            case 'SALARIO_FIXO_MAIS_COMISSAO': {
+                const base = tecnico.baseExtra === 'SERVICOS' ? totalServicos
+                    : tecnico.baseExtra === 'PECAS' ? totalPecas : totalOS;
+                return { valor: base * (tecnico.percentual || 0) / 100, texto: null };
+            }
+            default:
+                return { valor: 0, texto: 'Sem regra de remuneração cadastrada' };
         }
-
-        const nome = opt.dataset.nome;
-        document.getElementById('mec-avatar').textContent = iniciaisMecanico(nome);
-        document.getElementById('mec-nome').textContent = nome;
-        comissaoWrap.style.display = 'block';
-        prev.style.display = 'flex';
-        recalcularComissao();
     }
 
-    function recalcularComissao() {
-        const pct = parseFloat(document.getElementById('mec-comissao-pct').value) || 0;
-        const totalServs = totalServicosOS();
-        const valorComiss = totalServs * pct / 100;
+    function totalComissaoEstimada() {
+        // Técnico já calculado (OS concluída) entra pelo valor REAL, travado
+        // — não é mais uma estimativa, e mudar itens da OS não deve mexer nele.
+        let total = TECNICOS_JA_CALCULADOS.reduce((acc, t) => acc + t.valor, 0);
 
-        document.getElementById('mec-pct-label').textContent = pct > 0 ? pct + '%' : '—';
-        document.getElementById('mec-valor-calculado').textContent = fmtBR(valorComiss);
-        document.getElementById('valor_mao_obra').value = valorComiss.toFixed(2);
-        document.getElementById('h-comissao-pct').value = pct.toFixed(2);
+        document.querySelectorAll('input[name="tecnicos[]"]:checked:not([disabled])').forEach(chk => {
+            const tecnico = MECANICOS_DATA.find(m => String(m.id) === chk.value);
+            if (tecnico) total += estimarComissaoTecnico(tecnico).valor;
+        });
+        return total;
+    }
+
+    function atualizarPreviewTecnicos() {
+        MECANICOS_DATA.forEach(tecnico => {
+            if (TECNICOS_JA_CALCULADOS.some(t => t.id === tecnico.id)) return; // já mostra o valor travado no HTML
+
+            const span = document.querySelector('[data-preview-tecnico="' + tecnico.id + '"]');
+            if (!span) return;
+
+            const chk = document.querySelector('input[name="tecnicos[]"][value="' + tecnico.id + '"]');
+            if (!chk || !chk.checked) {
+                span.textContent = tecnico.regraTipo ? '' : 'Sem regra de remuneração cadastrada';
+                return;
+            }
+
+            const estimativa = estimarComissaoTecnico(tecnico);
+            span.textContent = estimativa.texto || ('Comissão estimada: ' + fmtBR(estimativa.valor));
+        });
+
         recalcular();
     }
 
@@ -926,7 +986,7 @@
             });
             fecharCatalogo();
             renderTabelaItens();
-            recalcular();
+            atualizarPreviewTecnicos();
             return;
         }
 
@@ -946,7 +1006,7 @@
 
         fecharCatalogo();
         renderTabelaItens();
-        recalcular();
+        atualizarPreviewTecnicos();
     }
 
     /* ----------------------------------------------------------------
@@ -973,6 +1033,8 @@
                 <div style="font-size:13px;font-weight:600;color:var(--color-text);">${it.nome}</div>
                 ${it.custom ? `<span style="font-size:10px;font-weight:600;padding:2px 6px;border-radius:4px;background:#F0FDF4;color:#16A34A;border:1px solid #BBF7D0;">Personalizado</span>` : ''}
                 ${it.pct != null ? `<span style="font-size:10px;color:var(--color-text-muted);">(${it.pct}% s/ peças)</span>` : ''}
+                ${it.status_item === 'CONSUMIDO' ? `<span class="badge badge--success" title="O estoque desta peça já foi baixado. Para mudar, devolva a peça na tela da OS.">Consumida</span>` : ''}
+                ${it.status_item === 'PLANEJADO' ? `<span class="badge badge--neutral" title="Prevista na OS: o estoque só baixa quando o consumo é confirmado.">Prevista</span>` : ''}
             </div>
             <div style="font-size:11px;color:var(--color-text-muted);">${it.categoria}</div>
         </td>
@@ -983,31 +1045,33 @@
         </td>
         <td style="padding:9px 12px;text-align:center;">
             <div style="display:inline-flex;align-items:center;gap:4px;">
-    <button type="button" onclick="alterarQty(${idx},-1)" style="width:22px;height:22px;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-alt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--color-text-secondary);">−</button>
+    ${it.status_item === 'CONSUMIDO' ? '' : `<button type="button" onclick="alterarQty(${idx},-1)" style="width:22px;height:22px;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-alt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--color-text-secondary);">−</button>`}
     <span style="min-width:24px;text-align:center;font-size:13px;font-weight:700;">${it.qty}</span>
-    <button type="button" onclick="alterarQty(${idx},1)" style="width:22px;height:22px;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-alt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--color-text-secondary);">+</button>
+    ${it.status_item === 'CONSUMIDO' ? '' : `<button type="button" onclick="alterarQty(${idx},1)" style="width:22px;height:22px;border-radius:4px;border:1px solid var(--color-border);background:var(--color-bg-alt);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--color-text-secondary);">+</button>`}
 </div>
         </td>
         <td style="padding:9px 12px;text-align:right;font-size:12px;">${fmtBR(it.preco)}</td>
         <td style="padding:9px 12px;text-align:right;font-size:13px;font-weight:700;">${fmtBR(it.preco * it.qty)}</td>
         <td style="padding:9px 6px;text-align:center;">
-            <button type="button" onclick="removerItem(${idx})" class="row-action-btn danger" title="Remover">
+            ${it.status_item === 'CONSUMIDO' ? '' : `<button type="button" onclick="removerItem(${idx})" class="row-action-btn danger" title="Remover">
                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/></svg>
-            </button>
+            </button>`}
         </td>
     </tr>`).join('');
     }
 
     function alterarQty(idx, delta) {
+        if (osItens[idx].status_item === 'CONSUMIDO') return; // peça consumida: só devolvendo
         osItens[idx].qty = Math.max(1, osItens[idx].qty + delta);
         renderTabelaItens();
-        recalcular();
+        atualizarPreviewTecnicos();
     }
 
     function removerItem(idx) {
+        if (osItens[idx].status_item === 'CONSUMIDO') return; // peça consumida: só devolvendo
         osItens.splice(idx, 1);
         renderTabelaItens();
-        recalcular();
+        atualizarPreviewTecnicos();
         recalcularCustomPct();
     }
 
@@ -1025,7 +1089,7 @@
         });
         if (mudou) {
             renderTabelaItens();
-            recalcular();
+            atualizarPreviewTecnicos();
         }
     }
 
@@ -1041,14 +1105,7 @@
             else totalServicos += sub;
         });
 
-        const pctComissao = parseFloat(document.getElementById('mec-comissao-pct').value) || 0;
-        const comissao = totalServicos * pctComissao / 100;
-
-        document.getElementById('valor_mao_obra').value = comissao.toFixed(2);
-        document.getElementById('h-comissao-pct').value = pctComissao.toFixed(2);
-        document.getElementById('mec-pct-label').textContent = pctComissao > 0 ? pctComissao + '%' : '—';
-        document.getElementById('mec-valor-calculado').textContent = fmtBR(comissao);
-
+        const comissao = totalComissaoEstimada();
         const totalOS = totalPecas + totalServicos;
         const lucro = totalOS - comissao;
 
@@ -1086,6 +1143,7 @@
             add(`itens[${i}][subtotal]`, (it.preco * it.qty).toFixed(2));
             add(`itens[${i}][custom]`, it.custom ? '1' : '0');
             if (it.pct != null) add(`itens[${i}][pct]`, it.pct);
+            if (it.row_id) add(`itens[${i}][row_id]`, it.row_id);
         });
     }
 
@@ -1100,9 +1158,5 @@
        INIT
     ---------------------------------------------------------------- */
     renderTabelaItens();
-    recalcular();
-
-    // Inicializa preview do mecânico se já houver um selecionado
-    const selMec = document.getElementById('mecanico_id');
-    if (selMec && selMec.value) atualizarMecanico();
+    atualizarPreviewTecnicos();
 </script>

@@ -13,18 +13,20 @@ class CategoriaController extends Controller
                 : null,
         ];
 
-        $this->view('categoria/listCategoria', $dados);
+        $this->view('Categoria/listCategoria', $dados);
     }
 
     public function save()
     {
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
+
         $categoria = $this->model('Categoria');
 
         if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             $validator = (new Validator($_POST))->required('nome', 'Nome');
 
             if ($validator->fails()) {
-                $this->view('categoria/saveCategoria', [
+                $this->view('Categoria/saveCategoria', [
                     'error' => $validator->firstError(),
                     'old'   => $_POST,
                 ]);
@@ -36,18 +38,20 @@ class CategoriaController extends Controller
                 exit;
             }
 
-            $this->view('categoria/saveCategoria', [
+            $this->view('Categoria/saveCategoria', [
                 'error' => 'Erro ao cadastrar categoria.',
                 'old' => $_POST
             ]);
             return;
         }
 
-        $this->view('categoria/saveCategoria');
+        $this->view('Categoria/saveCategoria');
     }
 
    public function edit()
 {
+       $this->requireRole(Permissao::PAPEIS_ADMIN);
+
     $categoria = $this->model('Categoria');
 
     if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -59,7 +63,7 @@ class CategoriaController extends Controller
         $validator = (new Validator($_POST))->required('nome', 'Nome');
 
         if ($validator->fails()) {
-            $this->view('categoria/editCategoria', [
+            $this->view('Categoria/editCategoria', [
                 'categoria' => $_POST,
                 'error'     => $validator->firstError(),
             ]);
@@ -71,7 +75,7 @@ class CategoriaController extends Controller
             exit;
         }
 
-        $this->view('categoria/editCategoria', [
+        $this->view('Categoria/editCategoria', [
             'categoria' => $_POST,
             'error' => 'Erro ao atualizar categoria.'
         ]);
@@ -92,11 +96,11 @@ class CategoriaController extends Controller
         exit;
     }
 
-    $this->view('categoria/editCategoria', $dados);
+    $this->view('Categoria/editCategoria', $dados);
 }
     public function delete()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         // POST em vez de GET: um link GET de exclusão pode ser disparado por um
         // <img>/pré-carregamento em outra página só de o ADMIN estar logado

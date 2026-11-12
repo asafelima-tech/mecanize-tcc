@@ -4,6 +4,23 @@ if (session_status() === PHP_SESSION_NONE) {
 }
 ?>
 
+<style>
+    /* Linha de 5 campos com proporção própria (nome mais largo) — não é o
+       caso genérico de .form-row-3/5 do global.css, então fica local. */
+    .produto-row-5 {
+        display: grid;
+        grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr;
+        gap: 14px 18px;
+        align-items: start;
+    }
+
+    @media (max-width: 720px) {
+        .produto-row-5 {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
 <!-- MODAL OVERLAY -->
 <div class="modal-overlay" id="modalCriarProduto">
     <div class="modal modal--xl">
@@ -64,7 +81,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Identificação
                     </div>
 
-                    <div style="display:grid; grid-template-columns: repeat(3, 1fr); gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Código Interno</label>
@@ -138,7 +155,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Detalhes Técnicos
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-3">
                         <div class="form-field">
                             <label>Descrição</label>
                             <textarea
@@ -180,7 +197,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Gestão de Estoque
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1.5fr 1fr 1fr; gap:14px 18px; align-items:start;">
+                    <div class="produto-row-5">
                         <div class="form-field">
                             <label>Estoque Atual</label>
                             <input
@@ -260,7 +277,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Financeiro
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-3">
                         <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
                         <div class="form-field">
                             <label>Preço de Custo (R$)</label>
@@ -345,15 +362,11 @@ if (session_status() === PHP_SESSION_NONE) {
                 </span>
             </div>
 
-            <button type="button" class="btn btn--ghost btn--sm">
-                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="none"
-                    viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <polyline points="6 9 6 2 18 2 18 9" />
-                    <path d="M6 18H4a2 2 0 01-2-2v-5a2 2 0 012-2h16a2 2 0 012 2v5a2 2 0 01-2 2h-2" />
-                    <rect x="6" y="14" width="12" height="8" />
-                </svg>
-                Imprimir Etiqueta
-            </button>
+            <!-- Imprimir Etiqueta não cabe aqui: o produto ainda não existe e o
+                 código interno mostrado é só o próximo da fila — se o cadastro
+                 não for concluído, ele acaba em outro produto e a etiqueta na
+                 prateleira aponta para a peça errada. A impressão vive em
+                 ./etiquetaProduto, ligada na tela de edição e na listagem. -->
 
             <button
                 type="button"

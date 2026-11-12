@@ -1,0 +1,548 @@
+/* =========================================================
+   MECANIZE — Camada de impressão do sistema (print.css)
+
+   Carregado com media="print": não existe na tela, só no papel.
+
+   Por que este arquivo existe: o app é uma casca de altura fixa
+   (.app com height:100vh + overflow:hidden, .main rolando por dentro,
+   telas em .modal-overlay com max-height:100vh). Mandar imprimir isso
+   dava exatamente uma foto da tela — só o pedaço visível, uma página
+   só, com sidebar, topbar e botões no meio do documento. Aqui a casca
+   é desmontada e o conteúdo vira um documento contínuo de A4.
+
+   Regra de ouro: nada neste arquivo pode afetar a tela.
+   ========================================================= */
+
+@media print {
+
+    /* ── Papel ─────────────────────────────────────────────
+       Margens generosas o bastante para furador e grampo, e
+       espaço embaixo para o rodapé do navegador (nº de página). */
+    @page {
+        size: A4 portrait;
+        margin: 14mm 13mm 16mm;
+    }
+
+    /* ── Paleta de impressão ───────────────────────────────
+       Redefinir os tokens (inclusive os do tema escuro) conserta
+       de uma vez o contraste de TODAS as telas: quem estava com o
+       modo escuro ligado imprimia texto claro sobre fundo escuro —
+       ilegível no papel e um desperdício de toner. */
+    :root,
+    [data-theme="dark"] {
+        --color-bg: #FFFFFF;
+        --color-bg-alt: #FFFFFF;
+        --color-bg-subtle: #FFFFFF;
+        --color-bg-soft: #FFFFFF;
+        --color-surface: #FFFFFF;
+        --color-border: #D5DBE3;
+        --color-border-strong: #B6BFCC;
+        --color-text: #000000;
+        --color-text-secondary: #1A1A1A;
+        --color-text-muted: #555555;
+        --color-primary: #003BDD;
+        --color-primary-hover: #003BDD;
+        --color-primary-soft: #EEF2FF;
+        --color-primary-gradient: #003BDD;
+        --color-success: #12692F;
+        --color-success-soft: #EAF6EE;
+        --color-warning: #8A5A00;
+        --color-warning-soft: #FDF3E0;
+        --color-danger: #A81E1E;
+        --color-danger-soft: #FBEBEB;
+        --color-info: #14509E;
+        --color-info-soft: #EAF1FB;
+        --shadow-sm: none;
+        --shadow-md: none;
+        --shadow-lg: none;
+    }
+
+    /* ── Desmonta a casca do app ───────────────────────────
+       Sem isto o navegador imprime só a área visível do .main. */
+    html,
+    body {
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+        background: #FFFFFF !important;
+        font-size: 10.5pt;
+        color: #000000;
+    }
+
+    .app {
+        display: block !important;
+        grid-template-columns: none !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    .main {
+        display: block !important;
+        height: auto !important;
+        min-height: 0 !important;
+        overflow: visible !important;
+    }
+
+    .content {
+        padding: 0 !important;
+    }
+
+    /* Telas montadas como modal de página inteira (OS, produto,
+       usuário...): fora do papel elas rolam por dentro; no papel
+       precisam fluir. Repare que `display` NÃO é forçado — modais
+       de verdade continuam escondidos pelo display:none inline. */
+    .modal-overlay {
+        position: static !important;
+        padding: 0 !important;
+        background: none !important;
+        backdrop-filter: none !important;
+        -webkit-backdrop-filter: none !important;
+        overflow: visible !important;
+        animation: none !important;
+    }
+
+    .modal {
+        max-width: none !important;
+        max-height: none !important;
+        width: auto !important;
+        overflow: visible !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        animation: none !important;
+        margin: 0 !important;
+    }
+
+    .modal__body,
+    .table-wrap,
+    .chart-wrap,
+    .chart-wrap-line {
+        max-height: none !important;
+        overflow: visible !important;
+    }
+
+    .modal__header {
+        background: none !important;
+        padding: 0 0 10px !important;
+        border-bottom: 1px solid var(--color-border) !important;
+    }
+
+    /* Rodapé do modal guarda metadado do documento (criado em,
+       usuário responsável): fica, sem os botões — que somem pela
+       regra geral de .btn mais abaixo. */
+    .modal__footer {
+        display: block !important;
+        padding: 10px 0 0 !important;
+        border-top: 1px solid var(--color-border) !important;
+        background: none !important;
+        font-size: 8.5pt;
+        color: var(--color-text-muted);
+    }
+
+    /* ── Fora do papel: tudo que é navegação ou controle ───── */
+    .sidebar,
+    .sidebar-backdrop,
+    .sidebar-tooltip,
+    .topbar,
+    .topbar-create,
+    .dark-toggle,
+    .page-header__actions,
+    .table-toolbar,
+    .search-wrap,
+    .pagination,
+    .table-footer,
+    .row-actions,
+    .row-action-btn,
+    .tabs,
+    .abas,
+    .btn,
+    .toolbar-select,
+    .switch,
+    .prod-toggle,
+    .ts-dropdown,
+    .ts-control .ts-input::after,
+    .novo-modelo-toggle,
+    .novo-modelo-box__actions,
+    .fab,
+    .modal__close,
+    .vip-panel__close,
+    /* Seletor de período do relatório de caixa: as abas são navegação, mas
+       as datas escolhidas (.periodo-custom) ficam — são o período do
+       relatório, informação que o documento precisa carregar. */
+    .periodo-tabs,
+    .alerta--info,
+    .no-print,
+    [data-no-print],
+    nav,
+    button,
+    input[type="button"],
+    input[type="submit"],
+    input[type="reset"] {
+        display: none !important;
+    }
+
+    /* Coluna de ações: sem os botões ela vira uma coluna vazia com o
+       título "Ações" pendurado. Some com a célula e, na mesma tabela,
+       com o cabeçalho correspondente — que é sempre o último. */
+    .table td:has(.row-actions) {
+        display: none !important;
+    }
+
+    .table:has(td .row-actions) thead th:last-child {
+        display: none !important;
+    }
+
+    /* ── Cabeçalho e rodapé do documento impresso ──────────
+       Existem só aqui: são os elementos que transformam a tela
+       num documento com remetente, título, data e responsável. */
+    .doc-print__rodape {
+        display: block !important;
+    }
+
+    .doc-print__topo {
+        display: flex !important;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 16pt;
+        padding-bottom: 8pt;
+        margin-bottom: 14pt;
+        border-bottom: 1.5pt solid #003BDD;
+    }
+
+    .doc-print__marca {
+        display: flex;
+        align-items: center;
+        gap: 8pt;
+    }
+
+    /* A logomarca é imagem, não fundo: sai no papel mesmo com a opção
+       "Gráficos de plano de fundo" desligada (o padrão do navegador). */
+    .doc-print__logo {
+        height: 20pt;
+        width: auto;
+    }
+
+    .doc-print__empresa {
+        font-size: 12pt;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+    }
+
+    .doc-print__contato {
+        margin-top: 1.5pt;
+        font-size: 7.5pt;
+        line-height: 1.35;
+        color: #444444;
+    }
+
+    .doc-print__ref {
+        text-align: right;
+        max-width: 62%;
+    }
+
+    .doc-print__titulo {
+        font-size: 13pt;
+        font-weight: 700;
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+    }
+
+    .doc-print__meta {
+        margin-top: 2pt;
+        font-size: 7.5pt;
+        line-height: 1.4;
+        color: #444444;
+    }
+
+    .doc-print__ref .doc-print__titulo,
+    .doc-print__ref .doc-print__meta {
+        text-align: right;
+    }
+
+    .doc-print__rodape {
+        margin-top: 16pt;
+        padding-top: 6pt;
+        border-top: 0.75pt solid var(--color-border);
+        font-size: 7.5pt;
+        color: #555555;
+        text-align: center;
+        break-inside: avoid;
+    }
+
+    /* O título da tela vira o título do documento no topo, então
+       repeti-lo logo abaixo seria redundante. */
+    .page-header {
+        display: none !important;
+    }
+
+    /* ── Tipografia de documento ───────────────────────────── */
+    h1,
+    h2,
+    h3,
+    h4,
+    .card__title,
+    .form-section__title,
+    .modal__title {
+        color: #000000;
+        letter-spacing: -0.01em;
+        /* Título sozinho no pé da página é o defeito clássico de
+           impressão: ele fica de um lado e o conteúdo do outro. */
+        break-after: avoid;
+        page-break-after: avoid;
+        break-inside: avoid;
+    }
+
+    h1 { font-size: 14pt; }
+    h2 { font-size: 12pt; }
+    h3 { font-size: 10.5pt; }
+
+    p,
+    li,
+    td,
+    th,
+    .kv-row,
+    .form-field {
+        orphans: 3;
+        widows: 3;
+    }
+
+    a {
+        color: #000000 !important;
+        text-decoration: none !important;
+    }
+
+    /* ── Blocos ────────────────────────────────────────────── */
+    .card,
+    .modal,
+    .stat-card,
+    .box,
+    .form-section {
+        background: #FFFFFF !important;
+        box-shadow: none !important;
+    }
+
+    .card {
+        border: 0.75pt solid var(--color-border) !important;
+        border-radius: 0 !important;
+        margin-bottom: 10pt;
+        /* Card curto não deve rachar; card com tabela longa precisa
+           poder continuar na página seguinte — por isso o "avoid"
+           mora nos blocos pequenos, e não aqui. */
+        break-inside: auto;
+    }
+
+    .card__header {
+        padding: 6pt 8pt !important;
+        background: none !important;
+        border-bottom: 0.75pt solid var(--color-border) !important;
+        break-after: avoid;
+        page-break-after: avoid;
+    }
+
+    .card__body {
+        padding: 8pt !important;
+    }
+
+    /* A grade de indicadores mantém as colunas que a tela já usa (o número
+       de cartões varia por tela); no papel só encolhe o espaçamento. */
+    .stat-grid {
+        gap: 6pt !important;
+        margin-bottom: 12pt;
+    }
+
+    .stat-card,
+    .kv-row,
+    .prod-item,
+    .bar-item,
+    .vehicle-card,
+    .usr-summary-item,
+    .veiculo-resumo-item,
+    .status-pill,
+    .badge,
+    .user-cell,
+    .alerta,
+    .obs-cell,
+    figure,
+    img {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    .stat-card {
+        border: 0.75pt solid var(--color-border) !important;
+        border-radius: 0 !important;
+        padding: 6pt 8pt !important;
+    }
+
+    .stat-card__value {
+        font-size: 13pt !important;
+    }
+
+    .stat-card__icon {
+        display: none !important;
+    }
+
+    /* Badges e pills viram contorno: preenchimento colorido em
+       impressora preto e branco vira um borrão cinza por cima do
+       texto. */
+    .badge,
+    .status-pill {
+        background: none !important;
+        border: 0.75pt solid var(--color-border-strong) !important;
+        color: #000000 !important;
+        padding: 0.5pt 4pt !important;
+        font-size: 8pt !important;
+    }
+
+    /* ── Tabelas ───────────────────────────────────────────── */
+    .table-wrap {
+        border: 0 !important;
+        border-radius: 0 !important;
+    }
+
+    table,
+    .table {
+        width: 100% !important;
+        border-collapse: collapse !important;
+        font-size: 9pt;
+    }
+
+    /* Cabeçalho repetido em toda página que a tabela alcançar —
+       sem isso, da segunda página em diante ninguém sabe que
+       coluna é qual. */
+    thead {
+        display: table-header-group;
+    }
+
+    tfoot {
+        display: table-footer-group;
+    }
+
+    tr,
+    .table tbody tr {
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* O cabeçalho se distingue por régua e peso do texto, nunca por fundo:
+       com "Gráficos de plano de fundo" desligado (o padrão do Chrome/Edge)
+       um th cinza sai igualzinho ao resto da tabela. O fundo fica só como
+       bônus para quem liga a opção. */
+    .table th,
+    table th {
+        background: #EFF2F7 !important;
+        color: #000000 !important;
+        border-top: 0.75pt solid #000000 !important;
+        border-bottom: 1pt solid #000000 !important;
+        padding: 4pt 5pt !important;
+        font-size: 8pt !important;
+        font-weight: 700 !important;
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        text-align: left;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .table td,
+    table td {
+        border-bottom: 0.5pt solid var(--color-border) !important;
+        padding: 4pt 5pt !important;
+        vertical-align: top;
+    }
+
+    .table tbody tr:nth-child(even) td {
+        background: none !important;
+    }
+
+    /* Texto longo em célula (observação, descrição, diagnóstico)
+       precisa quebrar em vez de esticar a tabela para fora do papel. */
+    td,
+    th {
+        overflow-wrap: anywhere;
+        white-space: normal !important;
+    }
+
+    /* ── Formulários impressos ─────────────────────────────
+       Uma tela de cadastro impressa vira uma ficha preenchida:
+       campo com linha embaixo, sem caixa cinza de interface. */
+    input,
+    select,
+    textarea,
+    .form-input,
+    .ts-control {
+        background: none !important;
+        border: 0 !important;
+        border-bottom: 0.5pt solid var(--color-border-strong) !important;
+        border-radius: 0 !important;
+        box-shadow: none !important;
+        padding: 1pt 0 !important;
+        color: #000000 !important;
+        font-size: 9.5pt !important;
+        min-height: 0 !important;
+        height: auto !important;
+        resize: none !important;
+        -webkit-appearance: none;
+        appearance: none;
+    }
+
+    textarea {
+        overflow: visible !important;
+    }
+
+    /* Ícone do seletor de data é controle de interface: no papel vira um
+       quadradinho sem função ao lado da data. */
+    input[type="date"]::-webkit-calendar-picker-indicator,
+    input[type="datetime-local"]::-webkit-calendar-picker-indicator,
+    input[type="search"]::-webkit-search-cancel-button {
+        display: none !important;
+    }
+
+    label,
+    .form-label {
+        color: #444444 !important;
+        font-size: 7.5pt !important;
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    /* Link de atalho no cabeçalho do card ("Ver clientes →") é navegação,
+       não informação do documento. */
+    .card__header a {
+        display: none !important;
+    }
+
+    /* ── Gráficos ──────────────────────────────────────────
+       Na tela o gráfico ocupa a altura que quiser; no papel, solto,
+       ele come meia folha e empurra o resto do relatório para a
+       página seguinte. */
+    .chart-wrap,
+    .chart-wrap-line,
+    .donut-wrap {
+        height: 55mm !important;
+        max-height: 55mm !important;
+    }
+
+    canvas {
+        max-width: 100% !important;
+        max-height: 55mm !important;
+        break-inside: avoid;
+        page-break-inside: avoid;
+    }
+
+    /* ── Higiene geral ─────────────────────────────────────── */
+    * {
+        box-shadow: none !important;
+        text-shadow: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+
+    /* Página final em branco costuma vir de margem/altura sobrando
+       no último bloco do fluxo. */
+    .content > *:last-child,
+    .card:last-child {
+        margin-bottom: 0 !important;
+    }
+}

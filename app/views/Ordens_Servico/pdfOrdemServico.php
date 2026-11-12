@@ -1,17 +1,24 @@
 <?php
 /**
- * Template dedicado para geração de PDF (via Dompdf) da Ordem de Serviço.
- * Segue o mesmo padrão de app/views/Orcamento/pdfOrcamento.php: cores em
- * hexadecimal literal (Dompdf não suporta var(--cor)) e layout em tabelas
- * (Dompdf não suporta flexbox/grid, por isso não reaproveita o CSS de
- * printOrcamento.php). Não expõe comissão/lucro do técnico — é um documento
- * para entregar ao cliente, não um relatório interno.
+ * Documento PDF da Ordem de Serviço (Dompdf).
+ *
+ * Estrutura, timbre e rodapé numerado vêm dos parciais compartilhados em
+ * app/views/layout/_docPdf*.php — antes cada template PDF carregava sua
+ * própria cópia do CSS e os documentos foram divergindo entre si.
+ *
+ * Não expõe comissão/lucro do técnico: é um documento para entregar ao
+ * cliente, não um relatório interno.
+ *
  * Espera: $os (array, de OrdemServico::getById), $itens (array de itens).
  */
 $statusInfo = [
-    'ABERTA'    => ['label' => 'Aberta',     'bg' => '#DBEAFE', 'cor' => '#1D4ED8'],
-    'CONCLUIDA' => ['label' => 'Concluída',  'bg' => '#DCFCE7', 'cor' => '#16A34A'],
-    'CANCELADA' => ['label' => 'Cancelada',  'bg' => '#FEE2E2', 'cor' => '#DC2626'],
+    'ABERTA'          => ['label' => OrdemServico::rotuloStatus('ABERTA'),          'bg' => '#DBEAFE', 'cor' => '#1D4ED8'],
+    'EM_ANDAMENTO'    => ['label' => OrdemServico::rotuloStatus('EM_ANDAMENTO'),    'bg' => '#FEF3C7', 'cor' => '#92400E'],
+    'AGUARDANDO_PECA' => ['label' => OrdemServico::rotuloStatus('AGUARDANDO_PECA'), 'bg' => '#EDE9FE', 'cor' => '#5B21B6'],
+    'AGUARDANDO_CONFERENCIA' => ['label' => OrdemServico::rotuloStatus('AGUARDANDO_CONFERENCIA'), 'bg' => '#E2E8F0', 'cor' => '#334155'],
+    'AGUARDANDO_RETIRADA'    => ['label' => OrdemServico::rotuloStatus('AGUARDANDO_RETIRADA'),    'bg' => '#CFFAFE', 'cor' => '#0E7490'],
+    'CONCLUIDA'       => ['label' => OrdemServico::rotuloStatus('CONCLUIDA'),       'bg' => '#DCFCE7', 'cor' => '#16A34A'],
+    'CANCELADA'       => ['label' => OrdemServico::rotuloStatus('CANCELADA'),       'bg' => '#FEE2E2', 'cor' => '#DC2626'],
 ][$os['status'] ?? ''] ?? ['label' => $os['status'] ?? '-', 'bg' => '#F1F5F9', 'cor' => '#475569'];
 
 $docCliente = '';
@@ -36,189 +43,63 @@ $totalServicos = (float) ($os['valor_total_servicos'] ?? 0);
 $subtotalOS    = $totalPecas + $totalServicos;
 $descontoOS    = (float) ($os['desconto_total'] ?? 0);
 $totalGeralOS  = (float) ($os['valor_total_os']  ?? ($subtotalOS - $descontoOS));
+
+$docTipo   = 'Ordem de Serviço';
+$docNumero = $os['numero_os'] ?? ('#' . ($os['id_ordem_servico'] ?? ''));
+$docStatus = $statusInfo;
 ?>
 <!DOCTYPE html>
 <html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
-    <title>OS <?= htmlspecialchars($os['numero_os'] ?? '') ?> — Mecanize</title>
-    <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
-        @page { margin: 26px 34px 30px; }
-
-        body {
-            font-family: Helvetica, Arial, sans-serif;
-            font-size: 12px;
-            color: #111826;
-        }
-
-        .topbar {
-            height: 5px;
-            background: linear-gradient(135deg, #003BDD 0%, #0030C4 100%);
-            margin: -26px -34px 18px;
-        }
-
-        /* ---------- Cabeçalho ---------- */
-        table.doc-head { width: 100%; border-bottom: 2px solid #E2E8F0; padding-bottom: 16px; margin-bottom: 18px; }
-        table.doc-head td { vertical-align: top; }
-
-        table.brand-row td { vertical-align: middle; }
-        .brand-mark {
-            width: 36px; height: 36px; border-radius: 9px;
-            background: linear-gradient(135deg, #003BDD 0%, #0030C4 100%);
-            color: #FFFFFF; text-align: center; font-size: 16px; font-weight: bold;
-            line-height: 36px;
-        }
-        .brand-name-cell { padding-left: 10px; }
-        .brand-name { font-size: 15px; font-weight: bold; color: #111826; }
-        .brand-meta { font-size: 9.5px; color: #64748B; margin-top: 2px; }
-
-        .doc-head__ref { text-align: right; }
-        .doc-head__ref .kicker { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1.5px; color: #94A3B8; }
-        .doc-head__ref .numero { font-size: 20px; font-weight: bold; color: #003BDD; margin: 3px 0 7px; }
-
-        .badge {
-            display: inline-block;
-            padding: 3px 11px;
-            border-radius: 999px;
-            font-size: 10px;
-            font-weight: bold;
-            background: <?= $statusInfo['bg'] ?>;
-            color: <?= $statusInfo['cor'] ?>;
-        }
-
-        /* ---------- Faixa de meta-dados ---------- */
-        table.meta-strip { width: 100%; margin-bottom: 18px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; }
-        table.meta-strip td { padding: 10px 16px; text-align: left; border-right: 1px solid #E2E8F0; }
-        table.meta-strip td:last-child { border-right: none; }
-        table.meta-strip .m-label { display: block; font-size: 8.5px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 3px; }
-        table.meta-strip .m-value { font-size: 12px; font-weight: bold; color: #1E293B; }
-
-        /* ---------- Cards Cliente / Veículo ---------- */
-        table.grid2 { width: 100%; margin-bottom: 16px; }
-        table.grid2 td { width: 50%; vertical-align: top; }
-        table.grid2 td.pad-left { padding-left: 12px; }
-
-        .box { background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 12px 14px; }
-        .box h3 { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 6px; }
-        .box p { font-size: 12px; color: #111826; line-height: 1.5; }
-        .box p.strong { font-weight: bold; font-size: 13px; }
-        .box p.sub { color: #64748B; font-size: 10.5px; margin-top: 2px; }
-
-        table.vehicle-stats { width: 100%; margin-top: 8px; }
-        table.vehicle-stats td { padding-top: 4px; border-top: 1px solid #E2E8F0; font-size: 11px; }
-        table.vehicle-stats .vs-label { color: #94A3B8; font-size: 9px; text-transform: uppercase; letter-spacing: .5px; display: block; }
-        table.vehicle-stats .vs-value { font-weight: bold; color: #1E293B; }
-
-        .section-title {
-            font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px;
-            color: #003BDD; padding-bottom: 6px; margin: 4px 0 8px;
-            border-bottom: 1.5px solid #E2E8F0;
-        }
-
-        /* ---------- Tabela de itens ---------- */
-        table.itens { width: 100%; border-collapse: collapse; margin-bottom: 16px; }
-        table.itens thead th {
-            text-align: left; font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: .5px;
-            color: #003BDD; padding: 7px 6px; background: #EEF2FF; border-bottom: 2px solid #DBEAFE;
-        }
-        table.itens tbody td { padding: 7px 6px; border-bottom: 1px solid #E2E8F0; font-size: 11px; }
-        table.itens tbody tr:nth-child(even) td { background: #F8FAFC; }
-        table.itens td.num, table.itens th.num { text-align: right; }
-
-        /* ---------- Totais ---------- */
-        table.totais { width: 270px; margin-left: auto; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 4px 14px; }
-        table.totais td { padding: 5px 0; font-size: 11px; color: #1E293B; }
-        table.totais td.valor { text-align: right; }
-        .total-final { width: 270px; margin-left: auto; margin-top: 8px; background: linear-gradient(135deg, #003BDD 0%, #0030C4 100%); border-radius: 8px; padding: 10px 14px; }
-        .total-final table { width: 100%; }
-        .total-final td { color: #FFFFFF; font-size: 14px; font-weight: bold; }
-        .total-final td.valor { text-align: right; font-size: 16px; }
-
-        .obs-box { margin-top: 16px; padding: 12px 14px; background: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; }
-        .obs-box h3 { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 5px; }
-        .obs-box p { font-size: 11px; line-height: 1.5; }
-
-        .garantia-box { margin-top: 14px; padding: 12px 14px; border: 1px dashed #CBD5E1; border-radius: 8px; }
-        .garantia-box h3 { font-size: 9px; font-weight: bold; text-transform: uppercase; letter-spacing: 1px; color: #94A3B8; margin-bottom: 5px; }
-        .garantia-box p { font-size: 9.5px; line-height: 1.55; color: #64748B; text-align: justify; }
-
-        table.assinaturas { width: 100%; margin-top: 46px; }
-        table.assinaturas td { width: 50%; text-align: center; padding-top: 6px; border-top: 1.5px solid #CBD5E1; font-size: 10px; color: #94A3B8; }
-
-        .doc-footer { margin-top: 18px; padding-top: 10px; border-top: 1px solid #E2E8F0; text-align: center; font-size: 9px; color: #94A3B8; }
-    </style>
+    <title>OS <?= htmlspecialchars($os['numero_os'] ?? '') ?> — <?= htmlspecialchars(EMPRESA_NOME) ?></title>
+    <?php require __DIR__ . '/../layout/_docPdfEstilos.php'; ?>
 </head>
 
 <body>
 
-    <div class="topbar"></div>
+    <?php require __DIR__ . '/../layout/_docPdfRodape.php'; ?>
+    <?php require __DIR__ . '/../layout/_docPdfCabecalho.php'; ?>
 
-    <table class="doc-head">
+    <table class="doc-meta">
         <tr>
-            <td style="width:55%;">
-                <table class="brand-row">
-                    <tr>
-                        <td style="width:36px;"><div class="brand-mark">M</div></td>
-                        <td class="brand-name-cell">
-                            <div class="brand-name"><?= htmlspecialchars(defined('EMPRESA_NOME') ? EMPRESA_NOME : 'Mecanize') ?></div>
-                            <div class="brand-meta">
-                                <?= htmlspecialchars(defined('EMPRESA_ENDERECO') ? EMPRESA_ENDERECO : '') ?><br>
-                                <?= htmlspecialchars(defined('EMPRESA_TELEFONE') ? EMPRESA_TELEFONE : '') ?>
-                                <?= defined('EMPRESA_CNPJ') ? ' · CNPJ: ' . htmlspecialchars(EMPRESA_CNPJ) : '' ?>
-                            </div>
-                        </td>
-                    </tr>
-                </table>
+            <td>
+                <span class="rot">Aberta em</span>
+                <span class="val"><?= !empty($os['data_abertura']) ? date('d/m/Y', strtotime($os['data_abertura'])) : '-' ?></span>
             </td>
-            <td class="doc-head__ref" style="width:45%;">
-                <div class="kicker">Ordem de Serviço</div>
-                <div class="numero"><?= htmlspecialchars($os['numero_os'] ?? '#' . $os['id_ordem_servico']) ?></div>
-                <span class="badge"><?= $statusInfo['label'] ?></span>
+            <td>
+                <span class="rot">Concluída em</span>
+                <span class="val"><?= !empty($os['data_conclusao']) ? date('d/m/Y', strtotime($os['data_conclusao'])) : '-' ?></span>
+            </td>
+            <td>
+                <span class="rot">Responsável</span>
+                <span class="val"><?= htmlspecialchars($os['nome_mecanico'] ?? '-') ?></span>
             </td>
         </tr>
     </table>
 
-    <table class="meta-strip">
+    <table class="doc-grid2">
         <tr>
             <td>
-                <span class="m-label">Aberta em</span>
-                <span class="m-value"><?= !empty($os['data_abertura']) ? date('d/m/Y', strtotime($os['data_abertura'])) : '-' ?></span>
-            </td>
-            <td>
-                <span class="m-label">Concluída em</span>
-                <span class="m-value"><?= !empty($os['data_conclusao']) ? date('d/m/Y', strtotime($os['data_conclusao'])) : '-' ?></span>
-            </td>
-            <td>
-                <span class="m-label">Responsável</span>
-                <span class="m-value"><?= htmlspecialchars($os['nome_mecanico'] ?? '-') ?></span>
-            </td>
-        </tr>
-    </table>
-
-    <table class="grid2">
-        <tr>
-            <td>
-                <div class="box">
+                <div class="doc-box">
                     <h3>Cliente</h3>
-                    <p class="strong"><?= htmlspecialchars($os['nome_cliente'] ?? '-') ?></p>
+                    <p class="forte"><?= htmlspecialchars($os['nome_cliente'] ?? '-') ?></p>
                     <?php if ($docCliente): ?><p class="sub"><?= $docCliente ?></p><?php endif; ?>
                     <?php if (!empty($os['telefone_cliente'])): ?><p class="sub">Tel: <?= htmlspecialchars($os['telefone_cliente']) ?></p><?php endif; ?>
                     <?php if ($enderecoCompleto): ?><p class="sub"><?= $enderecoCompleto ?></p><?php endif; ?>
                 </div>
             </td>
-            <td class="pad-left">
-                <div class="box">
+            <td class="dir">
+                <div class="doc-box">
                     <h3>Veículo</h3>
-                    <p class="strong"><?= htmlspecialchars($veiculoNome ?: ($os['modelo'] ?? '-')) ?></p>
+                    <p class="forte"><?= htmlspecialchars($veiculoNome ?: ($os['modelo'] ?? '-')) ?></p>
                     <p class="sub"><?= htmlspecialchars(strtoupper($os['placa'] ?? '-')) ?></p>
-                    <table class="vehicle-stats">
+                    <table class="doc-veiculo">
                         <tr>
-                            <td><span class="vs-label">Ano</span><span class="vs-value"><?= htmlspecialchars($os['ano_veiculo'] ?? '-') ?></span></td>
-                            <td><span class="vs-label">Cor</span><span class="vs-value"><?= htmlspecialchars($os['cor_veiculo'] ?? '-') ?></span></td>
-                            <td><span class="vs-label">KM</span><span class="vs-value"><?= !empty($os['km_veiculo']) ? number_format($os['km_veiculo'], 0, ',', '.') : '-' ?></span></td>
+                            <td><span class="rot">Ano</span><span class="val"><?= htmlspecialchars($os['ano_veiculo'] ?? '-') ?></span></td>
+                            <td><span class="rot">Cor</span><span class="val"><?= htmlspecialchars($os['cor_veiculo'] ?? '-') ?></span></td>
+                            <td><span class="rot">KM</span><span class="val"><?= !empty($os['km_veiculo']) ? number_format($os['km_veiculo'], 0, ',', '.') : '-' ?></span></td>
                         </tr>
                     </table>
                 </div>
@@ -227,19 +108,19 @@ $totalGeralOS  = (float) ($os['valor_total_os']  ?? ($subtotalOS - $descontoOS))
     </table>
 
     <?php if (!empty($os['defeito_relatado']) || !empty($os['diagnostico'])): ?>
-        <table class="grid2">
+        <table class="doc-grid2">
             <tr>
                 <?php if (!empty($os['defeito_relatado'])): ?>
                     <td>
-                        <div class="box">
+                        <div class="doc-box">
                             <h3>Problema Relatado</h3>
                             <p><?= nl2br(htmlspecialchars($os['defeito_relatado'])) ?></p>
                         </div>
                     </td>
                 <?php endif; ?>
                 <?php if (!empty($os['diagnostico'])): ?>
-                    <td class="pad-left">
-                        <div class="box">
+                    <td class="dir">
+                        <div class="doc-box">
                             <h3>Diagnóstico</h3>
                             <p><?= nl2br(htmlspecialchars($os['diagnostico'])) ?></p>
                         </div>
@@ -250,10 +131,16 @@ $totalGeralOS  = (float) ($os['valor_total_os']  ?? ($subtotalOS - $descontoOS))
     <?php endif; ?>
 
     <?php if (!empty($itens)): ?>
-        <div class="section-title">Peças &amp; Serviços</div>
-        <table class="itens">
+        <div class="doc-secao">Peças &amp; Serviços</div>
+        <table class="doc-tabela">
             <thead>
-                <tr><th>Descrição</th><th class="num">Qtd</th><th class="num">Valor Unit.</th><th class="num">Desconto Unit.</th><th class="num">Total do Item</th></tr>
+                <tr>
+                    <th>Descrição</th>
+                    <th class="num" style="width:9%;">Qtd</th>
+                    <th class="num" style="width:16%;">Valor Unit.</th>
+                    <th class="num" style="width:16%;">Desconto</th>
+                    <th class="num" style="width:18%;">Total do Item</th>
+                </tr>
             </thead>
             <tbody>
                 <?php foreach ($itens as $item):
@@ -274,24 +161,34 @@ $totalGeralOS  = (float) ($os['valor_total_os']  ?? ($subtotalOS - $descontoOS))
         </table>
     <?php endif; ?>
 
-    <table class="totais">
-        <tr><td>Total Peças</td><td class="valor">R$ <?= number_format($totalPecas, 2, ',', '.') ?></td></tr>
-        <tr><td>Total Serviços</td><td class="valor">R$ <?= number_format($totalServicos, 2, ',', '.') ?></td></tr>
-        <tr><td>Subtotal</td><td class="valor">R$ <?= number_format($subtotalOS, 2, ',', '.') ?></td></tr>
-        <tr><td>Desconto</td><td class="valor">- R$ <?= number_format($descontoOS, 2, ',', '.') ?></td></tr>
-    </table>
-    <div class="total-final">
-        <table><tr><td>Total Geral</td><td class="valor">R$ <?= number_format($totalGeralOS, 2, ',', '.') ?></td></tr></table>
+    <!-- Totais nunca podem rachar entre páginas: meia apuração numa folha e
+         o total geral na outra é o tipo de documento que ninguém aceita. -->
+    <div class="doc-fechamento">
+        <table class="doc-totais">
+            <tr><td>Total Peças</td><td class="num">R$ <?= number_format($totalPecas, 2, ',', '.') ?></td></tr>
+            <tr><td>Total Serviços</td><td class="num">R$ <?= number_format($totalServicos, 2, ',', '.') ?></td></tr>
+            <tr><td>Subtotal</td><td class="num">R$ <?= number_format($subtotalOS, 2, ',', '.') ?></td></tr>
+            <tr><td>Desconto</td><td class="num">- R$ <?= number_format($descontoOS, 2, ',', '.') ?></td></tr>
+        </table>
+
+        <div class="doc-total-final">
+            <table>
+                <tr>
+                    <td>Total Geral</td>
+                    <td class="num">R$ <?= number_format($totalGeralOS, 2, ',', '.') ?></td>
+                </tr>
+            </table>
+        </div>
     </div>
 
     <?php if (!empty($os['observacoes'])): ?>
-        <div class="obs-box">
+        <div class="doc-box" style="margin-top:14px;">
             <h3>Observações</h3>
             <p><?= nl2br(htmlspecialchars($os['observacoes'])) ?></p>
         </div>
     <?php endif; ?>
 
-    <div class="garantia-box">
+    <div class="doc-garantia">
         <h3>Termos da Garantia</h3>
         <p>
             Os serviços e peças descritos nesta Ordem de Serviço possuem garantia de 90 (noventa) dias corridos,
@@ -303,21 +200,18 @@ $totalGeralOS  = (float) ($os['valor_total_os']  ?? ($subtotalOS - $descontoOS))
         </p>
     </div>
 
-    <table class="assinaturas">
+    <table class="doc-assinaturas">
         <tr>
             <td>
-                <?php if (!empty($os['assinatura_cliente'])): ?>
-                    <img src="<?= htmlspecialchars($os['assinatura_cliente']) ?>" style="max-height:60px;display:block;margin:0 auto 4px;"><br>
-                <?php endif; ?>
+                <?php
+                $docAssinatura = $os['assinatura_cliente'] ?? '';
+                require __DIR__ . '/../layout/_docPdfAssinatura.php';
+                ?>
                 Assinatura do Cliente
             </td>
             <td><?= htmlspecialchars($os['nome_mecanico'] ?? 'Responsável Técnico') ?></td>
         </tr>
     </table>
-
-    <div class="doc-footer">
-        Documento gerado eletronicamente pelo Mecanize em <?= date('d/m/Y \à\s H:i') ?>
-    </div>
 
 </body>
 

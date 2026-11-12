@@ -20,7 +20,7 @@ class Relatorio
             'ticketMedio'             => $this->ticketMedio(),
             'estoqueBaixo'            => $this->estoqueBaixo(),
 
-            'labelsGrafico'           => ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'],
+            'labelsGrafico'           => self::rotulosUltimos7Dias(),
             'graficoOS'               => $this->graficoOSSemana(),
             'graficoReceita'          => $this->graficoReceitaSemana(),
 
@@ -35,6 +35,23 @@ class Relatorio
             'clientesAtendidos' => $this->clientesAtendidos(),
             'ordensConcluidas'  => $this->ultimasConcluidas()
         ];
+    }
+
+    /**
+     * Rótulos do gráfico semanal: os 7 dias REAIS, terminando hoje, na mesma ordem dos
+     * dados (de 6 dias atrás até hoje). Antes eram sempre Seg…Dom, mas os dados são uma
+     * janela móvel — a barra de hoje aparecia com o nome de outro dia.
+     */
+    public static function rotulosUltimos7Dias(): array
+    {
+        $dias = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+        $saida = [];
+
+        for ($i = 6; $i >= 0; $i--) {
+            $saida[] = $dias[(int) date('w', strtotime("-{$i} days"))];
+        }
+
+        return $saida;
     }
 
     private function statusResumo()

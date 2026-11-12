@@ -155,20 +155,30 @@ $link = function (array $extra = []) use ($aba, $buscaAtual, $tipoAtual) {
 
                         <!-- Status (clicável: ativa/desativa) -->
                         <td>
-                            <a href="./toggleStatusUsuario&id=<?= $usuario['id_usuario'] ?>"
-                                title="Clique para <?= $ativo === 1 ? 'desativar' : 'ativar' ?>"
-                                onclick="return confirm('<?= $ativo === 1 ? 'Desativar' : 'Ativar' ?> este usuário?<?= $ativo === 1 ? ' Ele passa para a aba Inativos.' : ' Ele volta para a aba Ativos.' ?>')"
-                                style="text-decoration:none;">
-                                <?php if ($ativo === 1): ?>
-                                    <span class="badge badge--success">
-                                        <span class="badge__dot"></span>Ativo
-                                    </span>
-                                <?php else: ?>
-                                    <span class="badge badge--danger">
-                                        <span class="badge__dot"></span>Inativo
-                                    </span>
-                                <?php endif; ?>
-                            </a>
+                            <!-- O badge inteiro vira o botão do form: por fora nada muda,
+                                 mas a troca de status passa a ser POST com token. Como GET,
+                                 bastava a URL ser carregada de qualquer lugar para desativar
+                                 um usuário na sessão de quem estivesse logado.
+                                 O campo `retorno` devolve a listagem com os mesmos filtros —
+                                 antes isso era feito com o Referer, que o cliente controla. -->
+                            <form method="post" action="./toggleStatusUsuario" style="display:inline;"
+                                onsubmit="return confirm('<?= $ativo === 1 ? 'Desativar' : 'Ativar' ?> este usuário?<?= $ativo === 1 ? ' Ele passa para a aba Inativos.' : ' Ele volta para a aba Ativos.' ?>')">
+                                <?= csrf_field() ?>
+                                <input type="hidden" name="id" value="<?= (int) $usuario['id_usuario'] ?>">
+                                <input type="hidden" name="retorno" value="<?= htmlspecialchars($_SERVER['QUERY_STRING'] ?? '', ENT_QUOTES) ?>">
+                                <button type="submit" class="badge-botao"
+                                    title="Clique para <?= $ativo === 1 ? 'desativar' : 'ativar' ?>">
+                                    <?php if ($ativo === 1): ?>
+                                        <span class="badge badge--success">
+                                            <span class="badge__dot"></span>Ativo
+                                        </span>
+                                    <?php else: ?>
+                                        <span class="badge badge--danger">
+                                            <span class="badge__dot"></span>Inativo
+                                        </span>
+                                    <?php endif; ?>
+                                </button>
+                            </form>
                         </td>
 
                         <!-- Criado em -->
@@ -199,15 +209,17 @@ $link = function (array $extra = []) use ($aba, $buscaAtual, $tipoAtual) {
                                     </svg>
                                 </a>
 
-                                <a href="./deleteUsuario&id=<?= $usuario['id_usuario'] ?>"
-                                    class="row-action-btn danger"
-                                    title="Excluir"
-                                    onclick="return confirm('Deseja excluir este usuário? Esta ação não pode ser desfeita.')">
-                                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                        <polyline points="3 6 5 6 21 6" />
-                                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                    </svg>
-                                </a>
+                                <form method="post" action="./deleteUsuario" style="display:inline;"
+                                    onsubmit="return confirm('Deseja excluir este usuário? Esta ação não pode ser desfeita.')">
+                                    <?= csrf_field() ?>
+                                    <input type="hidden" name="id" value="<?= (int) $usuario['id_usuario'] ?>">
+                                    <button type="submit" class="row-action-btn danger" title="Excluir">
+                                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                            <polyline points="3 6 5 6 21 6" />
+                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                        </svg>
+                                    </button>
+                                </form>
                             </div>
                         </td>
                     </tr>

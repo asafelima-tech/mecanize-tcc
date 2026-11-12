@@ -1,13 +1,16 @@
 <?php
 
+require_once __DIR__ . '/../core/Transacao.php';
+require_once __DIR__ . '/../core/Historico.php';
+
 class Cliente
 {
     private $conn;
     private $lastError = '';
 
-    public function __construct()
+    public function __construct(?PDO $conn = null)
     {
-        $this->conn = new Database();
+        $this->conn = $conn ?? new Database();
     }
 
     /** Lista clientes cadastrados neste mês, para o modal de "Novos esse Mês" */
@@ -220,6 +223,13 @@ class Cliente
     public function getResumo($filtros = [])
     {
         $totalResultados = $this->contarClientesFiltrados($filtros);
+        $totalPaginas    = max(1, (int)ceil($totalResultados / 10));
+
+        // Se o filtro/aba mudou e a página pedida ficou fora do intervalo
+        // (ex.: estava na página 5 e agora só há 2), reposiciona na última
+        // válida em vez de devolver uma lista vazia.
+        $pagina = min(max(1, (int)($filtros['pagina'] ?? 1)), $totalPaginas);
+        $filtros['pagina'] = $pagina;
 
         return [
             'totalClientes'   => $this->totalClientes(),
@@ -227,9 +237,24 @@ class Cliente
             'clientesVip'     => $this->clientesVipRecorrentes(),
             'clientes'        => $this->listarClientes($filtros),
             'totalResultados' => $totalResultados,
-            'paginaAtual'     => max(1, (int)($filtros['pagina'] ?? 1)),
-            'totalPaginas'    => max(1, (int)ceil($totalResultados / 10)),
+            'paginaAtual'     => $pagina,
+            'totalPaginas'    => $totalPaginas,
+
+            // Contadores das abas: sempre globais, independentes da busca —
+            // são o total de cada recorte, não do resultado filtrado.
+            'totalAtivos'     => $this->countAtivos(),
+            'totalInativos'   => $this->countInativos(),
         ];
+    }
+
+    public function countAtivos(): int
+    {
+        return (int) $this->conn->query("SELECT COUNT(*) FROM clientes WHERE ativo = 1")->fetchColumn();
+    }
+
+    public function countInativos(): int
+    {
+        return (int) $this->conn->query("SELECT COUNT(*) FROM clientes WHERE ativo = 0")->fetchColumn();
     }
 
     private function totalClientes()
@@ -282,7 +307,9 @@ class Cliente
             c.email,
             c.telefone,
             c.ativo,
+            c.cadastro_status,
             c.criado_em,
+            c.desativado_em,
             COALESCE(NULLIF(c.cpf, ''), NULLIF(c.cnpj, ''), '') AS cpf_cnpj,
 
             CASE
@@ -342,13 +369,21 @@ class Cliente
             c.email,
             c.telefone,
             c.ativo,
+            c.cadastro_status,
             c.criado_em,
+            c.desativado_em,
             c.cpf,
             c.cnpj
-
-        ORDER BY (c.nome = 'Cliente Balcão') DESC, c.nome ASC
-        LIMIT ? OFFSET ?
     ";
+
+        // Na aba de inativos o que importa é o que saiu por último — mesma
+        // ordenação que a tela separada de desativados usava. Nos ativos,
+        // ordem alfabética com o Cliente Balcão fixo no topo.
+        $sql .= ($status === 'inativo')
+            ? " ORDER BY c.desativado_em DESC, c.nome ASC"
+            : " ORDER BY (c.nome = 'Cliente Balcão') DESC, c.nome ASC";
+
+        $sql .= " LIMIT ? OFFSET ?";
 
         $stmt = $this->conn->prepare($sql);
 
@@ -421,75 +456,6 @@ class Cliente
         $stmt = $this->conn->prepare($sql);
         $stmt->execute([$id]);
         return $stmt->fetch(PDO::FETCH_ASSOC);
-    }
-
-    public function getDesativados(string $busca = '', int $pagina = 1): array
-    {
-        $porPagina = 10;
-        $offset    = ($pagina - 1) * $porPagina;
-        $like      = '%' . $busca . '%';
-
-        $sqlTotal = "
-            SELECT COUNT(*)
-            FROM clientes
-            WHERE ativo = 0
-              AND (nome LIKE ? OR telefone LIKE ? OR email LIKE ?)
-        ";
-        $stmtTotal = $this->conn->prepare($sqlTotal);
-        $stmtTotal->execute([$like, $like, $like]);
-        $total = (int) $stmtTotal->fetchColumn();
-
-        $sql = "
-            SELECT
-                c.id_cliente,
-                c.nome,
-                c.email,
-                c.telefone,
-                c.desativado_em,
-                c.criado_em,
-
-                COUNT(DISTINCT v.id_veiculo) AS total_veiculos,
-                MAX(os.data_abertura)        AS ultima_visita,
-
-                (
-                    SELECT CONCAT(mv.nome, ' ', mo.nome, ' ', COALESCE(v2.ano, ''))
-                    FROM veiculos v2
-                    INNER JOIN marcas_veiculos mv ON mv.id_marca  = v2.marca_id
-                    INNER JOIN modelos_veiculos mo ON mo.id_modelo = v2.modelo_id
-                    WHERE v2.cliente_id = c.id_cliente
-                    ORDER BY v2.id_veiculo ASC
-                    LIMIT 1
-                ) AS veiculo_principal
-
-            FROM clientes c
-            LEFT JOIN veiculos v        ON v.cliente_id  = c.id_cliente
-            LEFT JOIN ordens_servico os ON os.cliente_id = c.id_cliente
-
-            WHERE c.ativo = 0
-              AND (c.nome LIKE ? OR c.telefone LIKE ? OR c.email LIKE ?)
-
-            GROUP BY
-                c.id_cliente, c.nome, c.email,
-                c.telefone, c.desativado_em, c.criado_em
-
-            ORDER BY c.desativado_em DESC
-
-            LIMIT ? OFFSET ?
-        ";
-
-        $stmt = $this->conn->prepare($sql);
-        $stmt->bindValue(1, $like,      PDO::PARAM_STR);
-        $stmt->bindValue(2, $like,      PDO::PARAM_STR);
-        $stmt->bindValue(3, $like,      PDO::PARAM_STR);
-        $stmt->bindValue(4, $porPagina, PDO::PARAM_INT);
-        $stmt->bindValue(5, $offset,    PDO::PARAM_INT);
-        $stmt->execute();
-
-        return [
-            'clientesDesativados' => $stmt->fetchAll(PDO::FETCH_ASSOC),
-            'totalDesativados'    => $total,
-            'paginaAtual'         => $pagina,
-        ];
     }
 
     public function reativar(int $id): bool
@@ -571,7 +537,7 @@ class Cliente
         // Mantém desativado_em coerente com o "Ativo" da tela de Editar, do
         // mesmo jeito que delete()/reativar() já fazem — sem isso, alternar
         // esse campo por aqui deixava a data de desativação desatualizada,
-        // bagunçando a ordenação de listClientesDesativados (ORDER BY
+        // bagunçando a ordenação da aba de inativos (ORDER BY
         // desativado_em DESC).
         $ativo = (int) ($dados['ativo'] ?? 1);
 
@@ -629,5 +595,154 @@ class Cliente
         $sql  = "UPDATE clientes SET ativo = 0, desativado_em = NOW() WHERE id_cliente = ?";
         $stmt = $this->conn->prepare($sql);
         return $stmt->execute([$id]);
+    }
+
+    /**
+     * Busca para o balcão: por nome, telefone (só dígitos bastam) ou placa. Devolve o
+     * cliente com seus veículos, para o atendente escolher em vez de cadastrar de novo.
+     * Só clientes ativos.
+     *
+     * @return array<int,array{id:int,nome:string,telefone:?string,cadastro_status:string,veiculos:array}>
+     */
+    public function buscar(string $termo, int $limite = 8): array
+    {
+        $termo = trim($termo);
+
+        if (mb_strlen($termo) < 2) {
+            return [];
+        }
+
+        $like    = '%' . $termo . '%';
+        $digitos = preg_replace('/\\D+/', '', $termo);
+        $placa   = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', $termo));
+
+        $stmt = $this->conn->prepare("
+            SELECT DISTINCT c.id_cliente AS id, c.nome, c.telefone, c.cadastro_status
+            FROM clientes c
+            LEFT JOIN veiculos v ON v.cliente_id = c.id_cliente
+            WHERE c.ativo = 1
+              AND (c.nome LIKE :like
+                   OR (:dig1 <> '' AND c.uniq_telefone LIKE CONCAT('%', :dig2, '%'))
+                   OR (:placa1 <> '' AND v.placa_normalizada LIKE CONCAT('%', :placa2, '%')))
+            ORDER BY c.nome
+            LIMIT " . (int) $limite
+        );
+        $stmt->execute([':like' => $like, ':dig1' => $digitos, ':dig2' => $digitos, ':placa1' => $placa, ':placa2' => $placa]);
+        $clientes = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        $veic = $this->conn->prepare("
+            SELECT v.id_veiculo AS id, v.placa, CONCAT(mv.nome, ' ', mo.nome) AS modelo
+            FROM veiculos v
+            JOIN marcas_veiculos mv ON mv.id_marca = v.marca_id
+            JOIN modelos_veiculos mo ON mo.id_modelo = v.modelo_id
+            WHERE v.cliente_id = ? ORDER BY v.placa
+        ");
+
+        foreach ($clientes as &$c) {
+            $c['id'] = (int) $c['id'];
+            $veic->execute([$c['id']]);
+            $c['veiculos'] = $veic->fetchAll(PDO::FETCH_ASSOC);
+        }
+
+        return $clientes;
+    }
+
+    /** Cadastros provisórios (atendimento rápido) que ainda precisam ser completados. */
+    public function listarProvisorios(): array
+    {
+        return $this->conn->query("
+            SELECT c.id_cliente AS id, c.nome, c.telefone, c.criado_em,
+                   (SELECT COUNT(*) FROM ocorrencias o WHERE o.cliente_id = c.id_cliente) AS ocorrencias
+            FROM clientes c WHERE c.ativo = 1 AND c.cadastro_status = 'PROVISORIO' ORDER BY c.criado_em DESC
+        ")->fetchAll(PDO::FETCH_ASSOC);
+    }
+
+    /** Marca o cadastro como COMPLETO (depois de o formulário completo ter sido salvo por update()). */
+    public function marcarCompleto(int $id): bool
+    {
+        return $this->conn->prepare("UPDATE clientes SET cadastro_status = 'COMPLETO' WHERE id_cliente = ?")->execute([$id]);
+    }
+
+    /**
+     * Funde um cadastro PROVISÓRIO em um cadastro que já existia, preservando todo o histórico.
+     *
+     * Para não misturar pessoas diferentes, só se funde um provisório num cliente ativo e
+     * diferente dele, e a decisão é explícita (quem chama escolhe o destino). O provisório
+     * não é apagado: fica desativado e apontando para o destino (`unificado_em_id`). Veículos,
+     * ocorrências, orçamentos, OS, agendamentos e autorizações passam para o destino.
+     *
+     * @return array{ok:bool, erro:?string, movidos:array<string,int>}
+     */
+    public function unificar(int $provisorioId, int $destinoId, ?int $usuarioId): array
+    {
+        $vazio = ['ok' => false, 'erro' => null, 'movidos' => []];
+
+        try {
+            return Transacao::executar($this->conn, function () use ($provisorioId, $destinoId, $usuarioId, $vazio) {
+                if ($provisorioId === $destinoId) {
+                    throw new DomainException('Escolha um cadastro diferente do provisório.');
+                }
+
+                // Trava os dois sempre na mesma ordem (menor id primeiro): duas unificações
+                // cruzadas não se travam mutuamente.
+                $ids = [$provisorioId, $destinoId];
+                sort($ids);
+                $stmt = $this->conn->prepare('SELECT * FROM clientes WHERE id_cliente IN (?, ?) ORDER BY id_cliente FOR UPDATE');
+                $stmt->execute($ids);
+                $linhas = [];
+                foreach ($stmt->fetchAll(PDO::FETCH_ASSOC) as $l) {
+                    $linhas[(int) $l['id_cliente']] = $l;
+                }
+
+                $prov = $linhas[$provisorioId] ?? null;
+                $dest = $linhas[$destinoId] ?? null;
+
+                if (!$prov || !$dest) {
+                    throw new DomainException('Cliente não encontrado.');
+                }
+
+                if ($prov['cadastro_status'] !== 'PROVISORIO' || (int) $prov['ativo'] !== 1) {
+                    throw new DomainException('Só um cadastro provisório ativo pode ser unificado.');
+                }
+
+                if ((int) $dest['ativo'] !== 1 || $dest['unificado_em_id'] !== null) {
+                    throw new DomainException('O cadastro de destino precisa estar ativo.');
+                }
+
+                // Desativa o provisório ANTES de mexer no telefone do destino: as colunas únicas
+                // só valem para ativos, e o telefone dele pode ser o mesmo.
+                $this->conn->prepare("
+                    UPDATE clientes
+                    SET ativo = 0, desativado_em = NOW(), unificado_em_id = ?, unificado_em = NOW(),
+                        observacoes = CONCAT(COALESCE(CONCAT(observacoes, '\n'), ''), ?)
+                    WHERE id_cliente = ?
+                ")->execute([$destinoId, 'Cadastro provisório unificado em #' . $destinoId . ' (' . $dest['nome'] . ')', $provisorioId]);
+
+                if (empty($dest['telefone']) && !empty($prov['telefone'])) {
+                    $this->conn->prepare('UPDATE clientes SET telefone = ? WHERE id_cliente = ?')->execute([$prov['telefone'], $destinoId]);
+                }
+
+                $movidos = [];
+                foreach (['veiculos', 'ocorrencias', 'orcamentos', 'ordens_servico', 'agendamentos', 'autorizacoes_cliente'] as $tabela) {
+                    $u = $this->conn->prepare("UPDATE `{$tabela}` SET cliente_id = ? WHERE cliente_id = ?");
+                    $u->execute([$destinoId, $provisorioId]);
+                    $movidos[$tabela] = $u->rowCount();
+                }
+
+                Historico::registrar(
+                    $this->conn, 'CLIENTE', $provisorioId, 'PROVISORIO', 'UNIFICADO', $usuarioId,
+                    'Unificado no cadastro #' . $destinoId . ' (' . $dest['nome'] . ')',
+                    Historico::ORIGEM_USUARIO,
+                    ['destino_id' => $destinoId, 'movidos' => $movidos]
+                );
+
+                return array_merge($vazio, ['ok' => true, 'movidos' => $movidos]);
+            });
+        } catch (DomainException $e) {
+            return array_merge($vazio, ['erro' => $e->getMessage()]);
+        } catch (\Throwable $e) {
+            error_log('[Cliente unificar] ' . $e->getMessage());
+            return array_merge($vazio, ['erro' => 'Não foi possível unificar os cadastros. Nada foi alterado.']);
+        }
     }
 }

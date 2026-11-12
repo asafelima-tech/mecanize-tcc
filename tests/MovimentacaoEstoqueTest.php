@@ -119,8 +119,12 @@ final class MovimentacaoEstoqueTest extends TestCase
         $this->assertTrue($ok);
         $this->assertSame(8.0, $this->estoqueAtual());
 
+        // Filtra por tipo='AJUSTE': o setUp() já grava uma ENTRADA automática
+        // ao criar o produto de teste com estoque inicial (Produtos::create(),
+        // sessão de integração financeiro/estoque) — sem o filtro, a consulta
+        // sem ORDER BY podia pegar essa linha em vez da que este teste gerou.
         $mov = $this->pdo->query(
-            "SELECT tipo, quantidade FROM movimentacoes_estoque WHERE produto_id = {$this->produtoId}"
+            "SELECT tipo, quantidade FROM movimentacoes_estoque WHERE produto_id = {$this->produtoId} AND tipo = 'AJUSTE'"
         )->fetch(PDO::FETCH_ASSOC);
 
         $this->assertNotFalse($mov, 'correção manual de estoque deveria gerar uma movimentação de auditoria (bug corrigido em 2026-07-10)');

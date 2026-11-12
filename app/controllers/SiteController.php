@@ -6,42 +6,27 @@ class SiteController extends Controller
     {
         require_once __DIR__ . '/../core/auth.php';
 
-        $home = $this->model('Home');
+        $dados = $this->model('Home')->getResumo();
 
-        $dados = $home->getResumo();
+        // A tela inicial começa pelo que exige ação de quem entrou (perfil), não por números de vitrine.
+        // Falha na contagem não pode impedir o início de abrir.
+        try {
+            $dados['pendencias'] = $this->model('Pendencias')->paraPerfil((string) ($_SESSION['user_tipo'] ?? ''));
+        } catch (\Throwable $e) {
+            error_log('[início] pendências: ' . $e->getMessage());
+            $dados['pendencias'] = [];
+        }
 
-        $this->view('site/home', $dados);
-    }
-
-    public function sobre()
-    {
-        $this->view('site/sobre');
-    }
-
-    public function contato()
-    {
-        $this->view('site/contato');
+        $this->view('Site/home', $dados);
     }
 
     public function home()
     {
-        require_once __DIR__ . '/../core/auth.php';
-
-        $home = $this->model('Home');
-
-        $dados = $home->getResumo();
-
-        $this->view('site/home', $dados);
+        $this->index();
     }
-
-    public function recuperarLogin()
-    {
-        $this->view('site/recuperarLogin');
-    }
-
     public function erro404()
     {
-        $this->view('site/404');
+        Erro::exibir('nao-encontrado');
     }
 
     public function termos()
@@ -56,8 +41,15 @@ class SiteController extends Controller
 
     /**
      * Painel "modo TV" pra deixar num monitor da sala de espera — mostra só
-     * placa/primeiro nome (sem dado sensível) das OS em andamento e das
-     * concluídas recentemente. Atualiza sozinho (meta refresh).
+     * placa/primeiro nome (sem dado sensível) das OS em andamento e das que
+     * o técnico já finalizou e o administrador liberou (AGUARDANDO_RETIRADA). Atualiza sozinho (meta refresh).
+     *
+     * Antes da área do técnico, "concluída" era o único status de "pronto";
+     * mostrava as concluídas nas últimas 48h como aproximação de "ainda não
+     * retirado". Agora CONCLUIDA passou a significar "já entregue" (ver
+     * OrdemServico::STATUS_LABEL) — um carro nesse status já foi embora, então
+     * mostrar isso na tela de "pronto para retirada" ficaria ao contrário.
+     * AGUARDANDO_RETIRADA é o status certo: conferida pelo administrador, ainda não saiu.
      */
     public function painel()
     {
@@ -65,16 +57,10 @@ class SiteController extends Controller
 
         $dados = [
             'emAndamento' => $ordemServico->listarAtivas(),
-            'prontas'     => $ordemServico->listarConcluidasRecentes(48),
+            'prontas'     => $ordemServico->listarAguardandoRetirada(),
         ];
 
         $this->view('Site/painel', $dados);
     }
 
-    public function tabela()
-    {
-        require_once __DIR__ . '/../core/auth.php';
-
-        $this->view('site/tabela');
-    }
 }

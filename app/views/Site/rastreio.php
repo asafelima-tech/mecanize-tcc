@@ -11,9 +11,22 @@ $veiculo = htmlspecialchars($dados['modelo'] ?? '-');
 $placa   = htmlspecialchars(strtoupper($dados['placa'] ?? '-'));
 
 if ($ehOS) {
-    $etapas = ['ABERTA' => 'Aberta', 'EM_ANDAMENTO' => 'Em Andamento', 'AGUARDANDO_PECA' => 'Aguardando Peça', 'CONCLUIDA' => 'Concluída'];
+    // Etapas na linguagem do CLIENTE (o nome interno "Aguardando conferência" não
+    // diz nada a quem deixou o carro). "Aguardando peças" é uma pausa da execução e
+    // acende a etapa "Em execução".
+    $etapas = [
+        'ABERTA'                 => 'Recebido',
+        'EM_ANDAMENTO'           => 'Em execução',
+        'AGUARDANDO_CONFERENCIA' => 'Conferência final',
+        'AGUARDANDO_RETIRADA'    => 'Pronto para retirada',
+        'CONCLUIDA'              => 'Entregue',
+    ];
     $statusAtual = $dados['status'] ?? 'ABERTA';
     $cancelado = $statusAtual === 'CANCELADA';
+    $aguardandoPeca = $statusAtual === 'AGUARDANDO_PECA';
+    if ($aguardandoPeca) {
+        $statusAtual = 'EM_ANDAMENTO';
+    }
 } else {
     $etapas = ['pendente' => 'Criado', '_aguardando' => 'Aguardando aprovação', '_decisao' => match ($dados['status'] ?? '') {
         'aprovado'  => 'Aprovado',
@@ -35,7 +48,7 @@ $indiceAtual = $ehOS
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mecanize · Rastreamento <?= $numero ? '#' . $numero : '' ?></title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="./assets/vendor/inter.css">
     <link rel="stylesheet" href="./assets/css/global.css">
 
     <script>

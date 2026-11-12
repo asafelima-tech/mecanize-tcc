@@ -9,12 +9,9 @@ if (session_status() === PHP_SESSION_NONE) {
 // $resumoAberto array|null  — resumoSessao() da sessão aberta (caixa atual etc.)
 
 // Rótulos legíveis para as chaves de forma de pagamento / categoria do resumo.
-$labelForma = [
-    'DINHEIRO' => 'Dinheiro',
-    'PIX'      => 'Pix',
-    'CARTAO'   => 'Cartão',
-    'BOLETO'   => 'Boleto',
-];
+// Mapa único em MovimentacaoCaixa: a tela não repete a lista de formas.
+require_once __DIR__ . '/../../models/MovimentacaoCaixa.php';
+$labelForma = MovimentacaoCaixa::FORMA_LABEL;
 $labelCategoria = [
     'PECAS' => 'Peças',
     'BANCO' => 'Banco',

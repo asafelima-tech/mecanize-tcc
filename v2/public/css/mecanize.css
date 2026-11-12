@@ -2429,3 +2429,528 @@ form.grupo { margin: 0; }
   .page-header__actions > details { flex: 1 1 auto; display: flex; }
   .page-header__actions > details > summary.btn { width: 100%; }
 }
+
+/* ── 25. Tela da OS ──────────────────────────────────────────────────────── */
+/* Ficha de consulta da OS: andamento em etapas, números, o trabalho no centro e três caixas ao lado. */
+.os-etapas { list-style: none; margin: 0 0 16px; padding: 18px 24px; display: flex; gap: 12px;
+  border-radius: var(--r-card, 18px); background: var(--card); box-shadow: var(--sombra-card); }
+.os-etapas__item { position: relative; flex: 1 1 0; display: flex; align-items: center; gap: 10px; min-width: 0; color: var(--text-secondary); font-size: 13px; }
+.os-etapas__item:last-child { flex: none; }
+.os-etapas__item:not(:last-child)::after { content: ""; flex: 1; height: 1.5px; min-width: 12px; margin-right: 0; background: var(--border-subtle); border-radius: 2px; }
+.os-etapas__item.is-feita:not(:last-child)::after { background: var(--text); }
+.os-etapas__marca { flex: none; width: 22px; height: 22px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: inset 0 0 0 1.5px var(--border); background: var(--card); transition: background var(--dur-fast) var(--ease); }
+.os-etapas__rotulo { flex: none; white-space: nowrap; }
+.os-etapas__item.is-feita { color: var(--text); }
+.os-etapas__item.is-feita .os-etapas__marca { background: var(--action); color: var(--on-action); box-shadow: none; }
+.os-etapas__item.is-atual { color: var(--text); font-weight: 650; }
+.os-etapas__item.is-atual .os-etapas__marca { box-shadow: inset 0 0 0 2px var(--text), inset 0 0 0 5px var(--card), inset 0 0 0 11px var(--text); }
+.ver-numeros__data { font-size: 22px !important; }
+
+.os-notas { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 18px 28px; }
+.os-notas > div { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.os-notas p { font-size: 13.5px; }
+.os-notas__dica { font-weight: 400; text-transform: none; letter-spacing: 0; color: var(--text-tertiary); }
+
+.os-itens__desc { display: flex; align-items: flex-start; gap: 12px; min-width: 0; }
+.os-itens__tipo { flex: none; width: 30px; height: 30px; border-radius: 9px; display: inline-flex; align-items: center; justify-content: center;
+  background: var(--fill); color: var(--text-secondary); margin-top: 1px; }
+[data-theme="dark"] .os-itens__tipo { background: var(--recuo); }
+.os-itens__desc strong { font-weight: 600; }
+.os-itens__desc b { font-weight: 650; color: var(--text); }
+.os-itens__tabela td:first-child { white-space: normal; min-width: 240px; }
+.os-itens__acoes { white-space: nowrap; width: 1%; }
+.os-itens__acoes form { display: inline; margin: 0; }
+.os-itens__acoes .btn--icone { color: var(--text-secondary); }
+.os-itens__acoes .btn--icone:hover { color: var(--text); }
+
+.os-totais { margin: 0; padding: 14px 22px 18px; display: flex; flex-direction: column; align-items: flex-end; gap: 6px; border-top: 1px solid var(--border-subtle); }
+.os-totais > div { display: grid; grid-template-columns: 120px 140px; gap: 12px; font-size: 13.5px; }
+.os-totais dt { color: var(--text-secondary); text-align: right; }
+.os-totais dd { margin: 0; text-align: right; font-variant-numeric: tabular-nums; }
+.os-totais__total { margin-top: 4px; padding-top: 10px; border-top: 1px solid var(--border-subtle); }
+.os-totais__total dt { color: var(--text); font-weight: 600; align-self: end; }
+.os-totais__total dd { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
+
+.os-incluir { border-top: 1px solid var(--border-subtle); background: var(--surface); }
+[data-theme="dark"] .os-incluir { background: var(--recuo); }
+.os-incluir__cabeca { padding: 16px 20px 0; }
+.os-incluir__cabeca h3 { margin: 0; display: flex; align-items: center; gap: 8px; font-size: 13.5px; font-weight: 650; }
+.os-incluir__cabeca p { margin: 4px 0 0; font-size: 12.5px; color: var(--text-secondary); }
+.os-incluir .os-novo-item { border-top: 0; background: transparent; padding-top: 12px; padding-bottom: 18px; }
+
+.os-arquivos { padding: 0 22px 22px; display: flex; flex-direction: column; gap: 14px; }
+.os-anexar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; align-items: end; padding-top: 14px; border-top: 1px solid var(--border-subtle); }
+.os-anexar .form-field { margin: 0; }
+.os-anexar__pe { grid-column: 1 / -1; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+
+.os-linha-tempo { margin: 0 22px 22px 26px; }
+.os-linha-tempo li:first-child::before { background: var(--text); }
+.os-linha-tempo__texto { color: var(--text) !important; font-size: 13px !important; line-height: 1.45; }
+.os-linha-tempo__detalhe { margin-top: 4px; font-size: 12.5px; }
+.os-linha-tempo__detalhe summary { cursor: pointer; color: var(--text-secondary); font-weight: 500; width: max-content; max-width: 100%; }
+.os-linha-tempo__detalhe summary:hover { color: var(--text); }
+.os-linha-tempo__detalhe ul { margin: 8px 0 4px; padding: 10px 12px 10px 28px; border-radius: 10px; background: var(--surface); color: var(--text-secondary); line-height: 1.6; }
+[data-theme="dark"] .os-linha-tempo__detalhe ul { background: var(--recuo); }
+
+.os-whats { justify-content: center; }
+.os-conta .btn { flex: none; }
+.os-cobrar { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--border-subtle); }
+.os-cobrar__titulo { margin: 0; font-size: 13px; color: var(--text-secondary); }
+.os-cobrar__titulo strong { color: var(--text); font-variant-numeric: tabular-nums; }
+.os-cobrar .form-field { margin: 0; }
+.os-cobrar__linha { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 10px; }
+.os-cobrar .btn { align-self: flex-start; }
+.os-assinatura { display: block; width: 100%; height: 72px; object-fit: contain; background: #fff; border-radius: 10px; box-shadow: inset 0 0 0 1px var(--border-subtle); }
+.os-assinar { display: block; width: 100%; height: 120px; border-radius: 12px; background: #fff; touch-action: none; box-shadow: inset 0 0 0 1.5px var(--border); }
+.os-dlg-alerta { margin: 12px 0 0 !important; }
+.dlg--largo { width: min(600px, calc(100vw - 32px)); }
+
+@media (max-width: 960px) {
+  .os-etapas { padding: 16px 18px; }
+  .os-etapas__rotulo { font-size: 12px; }
+}
+@media (max-width: 720px) {
+  .os-etapas { padding: 14px 8px; gap: 0; }
+  .os-etapas__item, .os-etapas__item:last-child { flex: 1 1 0; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+  .os-etapas__item:not(:last-child)::after { position: absolute; top: 11px; left: calc(50% + 15px); right: calc(-50% + 15px); flex: none; min-width: 0; }
+  .os-etapas__rotulo { flex: initial; font-size: 11px; white-space: normal; line-height: 1.2; }
+  .os-anexar { grid-template-columns: minmax(0, 1fr); }
+  .os-totais > div { grid-template-columns: 1fr auto; width: 100%; }
+  .os-itens__tabela td:first-child { min-width: 200px; }
+}
+
+/* ── 26. Sessões de caixa ───────────────────────────────────────────────── */
+.tabela-sessoes__id { display: inline-flex; align-items: center; gap: 10px; }
+.tabela-sessoes__id a { color: var(--text); text-decoration: none; }
+.tabela-sessoes td .sub { white-space: nowrap; }
+.tabela-sessoes__ok { display: inline-flex; align-items: center; gap: 5px; font-size: 13px; color: var(--text-secondary); }
+.tabela-sessoes__ok .icone { width: 18px; height: 18px; padding: 2.5px; border-radius: 50%; background: var(--fill); color: var(--text); }
+
+/* ── 27. Plataforma (oficinas e licenças) ───────────────────────────────── */
+.ver-numeros__de { font-size: 15px; font-weight: 500; color: var(--text-secondary); letter-spacing: 0; }
+.grupo__n--escuro { background: var(--action); color: var(--on-action); display: inline-flex; align-items: center; justify-content: center; }
+.plataforma-motivo { margin-top: 16px; }
+.plataforma-rodape { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-top: 16px; }
+.plataforma-rodape .form-dica { margin: 0; max-width: 62ch; }
+.plataforma-rodape .btn { flex: none; }
+.plataforma-sigla { font-size: 11px; font-weight: 650; letter-spacing: .02em; color: var(--text-secondary); }
+.conta-lista__item.is-inativo { opacity: .6; }
+@media (max-width: 640px) { .plataforma-rodape { flex-direction: column; align-items: stretch; } .plataforma-rodape .btn { justify-content: center; } }
+
+/* ── 28. Acompanhamento do cliente (página pública) ─────────────────────── */
+.pub-corpo { background: var(--surface); min-height: 100vh; }
+[data-theme="dark"] .pub-corpo { background: var(--bg); }
+.pub { max-width: 620px; margin: 0 auto; padding: 32px 20px 56px; display: flex; flex-direction: column; gap: 16px; }
+.pub__oficina { display: flex; align-items: center; gap: 12px; font-size: 14px; }
+.pub__oficina > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.pub__oficina strong { font-weight: 650; }
+.pub__oficina a { color: var(--text-secondary); text-decoration: none; font-size: 13px; font-variant-numeric: tabular-nums; }
+.pub__sigla { width: 38px; height: 38px; border-radius: 11px; background: var(--action); color: var(--on-action); display: inline-flex; align-items: center; justify-content: center; flex: none; }
+.pub__destaque, .pub__itens { background: var(--card); border-radius: var(--r-card, 18px); box-shadow: var(--sombra-card, var(--shadow-flat)); }
+.pub__destaque { padding: 28px 28px 26px; display: flex; flex-direction: column; gap: 14px; }
+.pub__rotulo { margin: 0; display: flex; align-items: center; gap: 10px; font-size: 13px; color: var(--text-secondary); }
+.pub__destaque h1 { margin: 0; font-family: var(--font-titulo, var(--font)); font-size: 30px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.12; text-wrap: balance; }
+.pub__veiculo { margin: 0; display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 500; }
+.pub__veiculo > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.pub__veiculo small { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
+.pub__etapas { margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--border-subtle); }
+.pub__previsao { margin: 0; display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-radius: 12px; background: var(--surface); font-size: 13.5px; }
+[data-theme="dark"] .pub__previsao { background: var(--recuo); }
+.pub__itens { padding: 22px 28px 24px; }
+.pub__itens h2 { margin: 0 0 6px; font-size: 15px; font-weight: 650; letter-spacing: -0.01em; }
+.pub__itens ul { list-style: none; margin: 0; padding: 0; }
+.pub__itens li { display: flex; align-items: baseline; justify-content: space-between; gap: 16px; padding: 12px 0; font-size: 14px; }
+.pub__itens li + li { border-top: 1px solid var(--border-subtle); }
+.pub__itens li span { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pub__itens li small { font-size: 12px; color: var(--text-secondary); }
+.pub__itens li b { font-weight: 500; white-space: nowrap; }
+.pub__total { margin: 6px 0 0; padding-top: 14px; border-top: 1px solid var(--border); display: flex; align-items: baseline; justify-content: space-between; font-size: 14px; font-weight: 600; }
+.pub__total strong { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; }
+.pub__pe { margin: 4px 0 0; text-align: center; font-size: 12.5px; color: var(--text-secondary); }
+@media (max-width: 480px) {
+  .pub { padding: 20px 14px 40px; }
+  .pub__destaque, .pub__itens { padding-left: 20px; padding-right: 20px; }
+  .pub__destaque h1 { font-size: 25px; }
+}
+.ver-topo__acoes .menu-mais__lista.menu-mais__lista--direita { left: 0; right: auto; }
+
+
+/* ══════════════════════════════════════════════════════════════════════════════════════════════════
+   30. IDENTIDADE MECANIZE · COMO A APPLE DESENHA UM APLICATIVO DE TRABALHO
+   Referência: os aplicativos e sistemas da própria Apple (Mail, Finder, Ajustes do Sistema, iCloud,
+   App Store Connect) e as Human Interface Guidelines. Não é página de produto: é ferramenta.
+   · Barra lateral clara (escura no tema escuro), em lista de origem: grupos com rótulo pequeno,
+     itens de 32 px, seleção em cápsula cinza discreta, ícones finos em cinza.
+   · Barra de ferramentas fina e translúcida no topo do conteúdo; título da tela grande e direto.
+   · Conteúdo em grupos: superfícies brancas de canto 12 sobre o cinza #F5F5F7, linha de meio pixel,
+     sem sombras pesadas, sem gradiente, sem vidro decorativo.
+   · Controles do Mac: botões de 30 px com canto 7, seletor segmentado, campos de 34 px, menus com
+     destaque escuro e texto branco.
+   · Tipografia: Arial Nova (300, 400, 700) em escala de aplicativo: 26 / 17 / 15 / 13 / 12 / 11.
+   Paleta preservada: só cinzas; tema escuro com fundo #191919, barra lateral #1F1F1F e superfícies #303030.
+   ══════════════════════════════════════════════════════════════════════════════════════════════════ */
+
+/* ── 30.1 Arial Nova ────────────────────────────────────────────────────────────────────────────────
+   Família da Monotype distribuída pela Microsoft (Configurações › Personalização › Fontes › "Arial Nova").
+   Os nomes abaixo apontam para a fonte instalada no aparelho; Arial só entra se ela faltar. */
+@font-face { font-family: "Mecanize Nova"; font-weight: 300; font-style: normal; font-display: swap; src: local("Arial Nova Light"), local("ArialNova-Light"); }
+@font-face { font-family: "Mecanize Nova"; font-weight: 400; font-style: normal; font-display: swap; src: local("Arial Nova"), local("ArialNova"); }
+@font-face { font-family: "Mecanize Nova"; font-weight: 700; font-style: normal; font-display: swap; src: local("Arial Nova Bold"), local("ArialNova-Bold"); }
+@font-face { font-family: "Mecanize Nova"; font-weight: 400; font-style: italic; font-display: swap; src: local("Arial Nova Italic"), local("ArialNova-Italic"); }
+
+:root {
+  --font-family: "Arial Nova", "Mecanize Nova", Arial, sans-serif;
+  --font: var(--font-family);
+  --font-titulo: var(--font-family);
+
+  /* escala de aplicativo */
+  --t-titulo: 26px;   /* título da tela */
+  --t-secao: 17px;    /* título de grupo */
+  --t-bloco: 15px;    /* título de cartão */
+  --t-corpo: 13.5px;  /* texto, tabelas, campos */
+  --t-nota: 12px;     /* apoio */
+  --t-rotulo: 11px;   /* rótulos de grupo da barra lateral, cabeçalho de tabela */
+
+  /* superfícies */
+  --pagina: #FFFFFF;                   /* área de conteúdo (janela) */
+  --interno: #FFFFFF;                  /* superfície dentro de um grupo cinza */
+  --lateral: #F5F5F7;                  /* lista de origem */
+  --lateral-linha: rgba(0, 0, 0, .08);
+  --lateral-texto: #1D1D1F;
+  --lateral-icone: #6E6E73;
+  --lateral-rotulo: #86868B;
+  --lateral-hover: rgba(0, 0, 0, .05);
+  --lateral-selecao: rgba(0, 0, 0, .09);
+  --ferramentas: rgba(255, 255, 255, .82);
+  --grupo: #F5F5F7;
+  --grupo-borda: 0 0 0 0 transparent;
+  --linha: rgba(0, 0, 0, .08);
+  --linha-forte: rgba(0, 0, 0, .14);
+  --trilho: #E8E8ED;
+  --campo: #FFFFFF;
+  --campo-borda: rgba(0, 0, 0, .14);
+  --hover: rgba(0, 0, 0, .035);
+  --botao: #FFFFFF;
+  --botao-borda: 0 0 0 .5px rgba(0, 0, 0, .14), 0 1px 1.5px rgba(0, 0, 0, .08);
+  --menu-sombra: 0 0 0 .5px rgba(0, 0, 0, .14), 0 10px 32px -6px rgba(0, 0, 0, .2);
+
+  --r-grupo: 12px;
+  --r-controle: 7px;
+  --r-menu: 9px;
+  --h-controle: 32px;
+  --h-controle-p: 26px;
+}
+[data-theme="dark"] {
+  --pagina: #191919;
+  --interno: #2A2A2A;
+  --lateral: #1F1F1F;
+  --lateral-linha: rgba(255, 255, 255, .06);
+  --lateral-texto: #F5F5F7;
+  --lateral-icone: #A1A1A6;
+  --lateral-rotulo: #8E8E93;
+  --lateral-hover: rgba(255, 255, 255, .06);
+  --lateral-selecao: rgba(255, 255, 255, .11);
+  --ferramentas: rgba(25, 25, 25, .82);
+  --grupo: #303030;
+  --grupo-borda: 0 0 0 .5px rgba(255, 255, 255, .06);
+  --linha: rgba(255, 255, 255, .08);
+  --linha-forte: rgba(255, 255, 255, .14);
+  --trilho: #252525;
+  --campo: #2A2A2A;
+  --campo-borda: rgba(255, 255, 255, .12);
+  --hover: rgba(255, 255, 255, .04);
+  --botao: #3C3C3C;
+  --botao-borda: 0 0 0 .5px rgba(255, 255, 255, .1), 0 1px 1.5px rgba(0, 0, 0, .3);
+  --menu-sombra: 0 0 0 .5px rgba(255, 255, 255, .12), 0 12px 36px -6px rgba(0, 0, 0, .6);
+}
+
+html, body, button, input, select, textarea, optgroup, option, table, dialog, .dlg, .mec-lista, .mec-data, .painel-criar { font-family: var(--font-family); }
+body.ap { background: var(--pagina); font-size: var(--t-corpo); line-height: 1.45; letter-spacing: -0.003em; font-synthesis: none; }
+body.ap h1, body.ap h2, body.ap h3, body.ap h4 { font-family: var(--font-family); }
+
+/* ── 30.2 Barra lateral (lista de origem) ───────────────────────────────────────────────────────── */
+body.ap .app { grid-template-columns: 248px minmax(0, 1fr); background: linear-gradient(to right, var(--lateral) 248px, transparent 248px); }
+body.ap.sidebar-collapsed .app { grid-template-columns: 64px minmax(0, 1fr); background: linear-gradient(to right, var(--lateral) 64px, transparent 64px); }
+body.ap .sidebar { background: var(--lateral); color: var(--lateral-texto); padding: 14px 10px 12px; gap: 14px; box-shadow: inset -1px 0 0 var(--lateral-linha); }
+body.ap .sidebar__brand { height: 36px; padding-left: 10px; }
+body.ap .sidebar__logo-full { height: 18px; }
+[data-theme="light"] body.ap .sidebar__logo-full, [data-theme="light"] body.ap .sidebar__logo-icon,
+:root:not([data-theme="dark"]) body.ap .sidebar__logo-full, :root:not([data-theme="dark"]) body.ap .sidebar__logo-icon { filter: invert(1); }
+body.ap .sidebar__logo-icon { width: 26px; }
+body.ap .sidebar__retrair { width: 28px; height: 28px; border-radius: var(--r-controle); color: var(--lateral-icone); }
+body.ap .sidebar__retrair .icone { width: 18px; height: 18px; }
+body.ap .sidebar__retrair:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
+
+body.ap .sidebar__grupo { gap: 1px; }
+body.ap .sidebar__grupo + .sidebar__grupo { margin-top: 2px; }
+body.ap .sidebar__rotulo { font-size: var(--t-rotulo); font-weight: 700; letter-spacing: .01em; color: var(--lateral-rotulo); padding: 0 10px 4px; }
+body.ap .sidebar__item { height: 32px; padding: 0 10px; gap: 9px; border-radius: var(--r-controle); font-size: 13.5px; font-weight: 400; letter-spacing: -0.005em;
+  color: var(--lateral-texto); box-shadow: none; background: transparent; transition: background .12s ease; }
+body.ap .sidebar__item .icone { width: 18px; height: 18px; color: var(--lateral-icone); stroke-width: 1.6; flex: none; }
+body.ap .sidebar__item:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
+body.ap .sidebar__item.is-active { background: var(--lateral-selecao); color: var(--lateral-texto); font-weight: 700; box-shadow: none; }
+body.ap .sidebar__item.is-active .icone { color: var(--lateral-texto); stroke-width: 1.9; }
+body.ap .sidebar .contador { background: var(--lateral-icone); color: var(--lateral); }
+
+body.ap .sidebar__rodape { gap: 4px; padding-top: 10px; box-shadow: inset 0 1px 0 var(--lateral-linha); }
+body.ap .sidebar__tema { height: 32px; padding: 0 10px; border-radius: var(--r-controle); color: var(--lateral-texto); font-size: 13.5px; justify-content: space-between; }
+body.ap .sidebar__tema:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
+body.ap .sidebar__tema .interruptor { order: 2; width: 30px; height: 18px; background: rgba(0, 0, 0, .14); }
+body.ap .sidebar__tema .interruptor::after { top: 2px; left: 2px; width: 14px; height: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
+[data-theme="dark"] body.ap .sidebar__tema .interruptor { background: #F5F5F7; }
+[data-theme="dark"] body.ap .sidebar__tema .interruptor::after { transform: translateX(12px); background: #1F1F1F; }
+body.ap .sidebar__perfil { padding: 6px 6px 6px 8px; gap: 8px; border-radius: var(--r-controle); background: transparent; box-shadow: none; }
+body.ap .sidebar__perfil:hover { background: var(--lateral-hover); }
+body.ap .sidebar__avatar { width: 28px; height: 28px; font-size: 10.5px; background: var(--lateral-texto); color: var(--lateral); box-shadow: none; }
+body.ap .sidebar__nome { font-size: 13px; color: var(--lateral-texto); }
+body.ap .sidebar__papel { font-size: var(--t-nota); color: var(--lateral-rotulo); }
+body.ap .sidebar__sair { width: 26px; height: 26px; border-radius: 6px; color: var(--lateral-icone); }
+body.ap .sidebar__sair:hover { background: var(--lateral-selecao); color: var(--lateral-texto); }
+
+body.ap.sidebar-collapsed .sidebar { padding: 14px 10px 12px; }
+body.ap.sidebar-collapsed .sidebar__item { width: 40px; height: 36px; }
+body.ap.sidebar-collapsed .sidebar__item .icone { width: 19px; height: 19px; }
+body.ap.sidebar-collapsed .sidebar__rotulo { background: var(--lateral-linha); margin: 6px 8px; }
+body.ap.sidebar-collapsed .sidebar__retrair { width: 36px; height: 32px; }
+body.ap.sidebar-collapsed .sidebar__tema { justify-content: center; }
+
+/* ── 30.3 Barra de ferramentas ──────────────────────────────────────────────────────────────────── */
+body.ap .topbar { height: 52px; padding: 0 28px; gap: 10px; background: var(--ferramentas); box-shadow: inset 0 -1px 0 var(--linha);
+  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
+body.ap .topbar__right { gap: 6px; }
+body.ap .topbar-criar { height: 30px; padding: 0 12px 0 8px; gap: 6px; border-radius: var(--r-controle); background: var(--botao); color: var(--text);
+  box-shadow: var(--botao-borda); font-size: 13px; font-weight: 700; }
+body.ap .topbar-criar:hover, body.ap .topbar-criar[aria-expanded="true"] { background: var(--botao); filter: brightness(.97); }
+[data-theme="dark"] body.ap .topbar-criar:hover, [data-theme="dark"] body.ap .topbar-criar[aria-expanded="true"] { filter: brightness(1.12); }
+body.ap .topbar-criar__mais { width: 18px; height: 18px; background: var(--action); color: var(--on-action); }
+body.ap .topbar-criar__mais .icone { width: 11px; height: 11px; }
+body.ap .topbar-caixa { height: 30px; padding: 0 11px; gap: 7px; border-radius: var(--r-controle); background: transparent; box-shadow: none; font-size: 12.5px; color: var(--text-secondary); }
+body.ap .topbar-caixa:hover { background: var(--hover); color: var(--text); text-decoration: none; }
+body.ap .topbar-caixa__ponto { width: 7px; height: 7px; }
+body.ap .topbar-caixa.is-aberto .topbar-caixa__ponto { background: var(--text); }
+body.ap .topbar-sino { width: 30px; height: 30px; border-radius: var(--r-controle); background: transparent; color: var(--text-secondary); box-shadow: none; }
+body.ap .topbar-sino:hover { opacity: 1; background: var(--hover); color: var(--text); }
+body.ap .topbar-sino .icone { width: 18px; height: 18px; }
+body.ap .topbar-sino__n { top: 1px; right: 0; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; font-size: 9.5px; line-height: 15px; }
+body.ap .topbar__hamburger { border-radius: var(--r-controle); }
+
+/* Menu "Criar": como um menu do Mac */
+body.ap .painel-criar { width: 232px; padding: 5px; border-radius: var(--r-menu); background: var(--grupo); box-shadow: var(--menu-sombra); }
+body.ap .painel-criar__grupo + .painel-criar__grupo { border-top: 1px solid var(--linha); margin-top: 5px; padding-top: 5px; }
+body.ap .painel-criar__opcao { height: 28px; padding: 0 10px; border-radius: 5px; font-size: 13px; }
+
+/* ── 30.4 Área de conteúdo e cabeçalho da tela ──────────────────────────────────────────────────── */
+body.ap .content { padding: 28px 36px 56px; max-width: 1480px; }
+body.ap .page-header { align-items: flex-end; gap: 12px 24px; margin-bottom: 22px; }
+body.ap .page-header > div:first-child { gap: 3px; }
+body.ap .page-header__title { font-size: var(--t-titulo); font-weight: 700; letter-spacing: -0.022em; line-height: 1.15; }
+body.ap .page-header__subtitle { font-size: 13px; font-weight: 400; color: var(--text-secondary); letter-spacing: -0.003em; }
+body.ap .page-header__actions { gap: 8px; }
+
+/* ── 30.5 Botões ────────────────────────────────────────────────────────────────────────────────── */
+body.ap .btn { height: var(--h-controle); padding: 0 14px; gap: 6px; border-radius: var(--r-controle); font-size: 13px; font-weight: 700; letter-spacing: -0.003em;
+  transition: background .12s ease, filter .12s ease, box-shadow .12s ease; }
+body.ap .btn:active { transform: none; filter: brightness(.93); }
+body.ap .btn .icone { width: 15px; height: 15px; }
+body.ap .btn--sm { height: var(--h-controle-p); padding: 0 10px; font-size: 12px; border-radius: 6px; }
+body.ap .btn--sm .icone { width: 14px; height: 14px; }
+body.ap .btn--icone { width: var(--h-controle); padding: 0; }
+body.ap .btn--sm.btn--icone { width: var(--h-controle-p); }
+body.ap .btn--primary, [data-theme="dark"] body.ap .btn--primary { background: var(--action); color: var(--on-action); box-shadow: 0 1px 1.5px rgba(0, 0, 0, .14); }
+body.ap .btn--primary:hover, [data-theme="dark"] body.ap .btn--primary:hover { background: var(--action); filter: brightness(1.35); }
+[data-theme="dark"] body.ap .btn--primary:hover { filter: brightness(.9); }
+body.ap .btn--ghost, body.ap .btn--contorno { background: var(--botao); color: var(--text); box-shadow: var(--botao-borda); }
+body.ap .btn--ghost:hover, body.ap .btn--contorno:hover { background: var(--botao); filter: brightness(.97); box-shadow: var(--botao-borda); }
+[data-theme="dark"] body.ap .btn--ghost:hover, [data-theme="dark"] body.ap .btn--contorno:hover { filter: brightness(1.12); }
+body.ap .btn--fantasma { background: transparent; box-shadow: none; color: var(--text-secondary); }
+body.ap .btn--fantasma:hover { background: var(--hover); color: var(--text); }
+body.ap .btn--danger, body.ap .btn--danger-ghost { background: var(--botao); color: var(--text); box-shadow: 0 0 0 1px var(--text), 0 1px 1.5px rgba(0, 0, 0, .08); }
+body.ap .btn--danger:hover, body.ap .btn--danger-ghost:hover { background: var(--action); color: var(--on-action); filter: none; }
+body.ap .btn[aria-disabled="true"], body.ap .btn:disabled { opacity: .45; filter: none; }
+
+/* ── 30.6 Grupos (cartões) ──────────────────────────────────────────────────────────────────────── */
+body.ap .card { background: var(--grupo); border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); }
+body.ap .card__header { min-height: 50px; padding: 0 20px; }
+body.ap .card__title, body.ap .card__titulo, body.ap .secao-titulo h2 { font-size: var(--t-bloco); font-weight: 700; letter-spacing: -0.012em; }
+body.ap .card__header a, body.ap .card__titulo a { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
+body.ap .card__header a:hover, body.ap .card__titulo a:hover { color: var(--text); text-decoration: none; }
+body.ap .etiqueta { font-size: 11.5px; font-weight: 400; padding: 2px 8px; border-radius: 6px; background: var(--trilho); color: var(--text-secondary); box-shadow: none; }
+
+/* Indicadores: blocos calmos, valor em destaque, sem cartão invertido */
+body.ap .stat-grid { gap: 12px; margin-bottom: 18px; }
+body.ap .stat-card, body.ap .stat-card--destaque { background: var(--grupo); color: var(--text); border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); padding: 16px 18px 15px; gap: 2px; }
+body.ap a.stat-card:hover { background: var(--grupo); box-shadow: var(--grupo-borda), 0 4px 14px -6px rgba(0, 0, 0, .14); transform: none; text-decoration: none; }
+body.ap .stat-card__label, body.ap .stat-card--destaque .stat-card__label { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
+body.ap .stat-card__value, body.ap .stat-card--destaque .stat-card__value { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; color: var(--text); margin-top: 6px; }
+body.ap .stat-card__pe, body.ap .stat-card--destaque .stat-card__pe { font-size: var(--t-nota); color: var(--text-secondary); }
+body.ap .stat-card__chip, body.ap .stat-card--destaque .stat-card__chip { height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: var(--trilho); color: var(--text); box-shadow: none; }
+body.ap .stat-card__topo .icone { width: 15px; height: 15px; color: var(--text-tertiary); opacity: 1; }
+
+/* ── 30.7 Seletor segmentado (abas) ─────────────────────────────────────────────────────────────── */
+body.ap .abas { display: inline-flex; gap: 2px; padding: 2px; margin-bottom: 16px; border: 0; border-radius: 9px; background: var(--trilho); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
+body.ap .abas::-webkit-scrollbar { display: none; }
+body.ap .abas a { height: 28px; padding: 0 12px; margin: 0; border: 0; border-radius: var(--r-controle); font-size: 13px; font-weight: 400; color: var(--text);
+  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: background .12s ease; }
+body.ap .abas a:hover { background: rgba(0, 0, 0, .04); }
+[data-theme="dark"] body.ap .abas a:hover { background: rgba(255, 255, 255, .05); }
+body.ap .abas a.ativa { background: var(--interno); font-weight: 700; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .12); }
+[data-theme="dark"] body.ap .abas a.ativa { background: #4A4A4A; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+body.ap .abas__n, body.ap .abas a.ativa .abas__n { padding: 0; background: transparent; color: var(--text-secondary); font-size: 11.5px; font-weight: 400; }
+body.ap .abas--compactas { margin: 0; }
+body.ap .abas--compactas a { height: 26px; padding: 0 11px; font-size: 12.5px; }
+body.ap .segmento, [data-theme="dark"] body.ap .segmento { padding: 2px; gap: 2px; border-radius: 9px; background: var(--trilho); box-shadow: none; }
+body.ap .segmento span { height: 28px; padding: 0 12px; border-radius: var(--r-controle); font-size: 13px; font-weight: 400; color: var(--text); }
+body.ap .segmento input:checked + span { background: var(--interno); font-weight: 700; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .12); }
+[data-theme="dark"] body.ap .segmento input:checked + span { background: #4A4A4A; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
+
+/* ── 30.8 Tabelas (listas) ──────────────────────────────────────────────────────────────────────── */
+body.ap .table { font-size: var(--t-corpo); }
+body.ap .table th { height: 34px; font-size: var(--t-rotulo); font-weight: 700; letter-spacing: .01em; text-transform: none; color: var(--text-secondary);
+  background: transparent; border-bottom: 1px solid var(--linha); }
+body.ap .table td { height: 48px; border-bottom: 1px solid var(--linha); }
+body.ap .table th:first-child, body.ap .table td:first-child { padding-left: 20px; }
+body.ap .table th:last-child, body.ap .table td:last-child { padding-right: 20px; }
+body.ap .table tbody tr:last-child td { border-bottom: 0; }
+body.ap .table tbody tr { transition: background .1s ease; }
+body.ap .table tbody tr:hover { background: var(--hover); }
+body.ap .table td .sub { font-size: var(--t-nota); margin-top: 1px; }
+body.ap .table td strong { font-weight: 700; }
+body.ap .table a { color: var(--text); text-decoration: none; }
+body.ap .table tfoot td { border-bottom: 0; }
+body.ap .vazio { border: 0; border-radius: 10px; background: var(--interno); color: var(--text-secondary); font-size: 13px; padding: 32px 20px; }
+[data-theme="dark"] body.ap .vazio { background: #2A2A2A; }
+
+/* Listas direto na janela (sem caixa em volta), como o Finder em lista e o iCloud Drive */
+body.ap .card--tabela { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
+body.ap .card--tabela > .card__header, body.ap .card--tabela > .ver-historico__cabeca { padding-left: 0; padding-right: 0; }
+body.ap .card--tabela .table th:first-child, body.ap .card--tabela .table td:first-child { padding-left: 8px; }
+body.ap .card--tabela .table th:last-child, body.ap .card--tabela .table td:last-child { padding-right: 8px; }
+body.ap .card--tabela .table th { border-bottom-color: var(--linha-forte); }
+body.ap .card--tabela .table tbody tr:last-child td { border-bottom: 1px solid var(--linha); }
+body.ap .card--tabela .table tbody tr:hover { background: var(--grupo); }
+body.ap .card--tabela > .vazio { margin: 4px 0 0; }
+body.ap .card--tabela .rodape-tabela { padding-left: 8px; padding-right: 8px; }
+body.ap .card--tabela .os-totais, body.ap .card--tabela .os-arquivos { padding-left: 8px; padding-right: 8px; }
+body.ap .card--tabela .os-incluir, [data-theme="dark"] body.ap .card--tabela .os-incluir { border-radius: var(--r-grupo); margin-top: 12px; background: var(--grupo); border-top: 0; }
+body.ap .os-incluir .os-novo-item { background: transparent; border-top: 0; }
+body.ap .card--tabela .os-linha-tempo { margin-left: 12px; }
+body.ap .card--tabela + .card, body.ap .card + .card--tabela, body.ap .card--tabela + .card--tabela { margin-top: 28px; }
+
+/* Filtros e busca: campos do Mac, compactos */
+body.ap .filtros { gap: 8px; margin-bottom: 14px; }
+body.ap .filtros__busca, body.ap .filtros__busca--largo { height: var(--h-controle); border-radius: 8px; background: var(--campo); box-shadow: 0 0 0 1px var(--campo-borda); padding: 0 10px; }
+body.ap .filtros__busca input, body.ap .filtros__busca--compacta input { font-size: 13px; background: transparent; box-shadow: none; }
+body.ap .filtros__busca .icone { width: 15px; height: 15px; color: var(--text-tertiary); }
+body.ap .filtros select, body.ap .barra-periodo select { height: var(--h-controle); border-radius: var(--r-controle); font-size: 13px; background-color: var(--botao); box-shadow: var(--botao-borda); border: 0; }
+body.ap .campo-periodo { height: var(--h-controle); border-radius: var(--r-controle); background: var(--campo); box-shadow: 0 0 0 1px var(--campo-borda); }
+
+/* ── 30.9 Formulários ───────────────────────────────────────────────────────────────────────────── */
+body.ap .form-field label { font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+body.ap .form-field input:not([type=checkbox]):not([type=radio]):not([type=file]), body.ap .form-field select, body.ap .form-field textarea {
+  min-height: 34px; padding: 0 11px; border-radius: var(--r-controle); font-size: 13.5px; border: 1px solid var(--campo-borda); background-color: var(--campo); box-shadow: none; }
+[data-theme="dark"] body.ap .form-field input:not([type=checkbox]):not([type=radio]):not([type=file]), [data-theme="dark"] body.ap .form-field select, [data-theme="dark"] body.ap .form-field textarea {
+  background-color: var(--campo); border-color: var(--campo-borda); }
+body.ap .form-field textarea { padding: 8px 11px; line-height: 1.45; }
+body.ap .form-field input:focus, body.ap .form-field select:focus, body.ap .form-field textarea:focus,
+body.ap .filtros__busca:focus-within, body.ap .filtros input:focus { border-color: transparent; box-shadow: 0 0 0 1.5px var(--text); }
+body.ap .form-field input[readonly], body.ap .form-field input:disabled { background-color: var(--grupo); }
+body.ap .form-dica { font-size: var(--t-nota); }
+body.ap .form-acoes { gap: 8px; }
+
+/* Fichas de cadastro: grupos como os do Ajustes do Sistema */
+body.ap .form-ficha { gap: 18px; }
+body.ap .form-ficha__secao { padding: 20px 22px 22px; }
+body.ap .form-ficha__corpo > .form-ficha__secao + .form-ficha__secao, body.ap .orc__corpo > .card + .card { box-shadow: inset 0 1px 0 var(--linha); clip-path: none; }
+body.ap .form-ficha__cabeca { gap: 12px; margin-bottom: 18px; align-items: center; }
+body.ap .form-ficha__icone { width: 30px; height: 30px; border-radius: 8px; background: var(--trilho); color: var(--text); box-shadow: none; }
+body.ap .form-ficha__icone .icone { width: 16px; height: 16px; }
+body.ap .form-ficha__cabeca h2, body.ap .grupo__cabeca h2 { font-size: var(--t-bloco); font-weight: 700; letter-spacing: -0.012em; margin: 0 0 1px; }
+body.ap .form-ficha__cabeca p { font-size: var(--t-nota); color: var(--text-secondary); }
+body.ap .form-ficha__resumo { padding: 18px; }
+body.ap .form-ficha__acoes .btn { height: 34px; }
+
+/* ── 30.10 Menus e diálogos ─────────────────────────────────────────────────────────────────────── */
+body.ap .menu-mais__lista { padding: 5px; border-radius: var(--r-menu); background: var(--grupo); box-shadow: var(--menu-sombra); border: 0; min-width: 200px; }
+body.ap .menu-mais__lista a, body.ap .menu-mais__lista button { height: 28px; padding: 0 9px; border-radius: 5px; font-size: 13px; }
+body.ap .menu-mais__lista a:hover, body.ap .menu-mais__lista button:hover { background: var(--action); color: var(--on-action); }
+.dlg { border-radius: 14px; padding: 22px 22px 18px; background: var(--grupo); box-shadow: var(--menu-sombra); }
+.dlg::backdrop { background: rgba(0, 0, 0, .22); }
+[data-theme="dark"] .dlg::backdrop { background: rgba(0, 0, 0, .5); }
+.dlg h3 { font-size: var(--t-bloco); font-weight: 700; letter-spacing: -0.012em; }
+.dlg > p, .dlg form > p { font-size: 13px; }
+.dlg .form-acoes { justify-content: flex-end; margin-top: 20px; }
+
+/* ── 30.11 Selos e alertas ──────────────────────────────────────────────────────────────────────── */
+body.ap .badge { height: 22px; padding: 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0; }
+body.ap .alerta { border-radius: 10px; font-size: 13px; box-shadow: var(--grupo-borda); background: var(--grupo); border: 0; }
+body.ap .aviso-chip { height: 28px; border-radius: var(--r-controle); background: var(--grupo); color: var(--text); box-shadow: var(--grupo-borda); font-size: 12.5px; }
+body.ap .aviso-chip--danger { background: var(--action); color: var(--on-action); box-shadow: none; }
+
+/* ── 30.12 Fichas de consulta (como o app Contatos) ─────────────────────────────────────────────── */
+body.ap .ver-topo { margin-bottom: 20px; gap: 16px; }
+body.ap .ver-topo__id { gap: 16px; }
+body.ap .ver-topo__avatar { width: 64px; height: 64px; font-size: 22px; box-shadow: none; }
+body.ap .ver-topo__avatar--quadrado { border-radius: 15px; }
+body.ap .ver-topo__avatar .icone { width: 28px; height: 28px; }
+body.ap .ver-topo__texto { gap: 4px; }
+body.ap .ver-topo__voltar { font-size: 12.5px; }
+body.ap .ver-topo h1 { font-size: var(--t-titulo); font-weight: 700; letter-spacing: -0.022em; line-height: 1.15; }
+body.ap .ver-chip { height: 24px; padding: 0 9px; font-size: 12px; background: var(--grupo); box-shadow: var(--grupo-borda); color: var(--text-secondary); }
+body.ap .ver-topo__meta .badge { height: 24px; }
+body.ap .ver-numeros { border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); background: var(--grupo); margin-bottom: 16px; }
+body.ap .ver-numeros > div { padding: 15px 20px; }
+body.ap .ver-numeros span { font-size: 12.5px; color: var(--text-secondary); font-weight: 400; }
+body.ap .ver-numeros strong, body.ap .ver-numeros > div:first-child strong { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
+body.ap .ver-numeros small { font-size: var(--t-nota); }
+body.ap .ver-grade { gap: 16px; }
+body.ap .ver-lado { border-radius: var(--r-grupo); padding: 18px; gap: 14px; top: 68px; }
+body.ap .ver-lado__cabeca h2, body.ap .ver-historico__cabeca h2 { font-size: var(--t-bloco); font-weight: 700; }
+body.ap .ver-historico__cabeca { padding: 16px 20px 12px; }
+body.ap .ver-historico__cabeca p { font-size: var(--t-nota); }
+body.ap .ver-grupo { padding: 18px 20px; gap: 12px; }
+body.ap .ver-grupo__titulo { font-size: var(--t-rotulo); font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--text-secondary); }
+body.ap .ver-lista dt { font-size: var(--t-nota); }
+body.ap .ver-lista dd { font-size: 13.5px; }
+body.ap .ver-veiculo, body.ap .conta-lista__item { border-radius: 10px; background: var(--interno); }
+[data-theme="dark"] body.ap .ver-veiculo, [data-theme="dark"] body.ap .conta-lista__item { background: #2A2A2A; }
+body.ap .ver-veiculo:hover, body.ap .conta-lista__item:hover { box-shadow: inset 0 0 0 1px var(--linha-forte); }
+
+/* Tela da OS */
+body.ap .os-etapas { border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); padding: 14px 20px; margin-bottom: 16px; }
+body.ap .os-etapas__item { font-size: 12.5px; }
+body.ap .os-etapas__marca { width: 20px; height: 20px; }
+body.ap .os-totais__total dd { font-size: 20px; }
+body.ap .os-itens__tipo { width: 28px; height: 28px; border-radius: 8px; background: var(--trilho); }
+body.ap .os-incluir { background: var(--interno); }
+[data-theme="dark"] body.ap .os-incluir { background: #2A2A2A; }
+
+/* ── 30.13 Quadros e gráficos ───────────────────────────────────────────────────────────────────── */
+body.ap .quadro__topo h2, body.ap .card.quadro .card__title { font-size: var(--t-bloco); }
+body.ap .mini-numeros > div { border-radius: 10px; background: var(--interno); box-shadow: none; }
+[data-theme="dark"] body.ap .mini-numeros > div { background: #2A2A2A; }
+body.ap .barras__barra { background: var(--grafico-1); border-radius: 5px 5px 2px 2px; box-shadow: none; }
+body.ap .barras__barra--clara { background: var(--grafico-4); }
+
+/* Superfícies antigas que ainda usavam o branco dos cartões: viram grupos */
+body.ap .kanban__coluna, body.ap .mini-cal, body.ap .painel-lateral { background: var(--grupo); box-shadow: none; }
+body.ap .kanban__card, body.ap .kanban__item { background: var(--interno); }
+
+@media (max-width: 720px) { body.ap .card--tabela .table { min-width: 680px; } }
+
+/* ── 30.14 Celular e tablet ─────────────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+  body.ap .app, body.ap.sidebar-collapsed .app { grid-template-columns: minmax(0, 1fr); background: none; }
+  body.ap .sidebar { width: 280px; box-shadow: none; }
+  body.ap.mobile-nav-open .sidebar { box-shadow: 0 0 0 .5px var(--lateral-linha), 0 24px 60px rgba(0, 0, 0, .25); }
+  body.ap .topbar { padding: 0 16px; }
+  body.ap .topbar__hamburger { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; background: transparent; color: var(--text); }
+  body.ap .content { padding: 20px 16px 40px; }
+}
+@media (max-width: 640px) {
+  :root { --t-titulo: 24px; }
+  body.ap .ver-topo__avatar { width: 52px; height: 52px; font-size: 18px; margin-top: 0; }
+  body.ap .ver-topo__avatar--quadrado { border-radius: 13px; }
+  body.ap .ver-numeros strong, body.ap .ver-numeros > div:first-child strong { font-size: 19px; }
+  body.ap .stat-card__value, body.ap .stat-card--destaque .stat-card__value { font-size: 22px; }
+}

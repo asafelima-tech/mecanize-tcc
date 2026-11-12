@@ -10,8 +10,8 @@
 <!-- Page header -->
 <div class="page-header">
     <div>
-        <h1 class="page-header__title">Dashboard</h1>
-        <p class="page-header__subtitle">Visão geral da oficina e das ordens de serviço.</p>
+        <h1 class="page-header__title">Início</h1>
+        <p class="page-header__subtitle"><?= ($_SESSION['user_tipo'] ?? '') === 'ADMIN' ? 'O que precisa da sua decisão e a visão geral da oficina.' : 'O que precisa de você e a visão geral da oficina.' ?></p>
     </div>
     <div class="page-header__actions">
         <a href="./saveOrdemServico" class="btn btn--primary">
@@ -24,8 +24,58 @@
     </div>
 </div>
 
+<?php
+// Pendências do perfil (Pendencias::paraPerfil): o que está parado esperando alguém, com o caminho para resolver.
+$pendencias = $pendencias ?? [];
+$gruposPend = [];
+foreach ($pendencias as $p) {
+    $gruposPend[$p['grupo']][] = $p;
+}
+$ordemGrupos = ['Clientes', 'Oficina', 'Decisões', 'Dinheiro'];
+uksort($gruposPend, fn($a, $b) => (array_search($a, $ordemGrupos) === false ? 99 : array_search($a, $ordemGrupos)) <=> (array_search($b, $ordemGrupos) === false ? 99 : array_search($b, $ordemGrupos)));
+$eh = fn($v) => htmlspecialchars((string) $v);
+?>
+<style>
+    .hj-grupo { padding: 10px 16px 4px; font-size: 11px; font-weight: 800; letter-spacing: .06em; text-transform: uppercase; color: var(--color-text-muted); }
+    .hj-lista { list-style: none; margin: 0; padding: 0 8px 8px; }
+    .hj-item { display: flex; align-items: center; gap: 12px; min-height: 56px; padding: 10px 8px; border-radius: var(--radius-md); text-decoration: none; color: inherit; }
+    .hj-item:hover, .hj-item:focus-visible { background: var(--color-bg-alt); }
+    .hj-qtd { flex: 0 0 auto; min-width: 40px; height: 40px; padding: 0 8px; display: inline-flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 16px; font-weight: 800; background: var(--color-primary-soft); color: var(--color-primary); }
+    .hj-item--alerta .hj-qtd { background: var(--color-danger-soft); color: var(--color-danger); }
+    .hj-item--info .hj-qtd { background: var(--color-bg-alt); color: var(--color-text-secondary); }
+    .hj-texto { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 2px; }
+    .hj-texto strong { font-size: 14px; color: var(--color-text); }
+    .hj-texto small { font-size: 12px; color: var(--color-text-muted); line-height: 1.35; }
+    .hj-seta { flex: 0 0 auto; color: var(--color-text-muted); font-size: 20px; }
+</style>
+
+<section class="card" style="margin-bottom:20px;" aria-labelledby="hj-titulo">
+    <div class="card__header">
+        <div class="card__title" id="hj-titulo">Precisa de você agora</div>
+        <span class="text-muted fs-12"><?= count($pendencias) ?> assunto<?= count($pendencias) === 1 ? '' : 's' ?></span>
+    </div>
+    <?php if (!$pendencias): ?>
+        <div class="card__body" style="padding:20px 16px;"><p style="margin:0;font-size:14px;color:var(--color-text-secondary);">Nada esperando por você neste momento. Conversas lidas, orçamentos respondidos, serviços conferidos.</p></div>
+    <?php else: ?>
+        <?php foreach ($gruposPend as $grupo => $lista): ?>
+            <div class="hj-grupo"><?= $eh($grupo) ?></div>
+            <ul class="hj-lista">
+                <?php foreach ($lista as $p): ?>
+                    <li>
+                        <a class="hj-item hj-item--<?= $eh($p['tom']) ?>" href="<?= $eh($p['link']) ?>">
+                            <span class="hj-qtd"><?= (int) $p['qtd'] ?></span>
+                            <span class="hj-texto"><strong><?= $eh($p['titulo']) ?></strong><small><?= $eh($p['detalhe']) ?></small></span>
+                            <span class="hj-seta" aria-hidden="true">&rsaquo;</span>
+                        </a>
+                    </li>
+                <?php endforeach; ?>
+            </ul>
+        <?php endforeach; ?>
+    <?php endif; ?>
+</section>
+
 <!-- Stat cards -->
-<section class="stat-grid">
+<section class="stat-grid stat-grid--3">
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">OS Abertas</div>
@@ -63,14 +113,34 @@
 
     <div class="stat-card">
         <div class="stat-card__head">
-            <div class="stat-card__label">Faturamento Mensal</div>
+            <div class="stat-card__label">Faturamento bruto (mês)</div>
             <div class="stat-card__icon b4">
                 <i class="bi bi-currency-dollar"></i>
             </div>
         </div>
         <div class="stat-card__value">R$ <?= number_format($faturamentoMensal ?? 0, 2, ',', '.') ?></div>
-        <div class="stat-card__delta"><i data-icon="trending-up" data-size="12"></i> OS concluídas no mês</div>
+        <div class="stat-card__delta"><i data-icon="trending-up" data-size="12"></i> OS entregues no mês · não é dinheiro recebido</div>
     </div>
+
+    <a class="stat-card" href="./painelFinanceiro" style="text-decoration:none;color:inherit;">
+        <div class="stat-card__head">
+            <div class="stat-card__label">Recebido no mês</div>
+            <div class="stat-card__icon b2"><i class="bi bi-cash-coin"></i></div>
+        </div>
+        <div class="stat-card__value">R$ <?= number_format($recebidoMensal ?? 0, 2, ',', '.') ?></div>
+        <div class="stat-card__delta">parcelas baixadas, líquido de taxas</div>
+    </a>
+
+    <a class="stat-card" href="./listContasReceber" style="text-decoration:none;color:inherit;">
+        <div class="stat-card__head">
+            <div class="stat-card__label">A receber</div>
+            <div class="stat-card__icon b3"><i class="bi bi-arrow-down-circle"></i></div>
+        </div>
+        <div class="stat-card__value">R$ <?= number_format($aReceber['a_receber'] ?? 0, 2, ',', '.') ?></div>
+        <div class="stat-card__delta <?= (float) ($aReceber['vencido'] ?? 0) > 0 ? 'negative' : '' ?>">
+            <?= (float) ($aReceber['vencido'] ?? 0) > 0 ? 'R$ ' . number_format($aReceber['vencido'], 2, ',', '.') . ' vencido' : 'nada em atraso' ?>
+        </div>
+    </a>
 
     <?php endif; ?>
 </section>
@@ -119,11 +189,11 @@
             <ul class="donut-legend">
                 <?php
                 $legendaStatus = [
-                    ['cor' => '#003BDD', 'label' => 'Concluídas',      'val' => $statusConcluidas ?? 0,     'pct' => $percentualConcluidas ?? 0],
-                    ['cor' => '#60A5FA', 'label' => 'Em andamento',    'val' => $statusEmAndamento ?? 0,    'pct' => $percentualEmAndamento ?? 0],
-                    ['cor' => '#BFDBFE', 'label' => 'Pendentes',       'val' => $statusAguardandoPeca ?? 0, 'pct' => $percentualAguardandoPeca ?? 0],
-                    ['cor' => '#EF4444', 'label' => 'Canceladas',      'val' => $statusCanceladas ?? 0,     'pct' => $percentualCanceladas ?? 0],
-                    ['cor' => '#3B82F6', 'label' => 'Abertas',         'val' => $statusAbertas ?? 0,        'pct' => $percentualAbertas ?? 0],
+                    ['cor' => 'var(--chart-ordinal-1)', 'label' => 'Concluídas',      'val' => $statusConcluidas ?? 0,     'pct' => $percentualConcluidas ?? 0],
+                    ['cor' => 'var(--chart-ordinal-3)', 'label' => 'Em andamento',    'val' => $statusEmAndamento ?? 0,    'pct' => $percentualEmAndamento ?? 0],
+                    ['cor' => 'var(--chart-ordinal-5)', 'label' => 'Pendentes',       'val' => $statusAguardandoPeca ?? 0, 'pct' => $percentualAguardandoPeca ?? 0],
+                    ['cor' => 'var(--chart-ordinal-4)', 'label' => 'Canceladas',      'val' => $statusCanceladas ?? 0,     'pct' => $percentualCanceladas ?? 0],
+                    ['cor' => 'var(--chart-ordinal-2)', 'label' => 'Abertas',         'val' => $statusAbertas ?? 0,        'pct' => $percentualAbertas ?? 0],
                 ];
                 foreach ($legendaStatus as $item):
                 ?>
@@ -195,7 +265,7 @@
                                 <span style="color:var(--color-text-muted);"><?= (int) $p['quantidade'] ?> un.</span>
                             </div>
                             <div style="background:var(--color-bg-alt);border-radius:var(--radius-pill);height:8px;overflow:hidden;">
-                                <div style="background:var(--color-primary-gradient);height:100%;width:<?= $pct ?>%;border-radius:var(--radius-pill);"></div>
+                                <div style="background:var(--chart-gradiente-h);height:100%;width:<?= $pct ?>%;border-radius:var(--radius-pill);"></div>
                             </div>
                         </div>
                     <?php endforeach; ?>
@@ -353,12 +423,12 @@
     // fora dessa mesma checagem antes, vazando receita diária pra quem não é ADMIN).
     $ehAdminDashboard = isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN';
     ?>
-    const dadosOS = <?= json_encode($graficoOS     ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
-    const dadosReceita = <?= json_encode($ehAdminDashboard ? ($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) : []) ?>;
-    const dadosStatus = <?= json_encode($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
+    const dadosOS = <?= json_para_script($graficoOS     ?? [0, 0, 0, 0, 0, 0, 0]) ?>;
+    const dadosReceita = <?= json_para_script($ehAdminDashboard ? ($graficoReceita ?? [0, 0, 0, 0, 0, 0, 0]) : []) ?>;
+    const dadosStatus = <?= json_para_script($graficoStatus  ?? [0, 0, 0, 0, 0]) ?>;
     const totalOS = dadosStatus.reduce((a, b) => a + b, 0);
-    const labelsFaturamentoMes = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['labels']  ?? []) : []) ?>;
-    const dadosFaturamentoMes  = <?= json_encode($ehAdminDashboard ? ($faturamentoPorMes['valores'] ?? []) : []) ?>;
+    const labelsFaturamentoMes = <?= json_para_script($ehAdminDashboard ? ($faturamentoPorMes['labels']  ?? []) : []) ?>;
+    const dadosFaturamentoMes  = <?= json_para_script($ehAdminDashboard ? ($faturamentoPorMes['valores'] ?? []) : []) ?>;
 
     function initCharts() {
         // ── Area chart: Fluxo OS × Receita ──────────────────────────────────────
@@ -419,7 +489,7 @@
             new Chart(ctx, {
                 type: "line",
                 data: {
-                    labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"],
+                    labels: <?= json_para_script($labelsSemana ?? ["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"]) ?>,
                     datasets: datasetsFluxo,
                 },
                 options: {
@@ -476,13 +546,24 @@
         // ── Donut: Status das OS ─────────────────────────────────────────────────
         const donutEl = document.getElementById("graficoStatus");
         if (donutEl) {
+            const pincelDonut = donutEl.getContext("2d");
+
+            // Mesma ordem da legenda ao lado. Cada fatia ganha o gradiente a
+            // partir do SEU tom: o degradê é o mesmo da barra de faturamento,
+            // e a cor cheia da ponta é que continua identificando o status.
+            const tonsDonut = ["--chart-ordinal-1", "--chart-ordinal-3", "--chart-ordinal-5", "--chart-ordinal-4", "--chart-ordinal-2"];
+
             new Chart(donutEl, {
                 type: "doughnut",
                 data: {
                     labels: ["Concluídas", "Em andamento", "Pendentes", "Canceladas", "Abertas"],
                     datasets: [{
                         data: dadosStatus,
-                        backgroundColor: ["#003BDD", "#60A5FA", "#BFDBFE", "#EF4444", "#3B82F6"],
+                        tokensCor: tonsDonut,
+                        gradiente: true,
+                        backgroundColor: tonsDonut.map(function (token) {
+                            return gradienteDoTema(pincelDonut, token, 320);
+                        }),
                         borderWidth: 0,
                         spacing: 4,
                         hoverOffset: 6,

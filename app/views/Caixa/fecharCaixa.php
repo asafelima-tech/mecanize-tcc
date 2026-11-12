@@ -33,9 +33,8 @@ $iniciaisFechamento = strtoupper(substr($nomeFechamento, 0, 1) . substr($nomeFec
 <div style="max-width:640px;margin:0 auto;">
 
     <?php if (!empty($error)): ?>
-        <div style="background:var(--color-danger-soft);color:#991B1B;border:1px solid #FECACA;border-radius:var(--radius-md);padding:12px 16px;margin-bottom:20px;font-size:13px;">
-            <?= htmlspecialchars($error) ?>
-        </div>
+        <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
     <?php endif; ?>
 
     <!-- ── Quem está fechando + contexto da sessão ── -->
@@ -138,7 +137,7 @@ $iniciaisFechamento = strtoupper(substr($nomeFechamento, 0, 1) . substr($nomeFec
         const wrap  = document.getElementById('diferenca-wrap');
         if (!input || typeof IMask === 'undefined') return;
 
-        const esperado = <?= json_encode($caixaAtual) ?>;
+        const esperado = <?= json_para_script($caixaAtual) ?>;
 
         const m = IMask(input, {
             mask: Number,

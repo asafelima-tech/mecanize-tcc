@@ -1,0 +1,298 @@
+/* =========================================================
+   MECANIZE — Telas de senha (recuperar / redefinir)
+
+   Tela própria: um card no meio de um fundo único. Não é o layout
+   do app (sem sidebar/topbar) e também não é a tela de login — não
+   usa nenhuma classe .login-*, para que mexer numa não desconfigure
+   a outra. Do global.css herda só o reset, a fonte e os tokens de
+   cor, mantendo a identidade da marca.
+   ========================================================= */
+
+/* O global.css trava a rolagem do body (o app rola por dentro do
+   conteúdo). Aqui a página é a rolagem: sem isto, em tela baixa o
+   card fica cortado sem como alcançar o resto. */
+.auth-body {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+}
+
+.auth {
+  position: relative;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 40px 20px;
+  overflow: hidden;
+  background:
+    radial-gradient(820px 520px at 12% -14%, rgba(0, 59, 221, 0.13), transparent 62%),
+    radial-gradient(760px 540px at 92% 114%, rgba(59, 130, 246, 0.16), transparent 58%),
+    #EDF1F8;
+}
+
+/* Malha discreta, esmaecida nas bordas: dá textura ao fundo sem
+   competir com o card. */
+.auth::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(17, 24, 38, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(17, 24, 38, 0.05) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(ellipse 65% 60% at 50% 45%, #000 15%, transparent 78%);
+  mask-image: radial-gradient(ellipse 65% 60% at 50% 45%, #000 15%, transparent 78%);
+  pointer-events: none;
+}
+
+/* ── CARD ───────────────────────────────────────────────── */
+.auth-card {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 424px;
+  padding: 36px 34px 30px;
+  background: var(--color-surface);
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 18px;
+  box-shadow:
+    0 1px 2px rgba(17, 24, 38, 0.04),
+    0 18px 46px -14px rgba(17, 24, 38, 0.22);
+}
+
+.auth-marca {
+  display: block;
+  height: 40px;
+  width: auto;
+  margin: 0 auto 18px;
+}
+
+.auth-titulo {
+  font-size: 21px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--color-text);
+  text-align: center;
+  margin-bottom: 6px;
+}
+
+.auth-subtitulo {
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: #7C8798;
+  text-align: center;
+  margin-bottom: 26px;
+}
+
+/* ── CAMPOS ─────────────────────────────────────────────── */
+.auth-campo {
+  margin-bottom: 16px;
+}
+
+.auth-campo label {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--color-text-secondary);
+  margin-bottom: 7px;
+}
+
+.auth-input {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  height: 46px;
+  padding: 0 14px;
+  background: var(--color-bg-alt);
+  border: 1px solid var(--color-border);
+  border-radius: 11px;
+  transition: border-color .15s ease, box-shadow .15s ease, background .15s ease;
+}
+
+.auth-input:focus-within {
+  background: var(--color-surface);
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(0, 59, 221, 0.12);
+}
+
+.auth-input > svg {
+  flex-shrink: 0;
+  color: var(--color-text-muted);
+  transition: color .15s ease;
+}
+
+.auth-input:focus-within > svg {
+  color: var(--color-primary);
+}
+
+.auth-input input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--color-text);
+}
+
+.auth-input input::placeholder {
+  color: #A6B1C2;
+}
+
+.auth-olho {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--color-text-muted);
+  cursor: pointer;
+  transition: color .15s ease, background .15s ease;
+}
+
+.auth-olho:hover {
+  background: rgba(17, 24, 38, 0.05);
+  color: var(--color-text-secondary);
+}
+
+/* ── AÇÃO PRINCIPAL ─────────────────────────────────────── */
+.auth-botao {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 46px;
+  margin-top: 22px;
+  border: 0;
+  border-radius: 11px;
+  background: var(--color-primary-gradient);
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  text-decoration: none;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 59, 221, 0.26);
+  transition: box-shadow .2s ease, transform .15s ease, filter .2s ease;
+}
+
+.auth-botao:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 6px 18px rgba(0, 59, 221, 0.34);
+  transform: translateY(-1px);
+}
+
+.auth-botao:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 59, 221, 0.26);
+}
+
+.auth-volta {
+  text-align: center;
+  margin-top: 20px;
+}
+
+.auth-volta a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  color: #7C8798;
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+.auth-volta a:hover {
+  color: var(--color-primary);
+}
+
+/* ── ALERTAS ────────────────────────────────────────────── */
+/* Próprios da tela: os alertas do app (.alerta) vêm do erros.css,
+   que traz junto o resto do visual das telas de erro. */
+.auth-alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 12px 14px;
+  margin-bottom: 22px;
+  border-radius: 11px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.auth-alerta svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+/* Alerta que é o próprio conteúdo do card (nada de formulário depois
+   dele): a margem de baixo sobraria e desencostaria o rodapé. */
+.auth-alerta--solto {
+  margin-top: 14px;
+  margin-bottom: 2px;
+}
+
+/* Cada tom tem seu ícone: cor sozinha não comunica pra quem não
+   distingue as duas. */
+.auth-alerta--sucesso {
+  background: var(--color-success-soft);
+  border: 1px solid #C7D7FE;
+  color: #1E3A8A;
+}
+
+.auth-alerta--erro {
+  background: var(--color-danger-soft);
+  border: 1px solid #FECACA;
+  color: #991B1B;
+}
+
+/* ── RODAPÉ ─────────────────────────────────────────────── */
+.auth-rodape {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 12px;
+  color: #8A96A8;
+}
+
+.auth-rodape a {
+  color: inherit;
+  text-decoration: none;
+  transition: color .15s ease;
+}
+
+.auth-rodape a:hover {
+  color: var(--color-primary);
+}
+
+.auth-rodape .ponto {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.55;
+}
+
+@media (max-width: 520px) {
+  .auth {
+    padding: 28px 16px;
+  }
+
+  .auth-card {
+    padding: 30px 22px 26px;
+    border-radius: 16px;
+  }
+}

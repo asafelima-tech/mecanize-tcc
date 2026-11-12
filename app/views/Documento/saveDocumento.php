@@ -81,7 +81,7 @@ $totGeral = $totPecas + $totServicos;
                         Dados da OS
                     </div>
 
-                    <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Número da OS</label>
@@ -131,7 +131,7 @@ $totGeral = $totPecas + $totServicos;
                         Diagnóstico
                     </div>
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-2">
                         <div class="form-field">
                             <label>Defeito Relatado</label>
                             <textarea rows="3" readonly
@@ -222,7 +222,7 @@ $totGeral = $totPecas + $totServicos;
                         Resumo Financeiro
                     </div>
 
-                    <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px;">
+                    <div class="form-row-3">
 
                         <div style="background:var(--color-bg-alt); border:1px solid var(--color-border);
                             border-radius:var(--radius-md); padding:12px 14px;">

@@ -8,6 +8,9 @@ function initAssinatura(canvasId) {
     var ctx = canvas.getContext('2d');
     var desenhando = false;
     var temTraco = false;
+    // Atualizado em redimensionar(); usado pra manter a espessura do traço
+    // (em "pixels de tela") igual em qualquer resolução de canvas.
+    var dprAtual = 1;
 
     function pos(e) {
         var rect = canvas.getBoundingClientRect();
@@ -32,7 +35,10 @@ function initAssinatura(canvasId) {
         var p = pos(e);
         ctx.lineTo(p.x, p.y);
         ctx.strokeStyle = '#111826';
-        ctx.lineWidth = 2.5;
+        // pos() já converte a posição do dedo/mouse pra pixel FÍSICO do canvas
+        // (canvas.width/rect.width) — a espessura precisa da mesma conversão,
+        // senão o traço sai fino demais num canvas redimensionado (celular).
+        ctx.lineWidth = 2.5 * dprAtual;
         ctx.lineCap = 'round';
         ctx.lineJoin = 'round';
         ctx.stroke();
@@ -60,6 +66,33 @@ function initAssinatura(canvasId) {
         },
         dataUrl: function () {
             return temTraco ? canvas.toDataURL('image/png') : '';
+        },
+        // Ajusta a RESOLUÇÃO do canvas (canvas.width/height, o "papel" onde se
+        // desenha) para bater com o tamanho que o CSS realmente reserva pra ele
+        // na tela (width:100%). Sem isso, o canvas nascia com os atributos HTML
+        // fixos (380×130) e o navegador só esticava/comprimia o desenho pra
+        // caber — num modal mais estreito que 380px (qualquer celular), a
+        // assinatura saía capturada distorcida. × devicePixelRatio deixa o
+        // traço nítido em tela retina/celular.
+        //
+        // Sem ctx.scale(dpr,dpr) de propósito: pos() já converte cada
+        // coordenada pra pixel físico via canvas.width/rect.width — aplicar
+        // escala nos dois lugares dobraria o fator e desenharia fora do
+        // lugar. dprAtual só ajusta a espessura do traço (ver desenhar()).
+        //
+        // Chamar só quando o canvas já estiver visível (getBoundingClientRect()
+        // de um elemento display:none volta 0×0) — normalmente logo depois de
+        // abrir o modal que o contém.
+        redimensionar: function () {
+            var rect = canvas.getBoundingClientRect();
+            if (rect.width === 0 || rect.height === 0) return;
+
+            dprAtual = window.devicePixelRatio || 1;
+            canvas.width = rect.width * dprAtual;
+            canvas.height = rect.height * dprAtual;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            temTraco = false;
         }
     };
 }

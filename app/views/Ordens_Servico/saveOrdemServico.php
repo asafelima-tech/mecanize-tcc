@@ -85,7 +85,7 @@ $preAgendamento = $preAgendamento ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">①</span>
                         Identificação
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Número da OS</label>
@@ -117,7 +117,7 @@ $preAgendamento = $preAgendamento ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">②</span>
                         Cliente e Veículo
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Cliente <span style="color:var(--color-danger)">*</span></label>
@@ -159,99 +159,28 @@ $preAgendamento = $preAgendamento ?? '';
                     </div>
                 </div>
 
-                <!-- ③ MECÂNICO -->
+                <!-- ③ TÉCNICOS RESPONSÁVEIS -->
                 <div class="form-section">
                     <div class="form-section__title">
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">③</span>
-                        Mecânico Responsável
+                        Técnicos Responsáveis
+                        <span style="font-size:11px;font-weight:400;color:var(--color-text-muted);">(a comissão de cada um é calculada automaticamente pela regra dele, na finalização da OS)</span>
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
 
-                        <!-- SELECT DO MECÂNICO -->
-                        <div class="form-field">
-                            <label>Mecânico</label>
-                            <select name="mecanico_id" id="mecanico_id" onchange="atualizarMecanico()">
-                                <option value="">Selecione o mecânico</option>
-                                <?php foreach ($mecanicos as $m): ?>
-                                    <option value="<?= htmlspecialchars($m['id']) ?>"
-                                        data-nome="<?= htmlspecialchars($m['nome']) ?>">
-                                        <?= htmlspecialchars($m['nome']) ?>
-                                    </option>
-                                <?php endforeach; ?>
-                            </select>
-                        </div>
-
-                        <!-- PORCENTAGEM DE COMISSÃO -->
-                        <div class="form-field" id="mec-comissao-wrap" style="display:none;">
-                            <label>
-                                Comissão do Técnico
-                                <span id="mec-comissao-sublabel" style="font-size:11px;font-weight:400;color:var(--color-text-muted);">(% sobre serviços)</span>
+                    <div id="lista-tecnicos-os" style="display:flex;flex-direction:column;gap:8px;">
+                        <?php if (empty($mecanicos)): ?>
+                            <p class="fs-12 text-secondary">Nenhum técnico cadastrado ainda.</p>
+                        <?php endif; ?>
+                        <?php foreach ($mecanicos as $m): ?>
+                            <label style="display:flex;align-items:center;gap:12px;padding:10px 14px;border:1.5px solid var(--color-border);border-radius:var(--radius-md);cursor:pointer;">
+                                <input type="checkbox" name="tecnicos[]" value="<?= (int) $m['id'] ?>"
+                                    style="width:18px;height:18px;flex-shrink:0;" onchange="atualizarPreviewTecnicos()">
+                                <span style="flex:1;font-size:13px;font-weight:600;"><?= htmlspecialchars($m['nome']) ?></span>
+                                <span class="fs-12 text-secondary" data-preview-tecnico="<?= (int) $m['id'] ?>">
+                                    <?= empty($m['regra_tipo']) ? 'Sem regra de remuneração cadastrada' : '' ?>
+                                </span>
                             </label>
-                            <div style="position:relative;">
-                                <input
-                                    type="number"
-                                    id="mec-comissao-pct"
-                                    min="0"
-                                    max="100"
-                                    step="0.1"
-                                    placeholder="Ex.: 30"
-                                    style="width:100%;box-sizing:border-box;padding-right:36px;"
-                                    oninput="recalcularComissao()">
-                                <span style="position:absolute;right:10px;top:50%;transform:translateY(-50%);font-size:12px;font-weight:700;color:var(--color-text-muted);">%</span>
-                            </div>
-                        </div>
-
-                        <!-- BASE DE CÁLCULO DA COMISSÃO: Serviços / Peças / Ambos -->
-                        <div class="form-field" id="comissao-base-wrap" style="display:none;grid-column:1/-1;">
-                            <label>
-                                Base de Cálculo
-                                <span style="font-size:11px;font-weight:400;color:var(--color-text-muted);">(sobre o quê incide o percentual acima)</span>
-                            </label>
-                            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-                                <button type="button" id="base-servicos" onclick="setBaseComissao('servicos')"
-                                    style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border-radius:var(--radius-md);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;border:1.5px solid var(--color-primary);background:var(--color-primary);color:#fff;transition:all .12s;">
-                                    <i class="bi bi-wrench" style="font-size:12px;"></i>
-                                    Somente Serviços
-                                </button>
-                                <button type="button" id="base-pecas" onclick="setBaseComissao('pecas')"
-                                    style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border-radius:var(--radius-md);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;border:1.5px solid var(--color-border);background:#fff;color:var(--color-text-secondary);transition:all .12s;">
-                                    <i class="bi bi-box-seam" style="font-size:12px;"></i>
-                                    Somente Peças
-                                </button>
-                                <button type="button" id="base-ambos" onclick="setBaseComissao('ambos')"
-                                    style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:6px;padding:9px 12px;border-radius:var(--radius-md);cursor:pointer;font-size:12px;font-weight:600;font-family:inherit;border:1.5px solid var(--color-border);background:#fff;color:var(--color-text-secondary);transition:all .12s;">
-                                    <i class="bi bi-boxes" style="font-size:12px;"></i>
-                                    Peças + Serviços
-                                </button>
-                            </div>
-                        </div>
-
-                        <!-- PREVIEW DO MECÂNICO + COMISSÃO -->
-                        <div id="mec-preview" style="display:none;align-items:center;grid-column:1/-1;">
-                            <div style="display:flex;align-items:center;gap:10px;padding:12px 16px;background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);width:100%;box-sizing:border-box;">
-
-                                <div id="mec-avatar" style="width:36px;height:36px;border-radius:50%;background:var(--color-primary-soft);color:var(--color-primary);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;">--</div>
-
-                                <div style="flex:1;">
-                                    <div id="mec-nome" style="font-size:13px;font-weight:600;"></div>
-                                    <div style="font-size:11px;color:var(--color-text-muted);margin-top:2px;">
-                                        Comissão:
-                                        <strong id="mec-pct-label" style="color:var(--color-primary);">—</strong>
-                                        &nbsp;→&nbsp;
-                                        <strong id="mec-valor-calculado" style="color:var(--color-primary);">R$ 0,00</strong>
-                                        <span id="mec-preview-sublabel" style="margin-left:4px;color:var(--color-text-muted);font-size:10px;">(sobre total de serviços)</span>
-                                    </div>
-                                </div>
-
-                                <span class="badge badge--success">Incluído na OS</span>
-                            </div>
-                        </div>
-
-                        <!-- Inputs hidden enviados ao backend -->
-                        <input type="hidden" name="valor_mao_obra" id="valor_mao_obra" value="0">
-                        <input type="hidden" name="comissao_pct" id="h-comissao-pct" value="0">
-                        <input type="hidden" name="comissao_base" id="h-comissao-base" value="servicos">
-
+                        <?php endforeach; ?>
                     </div>
                 </div>
 
@@ -309,7 +238,7 @@ $preAgendamento = $preAgendamento ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">⑤</span>
                         Diagnóstico
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-2">
                         <div class="form-field">
                             <label>Defeito Relatado</label>
                             <textarea name="defeito_relatado" rows="4" placeholder="Descreva o problema relatado pelo cliente..."><?= htmlspecialchars($preDefeito) ?></textarea>
@@ -331,7 +260,7 @@ $preAgendamento = $preAgendamento ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">⑥</span>
                         Resumo Financeiro
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:14px;">
+                    <div class="form-row-5">
 
                         <div style="background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:12px 14px;">
                             <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:4px;">Total em Peças</div>
@@ -370,7 +299,7 @@ $preAgendamento = $preAgendamento ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">⑦</span>
                         Conclusão
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-2">
                         <div class="form-field">
                             <label>Data de Conclusão</label>
                             <input type="datetime-local" name="data_conclusao">
@@ -518,7 +447,7 @@ $preAgendamento = $preAgendamento ?? '';
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div class="form-row-2" style="margin-bottom:16px;">
                 <div class="form-field" id="custom-campo-fixo">
                     <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:6px;">
                         Valor (R$) <span style="color:var(--color-danger)">*</span>
@@ -589,13 +518,17 @@ $preAgendamento = $preAgendamento ?? '';
    DADOS DE CATÁLOGO (PHP → JS)
 ---------------------------------------------------------------- */
     const CATALOGO = {
-        produto: <?= json_encode(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos), JSON_UNESCAPED_UNICODE) ?>,
-        servico: <?= json_encode(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos), JSON_UNESCAPED_UNICODE) ?>
+        produto: <?= json_para_script(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos)) ?>,
+        servico: <?= json_para_script(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos)) ?>
     };
 
-    const MECANICOS_DATA = <?= json_encode(array_map(fn($m) => [
-                                'id'   => $m['id']   ?? null,
-                                'nome' => $m['nome'] ?? '',
+    const MECANICOS_DATA = <?= json_para_script(array_map(fn($m) => [
+                                'id'         => $m['id']   ?? null,
+                                'nome'       => $m['nome'] ?? '',
+                                'regraTipo'  => $m['regra_tipo'] ?? null,
+                                'percentual' => $m['regra_percentual'] !== null ? (float) $m['regra_percentual'] : null,
+                                'valorFixo'  => $m['regra_valor_fixo'] !== null ? (float) $m['regra_valor_fixo'] : null,
+                                'baseExtra'  => $m['regra_base_extra'] ?? null,
                             ], $mecanicos), JSON_UNESCAPED_UNICODE) ?>;
 
     /* ----------------------------------------------------------------
@@ -606,7 +539,6 @@ $preAgendamento = $preAgendamento ?? '';
     let selTemp = {};
     let catFiltro = null;
     let abaAtual = 'catalogo';
-    let comissaoBase = 'servicos';
 
     /* ----------------------------------------------------------------
        UTILITÁRIOS
@@ -615,10 +547,6 @@ $preAgendamento = $preAgendamento ?? '';
         return 'R$ ' + parseFloat(v || 0).toFixed(2)
             .replace('.', ',')
             .replace(/\B(?=(\d{3})+(?!\d))/g, '.');
-    }
-
-    function iniciaisMecanico(nome) {
-        return nome.split(' ').slice(0, 2).map(p => p[0]).join('').toUpperCase();
     }
 
     function totalPecasOS() {
@@ -630,85 +558,66 @@ $preAgendamento = $preAgendamento ?? '';
     }
 
     /* ----------------------------------------------------------------
-       BASE DE CÁLCULO DA COMISSÃO (serviços / peças / ambos)
+       TÉCNICOS — prévia de comissão (estimativa; quem calcula de verdade
+       é sempre o servidor, na finalização da OS — ver
+       OrdemServico::calcularComissoesNaConclusao()).
     ---------------------------------------------------------------- */
-    function baseComissaoValor() {
-        if (comissaoBase === 'pecas') return totalPecasOS();
-        if (comissaoBase === 'ambos') return totalPecasOS() + totalServicosOS();
-        return totalServicosOS();
-    }
 
-    function baseComissaoTexto() {
-        if (comissaoBase === 'pecas') return 'peças';
-        if (comissaoBase === 'ambos') return 'peças e serviços';
-        return 'serviços';
-    }
+    /** Espelha TecnicoRemuneracao::calcularComissao() só pros tipos que dá pra estimar sem servidor. */
+    function estimarComissaoTecnico(tecnico) {
+        const totalOS = totalPecasOS() + totalServicosOS();
+        const totalServicos = totalServicosOS();
+        const totalPecas = totalPecasOS();
 
-    function setBaseComissao(base) {
-        comissaoBase = base;
-        document.getElementById('h-comissao-base').value = base;
-
-        ['servicos', 'pecas', 'ambos'].forEach(b => {
-            const btn = document.getElementById('base-' + b);
-            if (!btn) return;
-            const ativo = b === base;
-            btn.style.background = ativo ? 'var(--color-primary)' : '#fff';
-            btn.style.color = ativo ? '#fff' : 'var(--color-text-secondary)';
-            btn.style.borderColor = ativo ? 'var(--color-primary)' : 'var(--color-border)';
-        });
-
-        const texto = baseComissaoTexto();
-        document.getElementById('mec-comissao-sublabel').textContent = '(% sobre ' + texto + ')';
-        document.getElementById('mec-preview-sublabel').textContent = '(sobre total de ' + texto + ')';
-
-        recalcularComissao();
-    }
-
-    /* ----------------------------------------------------------------
-       MECÂNICO — seleção + comissão
-    ---------------------------------------------------------------- */
-    function atualizarMecanico() {
-        const sel = document.getElementById('mecanico_id');
-        const opt = sel.options[sel.selectedIndex];
-        const prev = document.getElementById('mec-preview');
-        const comissaoWrap = document.getElementById('mec-comissao-wrap');
-        const baseWrap = document.getElementById('comissao-base-wrap');
-
-        if (!opt || !opt.value) {
-            prev.style.display = 'none';
-            comissaoWrap.style.display = 'none';
-            baseWrap.style.display = 'none';
-            document.getElementById('mec-comissao-pct').value = '';
-            document.getElementById('valor_mao_obra').value = '0';
-            document.getElementById('h-comissao-pct').value = '0';
-            recalcular();
-            return;
+        switch (tecnico.regraTipo) {
+            case 'PERCENTUAL_TOTAL':
+                return { valor: totalOS * (tecnico.percentual || 0) / 100, texto: null };
+            case 'PERCENTUAL_SERVICOS':
+                return { valor: totalServicos * (tecnico.percentual || 0) / 100, texto: null };
+            case 'PERCENTUAL_PECAS':
+                return { valor: totalPecas * (tecnico.percentual || 0) / 100, texto: null };
+            case 'PERCENTUAL_TIPO_SERVICO':
+                return { valor: 0, texto: 'Calculado por categoria de serviço na finalização' };
+            case 'VALOR_FIXO_SERVICO': {
+                const qtd = osItens.filter(it => it.tipo === 'servico').length;
+                return { valor: (tecnico.valorFixo || 0) * qtd, texto: null };
+            }
+            case 'SALARIO_FIXO':
+                return { valor: 0, texto: 'Salário fixo mensal (não gera comissão por OS)' };
+            case 'SALARIO_FIXO_MAIS_COMISSAO': {
+                const base = tecnico.baseExtra === 'SERVICOS' ? totalServicos
+                    : tecnico.baseExtra === 'PECAS' ? totalPecas : totalOS;
+                return { valor: base * (tecnico.percentual || 0) / 100, texto: null };
+            }
+            default:
+                return { valor: 0, texto: 'Sem regra de remuneração cadastrada' };
         }
-
-        const nome = opt.dataset.nome;
-        document.getElementById('mec-avatar').textContent = iniciaisMecanico(nome);
-        document.getElementById('mec-nome').textContent = nome;
-
-        // Mostra o campo de %, a base de cálculo e o preview
-        comissaoWrap.style.display = 'block';
-        baseWrap.style.display = 'block';
-        prev.style.display = 'flex';
-
-        recalcularComissao();
     }
 
-    function recalcularComissao() {
-        const pct = parseFloat(document.getElementById('mec-comissao-pct').value) || 0;
-        const base = baseComissaoValor();
-        const valorComiss = base * pct / 100;
+    /** Soma a comissão estimada de todos os técnicos marcados — usado no resumo financeiro da OS. */
+    function totalComissaoEstimada() {
+        let total = 0;
+        document.querySelectorAll('input[name="tecnicos[]"]:checked').forEach(chk => {
+            const tecnico = MECANICOS_DATA.find(m => String(m.id) === chk.value);
+            if (tecnico) total += estimarComissaoTecnico(tecnico).valor;
+        });
+        return total;
+    }
 
-        // Atualiza labels do preview
-        document.getElementById('mec-pct-label').textContent = pct > 0 ? pct + '%' : '—';
-        document.getElementById('mec-valor-calculado').textContent = fmtBR(valorComiss);
+    function atualizarPreviewTecnicos() {
+        MECANICOS_DATA.forEach(tecnico => {
+            const span = document.querySelector('[data-preview-tecnico="' + tecnico.id + '"]');
+            if (!span) return;
 
-        // Atualiza hiddens
-        document.getElementById('valor_mao_obra').value = valorComiss.toFixed(2);
-        document.getElementById('h-comissao-pct').value = pct.toFixed(2);
+            const chk = document.querySelector('input[name="tecnicos[]"][value="' + tecnico.id + '"]');
+            if (!chk || !chk.checked) {
+                span.textContent = tecnico.regraTipo ? '' : 'Sem regra de remuneração cadastrada';
+                return;
+            }
+
+            const estimativa = estimarComissaoTecnico(tecnico);
+            span.textContent = estimativa.texto || ('Comissão estimada: ' + fmtBR(estimativa.valor));
+        });
 
         recalcular();
     }
@@ -984,7 +893,7 @@ $preAgendamento = $preAgendamento ?? '';
 
             fecharCatalogo();
             renderTabelaItens();
-            recalcular();
+            atualizarPreviewTecnicos();
             return;
         }
 
@@ -1005,7 +914,7 @@ $preAgendamento = $preAgendamento ?? '';
 
         fecharCatalogo();
         renderTabelaItens();
-        recalcular();
+        atualizarPreviewTecnicos();
     }
 
     function prepararSubmit() {
@@ -1103,13 +1012,13 @@ $preAgendamento = $preAgendamento ?? '';
         if (osItens[idx].custom) return;
         osItens[idx].qty = Math.max(1, osItens[idx].qty + delta);
         renderTabelaItens();
-        recalcular();
+        atualizarPreviewTecnicos();
     }
 
     function removerItem(idx) {
         osItens.splice(idx, 1);
         renderTabelaItens();
-        recalcular();
+        atualizarPreviewTecnicos();
         recalcularCustomPct();
     }
 
@@ -1130,7 +1039,7 @@ $preAgendamento = $preAgendamento ?? '';
         });
         if (mudou) {
             renderTabelaItens();
-            recalcular();
+            atualizarPreviewTecnicos();
         }
     }
 
@@ -1147,17 +1056,10 @@ $preAgendamento = $preAgendamento ?? '';
             else totalServicos += sub;
         });
 
-        // Recalcula comissão do mecânico sobre a base selecionada (serviços / peças / ambos)
-        const pctComissao = parseFloat(document.getElementById('mec-comissao-pct').value) || 0;
-        const baseComissao = baseComissaoValor();
-        const comissao = baseComissao * pctComissao / 100;
-
-        document.getElementById('valor_mao_obra').value = comissao.toFixed(2);
-        document.getElementById('h-comissao-pct').value = pctComissao.toFixed(2);
-
-        // Atualiza label do preview do mecânico se estiver visível
-        document.getElementById('mec-pct-label').textContent = pctComissao > 0 ? pctComissao + '%' : '—';
-        document.getElementById('mec-valor-calculado').textContent = fmtBR(comissao);
+        // Estimativa só pra exibição (o "lucro" que aparece aqui é uma
+        // referência pra quem está montando a OS) — o valor que de fato
+        // conta é sempre calculado pelo servidor na finalização.
+        const comissao = totalComissaoEstimada();
 
         const totalOS = totalPecas + totalServicos;
         const lucro = totalOS - comissao;
@@ -1209,22 +1111,13 @@ $preAgendamento = $preAgendamento ?? '';
         osItens = [];
         selTemp = {};
         catFiltro = null;
-        document.getElementById('mec-preview').style.display = 'none';
-        document.getElementById('mec-comissao-wrap').style.display = 'none';
-        document.getElementById('comissao-base-wrap').style.display = 'none';
-        document.getElementById('valor_mao_obra').value = '0';
-        document.getElementById('h-comissao-pct').value = '0';
-        setBaseComissao('servicos');
 
         const tsCliente = getTS(clienteSelect);
         if (tsCliente) tsCliente.clear(true);
 
-        const tsMecanico = getTS(document.getElementById('mecanico_id'));
-        if (tsMecanico) tsMecanico.clear(true);
-
         renderTabelaItens();
         filtrarVeiculosPorCliente();
-        recalcular();
+        atualizarPreviewTecnicos();
     }
 
     /* ----------------------------------------------------------------
@@ -1348,7 +1241,7 @@ $preAgendamento = $preAgendamento ?? '';
     // Veículo vindo da agenda: só dá pra selecionar depois que
     // filtrarVeiculosPorCliente() repovoou a lista com os veículos do cliente.
     (function () {
-        const preVeiculo = <?= json_encode((string) $preVeiculo) ?>;
+        const preVeiculo = <?= json_para_script((string) $preVeiculo) ?>;
         if (!preVeiculo || !veiculoSelect) return;
 
         const ts = getTS(veiculoSelect);

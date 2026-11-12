@@ -11,6 +11,8 @@ class CaixaController extends Controller
      */
     public function abrir()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -81,6 +83,8 @@ class CaixaController extends Controller
      */
     public function fechar()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -147,6 +151,8 @@ class CaixaController extends Controller
      */
     public function list()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -159,11 +165,11 @@ class CaixaController extends Controller
 
         $caixas = $caixa->historico();
 
-        // Atendentes só podem ver as sessões de caixa em que participaram —
-        // ou seja, que eles mesmos abriram ou fecharam. Administradores e
-        // técnicos veem o histórico todo. Enforced aqui (não na view) para
+        // Quem não é administrador só vê as sessões de caixa em que participou —
+        // ou seja, que ele mesmo abriu ou fechou (atendente e técnico, mesma regra).
+        // O administrador vê o histórico todo. Enforced aqui (não na view) para
         // não depender da tela respeitar a regra.
-        if (($_SESSION['user_tipo'] ?? null) === 'ATENDENTE') {
+        if (($_SESSION['user_tipo'] ?? null) !== 'ADMIN') {
             $idUsuario = (int) ($_SESSION['user_id_usuario'] ?? 0);
 
             $caixas = array_values(array_filter($caixas, function ($c) use ($idUsuario) {
@@ -185,6 +191,8 @@ class CaixaController extends Controller
      */
     public function movimentacoes()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $caixa = $this->model('Caixa');
 
         $caixaAberto = $caixa->getCaixaAberto();
@@ -219,7 +227,7 @@ class CaixaController extends Controller
      */
     public function relatorio()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $periodo = $this->resolverPeriodo();
         $mov     = $this->model('MovimentacaoCaixa');
@@ -237,7 +245,7 @@ class CaixaController extends Controller
      */
     public function exportarRelatorioPdf()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $periodo = $this->resolverPeriodo();
         $mov     = $this->model('MovimentacaoCaixa');
@@ -249,7 +257,9 @@ class CaixaController extends Controller
         ];
 
         // Renderiza a view de PDF em buffer e entrega ao Dompdf.
-        extract($dados);
+        // EXTR_SKIP pelo mesmo motivo do Controller::view(): uma chave de
+        // dados não pode sobrescrever $html nem $dados aqui embaixo.
+        extract($dados, EXTR_SKIP);
         ob_start();
         require __DIR__ . '/../views/Caixa/pdfRelatorioCaixa.php';
         $html = ob_get_clean();
@@ -354,6 +364,8 @@ class CaixaController extends Controller
      */
     public function registrarMovimentacao()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./caixaMovimentacoes');
             exit;

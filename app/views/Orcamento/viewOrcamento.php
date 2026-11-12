@@ -422,6 +422,10 @@ $decisaoOk = in_array($status, ['aprovado', 'reprovado'], true);
         </div>
     </div>
 
+    <?php if ($orcamento['status'] === 'pendente'): ?>
+        <?php $linkEscopo = 'ORCAMENTO'; $linkEntidadeId = (int) $orcamento['id_orcamento']; require __DIR__ . '/../Portal/_linkPortal.php'; ?>
+    <?php endif; ?>
+
     <?php if (!empty($orcamento['assinatura_cliente'])): ?>
     <!-- 6. ASSINATURA DO CLIENTE -->
     <div class="card">

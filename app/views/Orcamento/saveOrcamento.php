@@ -65,7 +65,7 @@ $error              = $error              ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">①</span>
                         Identificação
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-2">
 
                         <div class="form-field">
                             <label>Número do Orçamento</label>
@@ -100,7 +100,7 @@ $error              = $error              ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">②</span>
                         Cliente e Veículo
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Cliente <span style="color:var(--color-danger)">*</span></label>
@@ -159,7 +159,7 @@ $error              = $error              ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">③</span>
                         Mecânico Responsável
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-2">
 
                         <div class="form-field">
                             <label>Mecânico</label>
@@ -287,7 +287,7 @@ $error              = $error              ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">⑤</span>
                         Diagnóstico
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-2">
                         <div class="form-field">
                             <label>Defeito Relatado</label>
                             <textarea name="defeito_relatado" rows="4" placeholder="Descreva o problema relatado pelo cliente..."></textarea>
@@ -309,7 +309,7 @@ $error              = $error              ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">⑥</span>
                         Resumo Financeiro
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr 1fr;gap:14px;">
+                    <div class="form-row-5">
 
                         <div style="background:var(--color-bg-alt);border:1px solid var(--color-border);border-radius:var(--radius-md);padding:12px 14px;">
                             <div style="font-size:11px;color:var(--color-text-muted);margin-bottom:4px;">Total em Peças</div>
@@ -348,7 +348,7 @@ $error              = $error              ?? '';
                         <span class="ico-wrap ico" style="width:22px;height:22px;background:var(--color-primary-soft);color:var(--color-primary);border-radius:var(--radius-sm);display:inline-flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;">⑦</span>
                         Validade &amp; Prazo
                     </div>
-                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px 18px;">
+                    <div class="form-row-2">
                         <div class="form-field">
                             <label>Válido até</label>
                             <input type="date" name="data_validade"
@@ -475,7 +475,7 @@ $error              = $error              ?? '';
                 </div>
             </div>
 
-            <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+            <div class="form-row-2" style="margin-bottom:16px;">
                 <div class="form-field" id="orc-custom-campo-fixo">
                     <label style="font-size:12px;font-weight:600;color:var(--color-text-secondary);display:block;margin-bottom:6px;">Valor (R$) <span style="color:var(--color-danger)">*</span></label>
                     <div style="position:relative;">
@@ -534,8 +534,8 @@ $error              = $error              ?? '';
     (function() {
         /* ---- DADOS PHP → JS ---- */
         const ORC_CATALOGO = {
-            produto: <?= json_encode(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos), JSON_UNESCAPED_UNICODE) ?>,
-            servico: <?= json_encode(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos), JSON_UNESCAPED_UNICODE) ?>
+            produto: <?= json_para_script(array_map(fn($p) => array_merge($p, ['id' => (string)($p['id'] ?? '')]), $produtos)) ?>,
+            servico: <?= json_para_script(array_map(fn($s) => array_merge($s, ['id' => (string)($s['id'] ?? '')]), $servicos)) ?>
         };
 
         /* ---- ESTADO ---- */

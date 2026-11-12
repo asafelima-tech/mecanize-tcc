@@ -147,7 +147,29 @@ cancelar: de qualquer situação antes de ENTREGUE (as peças baixadas voltam ao
   - **Relatórios:** cartões com comparação ao período anterior, faturamento no tempo, OS por situação, clientes que mais compraram e desempenho por técnico (OS, vendido, comissão, tempo médio e prontas no prazo). O detalhe que já existia continua abaixo.
   - **Usuários:** números da equipe, abas ativos e inativos e o que cada perfil pode fazer.
   - **Configurações:** menu de seções, dados da oficina com o logotipo, aparência (tema deste navegador), assinatura e alterações.
+  - **Contas a receber e a pagar** (abas do Financeiro):
+    - **Números do topo:** em aberto, em atraso, vencendo nos próximos 7 dias e recebido/pago no mês (pagamentos menos estornos). Cada cartão abre a lista já filtrada.
+    - **Lista:** situação em abas com a contagem (em aberto, vencidas, recebidas/pagas, canceladas, todas). Busca, categoria (filtro novo) e período de vencimento ficam fora do card, com o total e o saldo da seleção.
+    - **Tabela:** o prazo vem escrito ("vence em 3 dias", "atrasada há 2 dias"). Conta vencida aparece como "Atrasada", com uma marca na lateral da linha, e a parcial mostra quanto já foi pago.
+    - **Ações:** "Receber"/"Pagar" em cada linha abre o mesmo diálogo de baixa e volta para a lista. O menu ⋯ tem abrir, editar, abrir a OS e cancelar.
+    - **Nova conta:** formulário em ficha (identificação; valor e vencimento em destaque; complementares). Ao lado ficam o resumo e a lista das parcelas, que seguem a mesma regra do lançamento.
+    - **Ficha da conta:** topo com situação, categoria, parcela, OS e documento, os números (saldo, valor, pago, vencimento) e os dados em blocos. Os pagamentos com estorno ficam abaixo; parcelas, comprovantes e histórico ficam ao lado.
+  - **Tela da OS:** no padrão das fichas de consulta. Topo com a OS, a situação, o cliente e o veículo; o andamento em etapas (só leitura; a troca continua nos botões); números (total, aprovado, recebido, previsão); relato e diagnóstico; serviços e peças com os totais e a inclusão logo abaixo; fotos e documentos; histórico em linha do tempo. Ao lado: cliente e veículo, pagamento e dados da OS. "Copiar link do cliente", "Editar dados" e "Cancelar OS" ficam no menu ⋯.
+  - **Sessões de caixa:** cinco colunas (sessão, abertura, fechamento, gaveta e conferência) no lugar de nove, no histórico e no caixa atual.
+  - **Plataforma:** lista de oficinas com números no topo (ativas, em teste, pedem atenção, usuários) e ficha da oficina no padrão das fichas de consulta.
+  - **Link do cliente:** página pública refeita, com a situação em destaque, as etapas e os itens; segue o tema claro ou escuro do aparelho.
   - **Ficou de fora, por não existir na v2:** busca geral (⌘K) e menu "Criar", Painel TV, leitura de placa, cliente balcão e VIP, pedidos de compra, lembrete por WhatsApp, capacidade dos mecânicos, último acesso dos usuários, exportar e baixar PDF (os relatórios imprimem e salvam em PDF pelo navegador), as abas de notificações, integrações e segurança, a densidade das tabelas e os campos razão social, número e bairro da oficina.
+
+## Identidade visual: como a Apple desenha um aplicativo de trabalho (12/11/2026)
+
+A camada final do `public/css/mecanize.css` (seção 30) segue os aplicativos e sistemas web da própria Apple (Mail, Finder, Ajustes do Sistema, iCloud, App Store Connect) e as Human Interface Guidelines:
+
+- **Barra lateral em lista de origem:** clara no tema claro (#F5F5F7) e #1F1F1F no escuro, grupos com rótulo pequeno, itens de 32 px com ícone fino em cinza e seleção em cápsula cinza discreta. Continua retrátil. O tema e a conta ficam no rodapé dela.
+- **Janela branca, grupos cinza:** o conteúdo fica sobre branco; cartões, indicadores e fichas viram grupos #F5F5F7 com canto 12, sem borda nem sombra. No escuro, a hierarquia #191919 < #1F1F1F < #303030 continua.
+- **Listas direto na janela**, como o Finder em lista: sem caixa em volta, cabeçalho pequeno e linhas finas.
+- **Controles do Mac:** botões de 30 px com canto 7 (principal preto, secundário branco com contorno fino), seletor segmentado no lugar das abas, campos de 34 px, menus com destaque escuro e texto branco, janelas de diálogo compactas com os botões à direita.
+- **Barra de ferramentas** fina e translúcida no topo do conteúdo (Criar, situação do caixa e avisos).
+- **Tipografia oficial: Arial Nova**, definida em `--font-family` e herdada por todos os componentes, em escala de aplicativo (26 / 17 / 15 / 13 / 12 / 11). Ela não vem instalada no Windows: baixe-a gratuitamente em Configurações › Personalização › Fontes (pesquise "Arial Nova"). Enquanto não estiver instalada, o navegador usa Arial. Os arquivos da fonte não foram incluídos no projeto porque a licença da Monotype não permite redistribuí-los na web.
 
 ## Licença
 

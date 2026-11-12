@@ -1,5 +1,7 @@
 <?php
 
+require_once __DIR__ . '/../core/Erro.php';
+
 /**
  * Rastreamento público (sem login) de OS/Orçamento por token — pra o
  * cliente acompanhar o status sem precisar ligar pra oficina perguntando.
@@ -12,8 +14,7 @@ class RastreioController extends Controller
         $token = trim($_GET['token'] ?? '');
 
         if ($token === '') {
-            $this->view('Site/rastreioNaoEncontrado');
-            return;
+            Erro::exibir('rastreio-invalido');
         }
 
         $os = $this->model('OrdemServico')->getPorTokenRastreio($token);
@@ -30,6 +31,6 @@ class RastreioController extends Controller
             return;
         }
 
-        $this->view('Site/rastreioNaoEncontrado');
+        Erro::exibir('rastreio-invalido');
     }
 }

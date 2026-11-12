@@ -50,10 +50,27 @@ class Mailer
      */
     public function enviar($destinatario, $assunto, $corpoHtml, $corpoTexto = null)
     {
+        /*
+         * O destinatário é escrito direto no comando SMTP "RCPT TO:". Um valor
+         * com \r ou \n permitiria emendar outro comando ou outro cabeçalho na
+         * mensagem (injeção de cabeçalho) — por exemplo, acrescentar um Bcc
+         * para terceiros num e-mail de recuperação de senha.
+         * FILTER_VALIDATE_EMAIL resolve numa linha: qualquer quebra de linha
+         * torna o endereço inválido. Os três pontos de envio já tratam exceção
+         * do Mailer com try/catch, então nada quebra.
+         */
+        if (!filter_var($destinatario, FILTER_VALIDATE_EMAIL)) {
+            throw new \RuntimeException('Destinatário de e-mail inválido.');
+        }
+
         $conexao = @fsockopen($this->host, $this->porta, $errno, $errstr, 10);
         if (!$conexao) {
             throw new \RuntimeException("Falha ao conectar no SMTP: {$errstr}");
         }
+
+        // Sem isto, um servidor SMTP que aceita a conexão e para de responder prende a
+        // requisição do usuário indefinidamente (só o connect tinha limite de 10 s).
+        stream_set_timeout($conexao, 15);
 
         $this->ler($conexao);
         $this->comando($conexao, "EHLO " . ($_SERVER['HTTP_HOST'] ?? 'localhost'));

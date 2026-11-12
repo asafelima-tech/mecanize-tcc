@@ -5,6 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $rotaAtual = $_GET['url'] ?? 'home';
 
+// Técnico usa uma sidebar própria, bem mais curta — a área dele não tem
+// nada administrativo/financeiro (ver app/controllers/TecnicoController.php).
+$ehTecnico = ($_SESSION['user_tipo'] ?? '') === 'TECNICO';
+
 function menuAtivo($rota, $rotaAtual)
 {
   return $rota === $rotaAtual ? 'is-active' : '';
@@ -29,19 +33,30 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="csrf-token" content="<?= htmlspecialchars(Csrf::token(), ENT_QUOTES) ?>">
   <title>Mecanize</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400..800&display=swap" rel="stylesheet">
+  <!-- Bibliotecas servidas pelo próprio projeto (public/assets/vendor).
+       Sem CDN por dois motivos: a CSP abaixo só aceita origem própria, e um
+       script de terceiro carregado de fora é código que ninguém aqui revisou
+       rodando dentro da sessão de quem está logado. De quebra, o sistema
+       funciona sem internet — a demonstração não depende do Wi-Fi da escola. -->
+  <link rel="stylesheet" href="./assets/vendor/inter.css">
   <link rel="icon" type="image/ico" href="./assets/img/logo-branco.ico">
   <?php $v = '?v=' . time(); ?>
   <link rel="stylesheet" href="./assets/css/global.css<?= $v ?>">
   <link rel="stylesheet" href="./assets/css/sidebar.css<?= $v ?>">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/7.0.1/css/all.min.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/css/tom-select.css">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/imask@7/dist/imask.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tom-select@2.3.1/dist/js/tom-select.complete.min.js"></script>
+  <link rel="stylesheet" href="./assets/css/erros.css<?= $v ?>">
+  <!-- Só no papel: desmonta a casca do app (sidebar/topbar/rolagem interna)
+       e transforma a tela num documento A4. Ver public/assets/css/print.css. -->
+  <link rel="stylesheet" media="print" href="./assets/css/print.css<?= $v ?>">
+  <!-- Font Awesome saiu daqui: a busca não achou uma única classe fa-/fas/far
+       em app/views. O projeto usa SVG inline e Bootstrap Icons. -->
+  <link rel="stylesheet" href="./assets/vendor/bootstrap-icons.css">
+  <link rel="stylesheet" href="./assets/vendor/tom-select.css">
+  <script src="./assets/vendor/chart.umd.min.js"></script>
+  <script src="./assets/vendor/imask.min.js"></script>
+  <script src="./assets/vendor/tom-select.complete.min.js"></script>
+  <!-- Antes dos scripts inline das telas: é lá que ele é usado, ao montar
+       linhas de tabela e painéis com innerHTML. -->
+  <script src="./assets/js/escape.js<?= $v ?>"></script>
   <script src="./assets/js/cor-select.js<?= $v ?>"></script>
   <script src="./assets/js/select-enhance.js<?= $v ?>"></script>
   <!-- Aplica o tema ANTES de renderizar — evita flash de tela branca -->
@@ -53,6 +68,47 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
         document.documentElement.setAttribute('data-theme', 'dark');
       }
     })();
+
+    /**
+     * Cor de série de gráfico a partir do token do design system
+     * (--chart-1, --chart-ordinal-3...). Os gráficos são desenhados em
+     * canvas, então não herdam CSS: sem ler o token aqui, cada tela
+     * acabava com um hexadecimal solto no meio do JavaScript — foi assim
+     * que verde e vermelho entraram numa paleta que é toda azul.
+     * Definida no <head> porque as telas montam os gráficos antes do rodapé.
+     */
+    window.corDoTema = function (token) {
+      return getComputedStyle(document.documentElement).getPropertyValue(token).trim();
+    };
+
+    /** Mistura a cor com branco — a ponta clara do gradiente. */
+    function clarearCor(hex, fator) {
+      var m = /^#?([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex.trim());
+      if (!m) return hex;
+
+      var canais = [1, 2, 3].map(function (i) {
+        var c = parseInt(m[i], 16);
+        return Math.round(c + (255 - c) * fator);
+      });
+
+      return 'rgb(' + canais.join(',') + ')';
+    }
+
+    /**
+     * Gradiente vertical de uma série, do tom claro ao tom cheio — o mesmo
+     * desenho do gráfico de faturamento, agora usado por todos. Precisa ser
+     * um CanvasGradient (o canvas não entende linear-gradient do CSS), então
+     * é montado aqui a partir do mesmo token que o CSS usa.
+     */
+    window.gradienteDoTema = function (ctx, token, altura) {
+      var base = window.corDoTema(token);
+      var gradiente = ctx.createLinearGradient(0, 0, 0, altura || 320);
+
+      gradiente.addColorStop(0, clarearCor(base, 0.45));
+      gradiente.addColorStop(1, base);
+
+      return gradiente;
+    };
   </script>
 </head>
 
@@ -62,184 +118,13 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
     <!-- ══ SIDEBAR ══ -->
     <aside class="sidebar">
       <div class="sidebar__brand">
-        <a href="./home">
+        <a href="<?= $ehTecnico ? './painelTecnico' : './home' ?>">
           <img class="sidebar__logo-full" src="./assets/img/mecanize.ico" alt="Mecanize">
           <img class="sidebar__logo-icon" src="./assets/img/m-logo-branco.png" alt="M">
         </a>
       </div>
 
-      <ul class="sidebar__nav">
-        <li class="mob-nav <?= menuAtivo('home', $rotaAtual) ?>">
-          <a href="./home">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
-              <polyline points="9 22 9 12 15 12 15 22" />
-            </svg>
-            <span class="label">Início</span>
-          </a>
-        </li>
-
-        <li class="<?= menuAtivo('listClientes', $rotaAtual) ?>">
-          <a href="./listClientes">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
-              <circle cx="9" cy="7" r="4" />
-              <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
-              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-            </svg>
-            <span class="label">Clientes</span>
-          </a>
-        </li>
-        <li class="<?= menuAtivo('listVeiculos', $rotaAtual) ?>">
-          <a href="./listVeiculos">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M7 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0" />
-              <path d="M17 17m-2 0a2 2 0 1 0 4 0a2 2 0 1 0-4 0" />
-              <path d="M5 17H3V13L6 7h9l3 5h1a1 1 0 0 1 1 1v4h-2" />
-              <path d="M6 13h12" />
-            </svg>
-            <span class="label">Veículos</span>
-          </a>
-        </li>
-
-        <li class="<?= menuAtivo('listOrcamentos', $rotaAtual) ?>">
-          <a href="./listOrcamentos">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M4 2h10l4 4v14a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z" />
-              <text x="9" y="14" font-size="7" font-weight="700" text-anchor="middle" stroke="none" fill="currentColor" font-family="sans-serif">R$</text>
-              <line x1="5" y1="18" x2="13" y2="18" />
-              <line x1="5" y1="21" x2="10" y2="21" />
-            </svg>
-            <span class="label">Orçamentos</span>
-          </a>
-        </li>
-        <li class="<?= menuAtivo('listOrdemServico', $rotaAtual) ?>">
-          <a href="./listOrdemServico">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="2" width="14" height="18" rx="2" />
-              <path d="M7 2v2a1 1 0 0 0 1 1h4a1 1 0 0 0 1-1V2" />
-              <path d="M6 12l3 3 5-6" />
-            </svg>
-            <span class="label">Ordens de Serviço</span>
-          </a>
-        </li>
-
-        <li class="<?= menuAtivo('listProduto', $rotaAtual) ?>">
-          <a href="./listProduto">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
-              <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
-              <line x1="12" y1="22.08" x2="12" y2="12" />
-            </svg>
-            <span class="label">Produtos</span>
-          </a>
-        </li>
-        <li class="<?= menuAtivo('listMovimentacaoEstoque', $rotaAtual) ?>">
-          <a href="./listMovimentacaoEstoque">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="5" width="15" height="13" rx="1" />
-              <line x1="2" y1="10" x2="17" y2="10" />
-              <line x1="2" y1="14" x2="17" y2="14" />
-              <path d="M19 2l3 3-3 3" />
-              <line x1="22" y1="5" x2="17" y2="5" />
-            </svg>
-            <span class="label">Movimentações</span>
-          </a>
-        </li>
-
-        <li class="<?= menuAtivo('listAgendamentos', $rotaAtual) ?>">
-          <a href="./listAgendamentos">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2" />
-              <line x1="16" y1="2" x2="16" y2="6" />
-              <line x1="8" y1="2" x2="8" y2="6" />
-              <line x1="3" y1="10" x2="21" y2="10" />
-            </svg>
-            <span class="label">Agenda</span>
-          </a>
-        </li>
-
-        <li class="<?= menuAtivo('listCaixa', $rotaAtual) ?>">
-          <a href="./listCaixa">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="7" width="20" height="14" rx="2" />
-              <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
-              <circle cx="12" cy="14" r="2" />
-            </svg>
-            <span class="label">Caixa</span>
-          </a>
-        </li>
-
-        <li>
-          <a href="./painel" target="_blank" rel="noopener">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="2" y="3" width="20" height="14" rx="2" />
-              <line x1="8" y1="21" x2="16" y2="21" />
-              <line x1="12" y1="17" x2="12" y2="21" />
-            </svg>
-            <span class="label">Painel (TV)</span>
-          </a>
-        </li>
-
-        <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN'): ?>
-          <li class="mob-nav <?= menuAtivo('listRel', $rotaAtual) ?>">
-            <a href="./listRel">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <line x1="3" y1="20" x2="21" y2="20" />
-                <rect x="5" y="14" width="3" height="6" rx="1" />
-                <rect x="10" y="9" width="3" height="11" rx="1" />
-                <rect x="15" y="12" width="3" height="8" rx="1" />
-                <path d="M5 15 Q10 6 18 10" stroke-dasharray="2 2" fill="none" />
-              </svg>
-              <span class="label">Relatórios</span>
-            </a>
-          </li>
-
-          <li class="mob-nav <?= menuAtivo('relatorioCaixa', $rotaAtual) ?>">
-            <a href="./relatorioCaixa">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 1v22" />
-                <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
-              </svg>
-              <span class="label">Relatório de Caixa</span>
-            </a>
-          </li>
-
-        <?php endif; ?>
-
-
-        <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN'): ?>
-          <li class="<?= menuAtivo('listUsuarios', $rotaAtual) ?>">
-            <a href="./listUsuarios">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="8" cy="7" r="4" />
-                <path d="M2 21c0-4 2.7-7 6-7" />
-                <circle cx="17" cy="17" r="3" />
-                <line x1="17" y1="13" x2="17" y2="14" />
-                <line x1="17" y1="20" x2="17" y2="21" />
-                <line x1="13" y1="17" x2="14" y2="17" />
-                <line x1="20" y1="17" x2="21" y2="17" />
-              </svg>
-              <span class="label">Usuários</span>
-            </a>
-          </li>
-        <?php endif; ?>
-        <?php if (isset($_SESSION['user_tipo']) && $_SESSION['user_tipo'] === 'ADMIN'): ?>
-          <li class="mob-nav <?= menuAtivo('listDocumentos', $rotaAtual) ?>">
-            <a href="./listDocumentos">
-              <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M9 3h6" />
-                <path d="M9 3a2 2 0 0 0-2 2v1h10V5a2 2 0 0 0-2-2" />
-                <rect x="5" y="6" width="14" height="15" rx="2" />
-                <path d="M8 11h8" />
-                <path d="M8 15h5" />
-                <path d="M16.5 14.5c0-.8-.7-1.5-1.5-1.5s-1.5.7-1.5 1.5.7 1.5 1.5 1.5 1.5.7 1.5 1.5-.7 1.5-1.5 1.5-1.5-.7-1.5-1.5" />
-              </svg>
-              <span class="label">Documentos</span>
-            </a>
-          </li>
-        <?php endif; ?>
-      </ul>
+      <?php require __DIR__ . '/_sidebarMenu.php'; ?>
 
       <button class="sidebar__toggle-floating" id="sidebarCollapseBtn" aria-label="Recolher menu">
         <svg class="sidebar__collapse-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -346,10 +231,12 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
               <small>Cadastrar veículo</small>
             </a>
 
+            <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
             <a href="./saveProduto">
               <span>Produto</span>
               <small>Cadastrar item no estoque</small>
             </a>
+            <?php endif; ?>
           </div>
         </details>
 
@@ -376,13 +263,33 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
         </button>
 
         <div class="topbar__right">
-          <?php if (!empty($caixaStatus)): ?>
+          <?php
+          // O sino: avisos do próprio usuário (solicitação de peça, peça que chegou…).
+          $naoLidas = 0;
+          try {
+              require_once __DIR__ . '/../../models/Notificacao.php';
+              $naoLidas = (new Notificacao())->contarNaoLidas((int) ($_SESSION['user_id_usuario'] ?? 0));
+          } catch (\Throwable $e) {
+              error_log('[sino] ' . $e->getMessage());
+          }
+          ?>
+          <a href="./listNotificacoes" class="topbar-bell" title="<?= $naoLidas ? $naoLidas . ' aviso(s) não lido(s)' : 'Avisos' ?>" aria-label="Avisos"
+            style="position:relative;display:inline-flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:var(--radius-sm);border:1.5px solid var(--color-border);color:var(--color-text-muted);text-decoration:none;">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+              <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+            </svg>
+            <?php if ($naoLidas > 0): ?>
+              <span style="position:absolute;top:-6px;right:-6px;min-width:18px;height:18px;padding:0 5px;border-radius:9px;background:var(--color-danger,#DC2626);color:#fff;font-size:10px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;"><?= $naoLidas > 99 ? '99+' : (int) $naoLidas ?></span>
+            <?php endif; ?>
+          </a>
+          <?php if ($operaCaixa && !empty($caixaStatus)): ?>
             <a href="./caixaMovimentacoes" title="Caixa aberto por <?= htmlspecialchars($caixaStatus['abertura_nome'] ?? '') ?> — clique para ver os lançamentos"
               style="display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--color-success,#16A34A);background:var(--color-success-soft);color:var(--color-success,#16A34A);text-decoration:none;font-size:12px;font-weight:600;white-space:nowrap;">
               <span style="width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;"></span>
               <span>Caixa aberto · <?= htmlspecialchars($caixaStatus['abertura_nome'] ?? '') ?></span>
             </a>
-          <?php else: ?>
+          <?php elseif ($operaCaixa): ?>
             <a href="./abrirCaixa" title="Abrir caixa"
               style="display:inline-flex;align-items:center;gap:8px;height:34px;padding:0 12px;border-radius:var(--radius-sm);border:1.5px solid var(--color-border);background:transparent;color:var(--color-text-muted);text-decoration:none;font-size:12px;font-weight:600;white-space:nowrap;">
               <span style="width:8px;height:8px;border-radius:50%;background:currentColor;flex-shrink:0;"></span>
@@ -410,3 +317,4 @@ if (isset($_SESSION['logged']) && $_SESSION['logged'] === true) {
 
       <!-- CONTEÚDO DA PÁGINA -->
       <div class="content">
+        <?php require __DIR__ . '/_docImpressoCabecalho.php'; ?>

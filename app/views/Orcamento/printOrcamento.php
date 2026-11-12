@@ -221,16 +221,9 @@ $servicos = array_filter($itens, fn($i) => ($i['tipo'] ?? '') === 'servico');
         }
 
         .doc-head__logo {
-            width: 42px;
-            height: 42px;
-            border-radius: var(--radius-md);
-            background: var(--color-primary-gradient);
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            color: #fff;
-            font-weight: 800;
-            font-size: 15px;
+            height: 30px;
+            width: auto;
+            display: block;
             flex-shrink: 0;
         }
 
@@ -530,7 +523,55 @@ $servicos = array_filter($itens, fn($i) => ($i['tipo'] ?? '') === 'servico');
             }
 
             @page {
-                margin: 14mm;
+                size: A4 portrait;
+                margin: 14mm 13mm 16mm;
+            }
+
+            /* ── Controle de quebra ──
+               Sem estas regras o documento saía com linha de item partida ao
+               meio na virada da página, título de seção sozinho no pé da
+               folha e, a partir da segunda página, uma tabela de itens sem
+               nome de coluna. */
+            thead {
+                display: table-header-group;
+            }
+
+            tfoot {
+                display: table-footer-group;
+            }
+
+            tr {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            .section-title,
+            h1,
+            h2,
+            h3 {
+                break-after: avoid;
+                page-break-after: avoid;
+                break-inside: avoid;
+            }
+
+            /* Blocos de fechamento do documento não podem rachar: totais
+               separados do total geral, ou assinatura sozinha numa folha,
+               descaracterizam o documento. */
+            .totais,
+            .final,
+            .obs-box,
+            .box,
+            .assinaturas,
+            .doc-footer,
+            .meta-line {
+                break-inside: avoid;
+                page-break-inside: avoid;
+            }
+
+            p,
+            td {
+                orphans: 3;
+                widows: 3;
             }
         }
     </style>
@@ -585,14 +626,28 @@ $servicos = array_filter($itens, fn($i) => ($i['tipo'] ?? '') === 'servico');
 
         <div class="doc-head">
             <div class="doc-head__brand">
-                <div class="doc-head__logo">M</div>
+                <img class="doc-head__logo" src="./assets/img/logo-mecanize.png" alt="<?= htmlspecialchars(EMPRESA_NOME) ?>">
                 <div>
-                    <h1 data-editable><?= htmlspecialchars(defined('EMPRESA_NOME') ? EMPRESA_NOME : 'Sua Oficina') ?></h1>
-                    <div class="empresa-info" data-editable>
-                        <?= htmlspecialchars(defined('EMPRESA_ENDERECO') ? EMPRESA_ENDERECO : '') ?><br>
-                        <?= htmlspecialchars(defined('EMPRESA_TELEFONE') ? EMPRESA_TELEFONE : '') ?>
-                        <?= defined('EMPRESA_CNPJ') ? ' · CNPJ: ' . htmlspecialchars(EMPRESA_CNPJ) : '' ?>
-                    </div>
+                    <?php if (EMPRESA_NOME !== 'Mecanize'): ?>
+                        <!-- Oficina com nome próprio continua identificada por escrito. -->
+                        <h1 data-editable><?= htmlspecialchars(EMPRESA_NOME) ?></h1>
+                    <?php endif; ?>
+                    <?php
+                    // Só entra no timbre o que a oficina preencheu no .env: sem
+                    // o filtro, o documento saía com "· CNPJ:" solto e um
+                    // espaço em branco no lugar do endereço.
+                    $contatoEmpresa = array_filter([
+                        EMPRESA_ENDERECO,
+                        EMPRESA_TELEFONE,
+                        EMPRESA_EMAIL,
+                        EMPRESA_CNPJ !== '' ? 'CNPJ ' . EMPRESA_CNPJ : '',
+                    ]);
+                    ?>
+                    <?php if ($contatoEmpresa): ?>
+                        <div class="empresa-info" data-editable>
+                            <?= htmlspecialchars(implode(' · ', $contatoEmpresa)) ?>
+                        </div>
+                    <?php endif; ?>
                 </div>
             </div>
             <div class="doc-head__ref">

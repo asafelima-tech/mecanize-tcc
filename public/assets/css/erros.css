@@ -1,0 +1,261 @@
+/* =========================================================
+   MECANIZE — Telas de erro (erros.css)
+
+   Uma única tela para TODOS os erros (views/Site/erros): fundo claro, logo
+   no canto, código HTTP em destaque, título, uma linha de explicação, botão
+   principal preto e um link secundário. Só o texto muda de um erro para outro.
+
+   A página embute este arquivo (não pode depender de um <link> se o servidor
+   estiver com problema). No layout normal só o bloco ALERTA INLINE, no fim,
+   é usado.
+   ========================================================= */
+
+.erro-pagina {
+  margin: 0;
+  min-height: 100vh;
+  background: #FCFBF9;
+  color: #0B0B0B;
+  font-family: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+.erro-pagina *,
+.erro-pagina *::before,
+.erro-pagina *::after { box-sizing: border-box; }
+
+/* granulado quase imperceptível, como no modelo */
+.erro-pagina::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  opacity: .022;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='2' stitchTiles='stitch'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 .9 0'/></filter><rect width='100%' height='100%' filter='url(%23n)'/></svg>");
+}
+
+/* A logo oficial é um JPG de fundo branco: "multiply" apaga o branco sobre o fundo. */
+.erro-logo {
+  position: absolute;
+  z-index: 1;
+  top: 50px;
+  left: 61px;
+  width: 238px;
+  height: auto;
+  mix-blend-mode: multiply;
+}
+
+.erro-logo-texto {
+  position: absolute;
+  z-index: 1;
+  top: 62px;
+  left: 67px;
+  font-size: 34px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
+
+.erro-centro {
+  position: relative;
+  z-index: 1;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 0 24px;
+  text-align: center;
+}
+
+.erro-codigo {
+  margin: 0 0 9px;
+  font-size: 175px;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: -0.04em;
+  transform: translateX(-8px);
+}
+
+.erro-titulo {
+  margin: 0 0 26px;
+  font-size: 56px;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.025em;
+}
+
+.erro-resumo {
+  margin: 0 0 51px;
+  max-width: 760px;
+  font-size: 23px;
+  font-weight: 400;
+  line-height: 1.4;
+  color: #6F6F6F;
+}
+
+.erro-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  height: 63px;
+  padding: 0 39px;
+  border: 0;
+  border-radius: 8px;
+  background: #0B0B0B;
+  color: #fff;
+  font: inherit;
+  font-size: 19.5px;
+  font-weight: 500;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background .15s ease;
+}
+
+.erro-btn:hover { background: #2A2A2A; }
+
+.erro-btn svg { flex-shrink: 0; }
+
+.erro-link {
+  margin: 38px 0 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-size: 17px;
+  line-height: 1.4;
+  color: #6F6F6F;
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 5px;
+  cursor: pointer;
+}
+
+.erro-link:hover { color: #0B0B0B; }
+
+/* sem botão principal (cliente com link vencido), o link não precisa do respiro */
+.erro-resumo + .erro-link { margin-top: 0; }
+
+.erro-btn:focus-visible,
+.erro-link:focus-visible {
+  outline: 2px solid #0B0B0B;
+  outline-offset: 4px;
+}
+
+/* "Tentar novamente": o giro só aparece enquanto recarrega */
+.erro-btn__spin { display: none; }
+
+.erro-btn[data-carregando="1"] { pointer-events: none; opacity: .85; }
+
+.erro-btn[data-carregando="1"] .erro-btn__spin {
+  display: inline-block;
+  width: 18px;
+  height: 18px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: erro-girar .6s linear infinite;
+}
+
+@keyframes erro-girar { to { transform: rotate(360deg); } }
+
+/* Só na falha interna: o código que liga a tela à linha do log */
+.erro-ocorrencia {
+  margin: 30px 0 0;
+  font-size: 13px;
+  color: #9B9B9B;
+}
+
+.erro-ocorrencia span {
+  margin-left: 4px;
+  font-family: Consolas, "SFMono-Regular", "Liberation Mono", monospace;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  user-select: all;
+}
+
+/* ── Celular ── */
+@media (max-width: 720px) {
+  .erro-logo { top: 24px; left: 22px; width: 150px; }
+  .erro-logo-texto { top: 26px; left: 22px; font-size: 24px; }
+  .erro-centro { padding: 88px 22px 40px; }
+  .erro-codigo { font-size: 112px; margin-bottom: 8px; }
+  .erro-titulo { font-size: 32px; margin-bottom: 14px; }
+  .erro-resumo { font-size: 17px; margin-bottom: 34px; }
+  .erro-btn { height: 54px; padding: 0 30px; font-size: 17px; gap: 14px; }
+  .erro-link { margin-top: 26px; font-size: 16px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erro-btn { transition: none; }
+}
+
+/* =========================================================
+   ALERTA INLINE — erro de validação e retorno de ação
+
+   Validação NÃO vira tela cheia de propósito: tirar a pessoa do formulário
+   pra mostrar "o campo X é obrigatório" faria perder tudo que já tinha sido
+   digitado. O erro fica ao lado do que precisa ser corrigido, com o mesmo
+   vocabulário visual das telas de erro — mesma paleta, mesmo raio, mesma
+   tipografia.
+   ========================================================= */
+.alerta {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 12px 15px;
+  border-radius: var(--radius-md, 8px);
+  border: 1px solid;
+  font-size: 13px;
+  line-height: 1.55;
+  margin-bottom: 16px;
+  animation: erro-entrada .26s cubic-bezier(.22, 1, .36, 1) both;
+}
+
+.alerta__icone {
+  flex-shrink: 0;
+  width: 16px;
+  height: 16px;
+  margin-top: 1px;
+}
+
+.alerta__titulo {
+  font-weight: 700;
+  display: block;
+  margin-bottom: 2px;
+}
+
+.alerta--erro {
+  background: var(--color-danger-soft, #FEE2E2);
+  border-color: #FECACA;
+  color: #991B1B;
+}
+
+.alerta--aviso {
+  background: var(--color-warning-soft, #FEF3C7);
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+.alerta--sucesso {
+  background: var(--color-success-soft, #EBF0FF);
+  border-color: #BBF7D0;
+  color: #166534;
+}
+
+.alerta--info {
+  background: var(--color-info-soft, #DBEAFE);
+  border-color: #BFDBFE;
+  color: #1E40AF;
+}
+
+/* No escuro, texto fixo escuro sobre fundo translúcido some — a cor passa a
+   vir do próprio token de estado. */
+:root[data-theme="dark"] .alerta { border-color: var(--color-border-strong, #30363D); }
+:root[data-theme="dark"] .alerta--erro    { color: var(--color-danger, #F85149); }
+:root[data-theme="dark"] .alerta--aviso   { color: var(--color-warning, #D29922); }
+:root[data-theme="dark"] .alerta--sucesso { color: var(--color-success, #4D94FF); }
+:root[data-theme="dark"] .alerta--info    { color: var(--color-info, #58A6FF); }
+

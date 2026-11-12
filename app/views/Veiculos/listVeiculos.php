@@ -348,7 +348,12 @@ function renderPlacaSvg(string $placaTxt, bool $isMercosul, $uid): string
                                         <?php endif; ?>
                                     </div>
                                     <div class="user-cell__name">
-                                        <?= htmlspecialchars(trim(($veiculo['marca_nome'] ?? '') . ' ' . ($veiculo['modelo_nome'] ?? ''))) ?: '—' ?>
+                                        <?php if (($veiculo['marca_nome'] ?? '') === 'Não informado'): ?>
+                                            <span class="badge badge--warning" title="Veículo registrado no atendimento rápido: falta informar marca e modelo">Dados incompletos</span>
+                                            <a class="fs-12" href="./editVeiculo?id=<?= (int) ($veiculo['id_veiculo'] ?? 0) ?>">Completar</a>
+                                        <?php else: ?>
+                                            <?= htmlspecialchars(trim(($veiculo['marca_nome'] ?? '') . ' ' . ($veiculo['modelo_nome'] ?? ''))) ?: '—' ?>
+                                        <?php endif; ?>
                                     </div>
                                 </div>
                             </td>
@@ -397,16 +402,17 @@ function renderPlacaSvg(string $placaTxt, bool $isMercosul, $uid): string
                                         </svg>
                                     </a>
                                     <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
-                                    <a
-                                        href="./deleteVeiculo&id=<?= $veiculo['id_veiculo'] ?>"
-                                        class="row-action-btn danger"
-                                        title="Excluir"
-                                        onclick="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
-                                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                                            <polyline points="3 6 5 6 21 6" />
-                                            <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
-                                        </svg>
-                                    </a>
+                                    <form method="post" action="./deleteVeiculo" style="display:inline;"
+                                        onsubmit="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
+                                        <?= csrf_field() ?>
+                                        <input type="hidden" name="id" value="<?= (int) $veiculo['id_veiculo'] ?>">
+                                        <button type="submit" class="row-action-btn danger" title="Excluir">
+                                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                                                <polyline points="3 6 5 6 21 6" />
+                                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                                            </svg>
+                                        </button>
+                                    </form>
                                     <?php endif; ?>
                                 </div>
                             </td>

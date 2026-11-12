@@ -29,7 +29,7 @@ $paginaAtual     = $paginaAtual     ?? 1;
 </div>
 
 <!-- ── Stat Cards ── -->
-<section class="stat-grid" style="grid-template-columns:repeat(3,1fr);">
+<section class="stat-grid">
 
     <div class="stat-card">
         <div class="stat-card__head">

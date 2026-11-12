@@ -5,56 +5,69 @@ if (session_status() === PHP_SESSION_NONE) {
 // Variáveis esperadas:
 // $mensagem string — exibida após o envio (sucesso genérico, POST)
 // $error    string — erro inesperado (opcional)
+
+ob_start();
 ?>
 
-<section class="card" style="max-width:420px;margin:60px auto;">
-    <div class="card__body" style="padding:28px;">
-        <h1 style="font-size:20px;margin:0 0 8px;">Recuperar senha</h1>
-        <p style="font-size:13px;color:var(--color-text-muted);margin:0 0 20px;">
-            Informe o e-mail cadastrado para receber um link de redefinição de senha.
-        </p>
+<?php /* No estado final o título já é o recado; repetir a instrução acima do
+         alerta só empilharia duas frases dizendo a mesma coisa. */ ?>
+<h1 class="auth-titulo"><?= !empty($mensagem) ? 'Verifique seu e-mail' : 'Recuperar senha' ?></h1>
 
-        <?php if (!empty($mensagem)): ?>
-            <div style="
-                background: var(--color-success-soft);
-                border-radius: var(--radius-md);
-                padding: 12px 16px;
-                margin-bottom: 20px;
-                font-size: 13px;
-            ">
-                <?= htmlspecialchars($mensagem) ?>
-            </div>
-        <?php endif; ?>
+<?php if (!empty($mensagem)): ?>
 
-        <?php if (!empty($error)): ?>
-            <div style="
-                background: var(--color-danger-soft);
-                color: #991B1B;
-                border: 1px solid #FECACA;
-                border-radius: var(--radius-md);
-                padding: 12px 16px;
-                margin-bottom: 20px;
-                font-size: 13px;
-            ">
-                <?= htmlspecialchars($error) ?>
-            </div>
-        <?php endif; ?>
-
-        <?php if (empty($mensagem)): ?>
-            <form action="./recuperar-senha" method="POST">
-                <div class="form-field" style="margin-bottom:18px;">
-                    <label>E-mail</label>
-                    <input type="email" name="email" required placeholder="seu@email.com">
-                </div>
-
-                <button type="submit" class="btn btn--primary" style="width:100%;justify-content:center;">
-                    Enviar link de recuperação
-                </button>
-            </form>
-        <?php endif; ?>
-
-        <div style="margin-top:18px;text-align:center;">
-            <a href="./login" class="login-link">Voltar para o login</a>
-        </div>
+    <div class="auth-alerta auth-alerta--sucesso auth-alerta--solto" role="status">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M22 11.1V12a10 10 0 1 1-5.9-9.1" />
+            <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+        <span><?= htmlspecialchars($mensagem) ?></span>
     </div>
-</section>
+
+<?php else: ?>
+
+    <p class="auth-subtitulo">Informe o e-mail cadastrado para receber um link de redefinição.</p>
+
+    <?php if (!empty($error)): ?>
+        <div class="auth-alerta auth-alerta--erro" role="alert">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10" />
+                <line x1="12" y1="8" x2="12" y2="12" />
+                <line x1="12" y1="16" x2="12.01" y2="16" />
+            </svg>
+            <span><?= htmlspecialchars($error) ?></span>
+        </div>
+    <?php endif; ?>
+
+    <form method="POST" action="./recuperar-senha">
+        <?= csrf_field() ?>
+
+        <div class="auth-campo">
+            <label for="email">E-mail</label>
+            <div class="auth-input">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <rect x="2" y="4" width="20" height="16" rx="2" />
+                    <path d="m22 7-10 6L2 7" />
+                </svg>
+                <input type="email" id="email" name="email" placeholder="seu@email.com" autocomplete="username" required autofocus>
+            </div>
+        </div>
+
+        <button type="submit" class="auth-botao">Enviar link de recuperação</button>
+    </form>
+
+<?php endif; ?>
+
+<div class="auth-volta">
+    <a href="./login">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="19" y1="12" x2="5" y2="12" />
+            <polyline points="12 19 5 12 12 5" />
+        </svg>
+        Voltar para o login
+    </a>
+</div>
+
+<?php
+$authConteudo = ob_get_clean();
+$authTitulo   = 'Recuperar senha';
+require __DIR__ . '/../layout/auth.php';

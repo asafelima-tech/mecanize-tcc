@@ -5,6 +5,10 @@ if (session_status() === PHP_SESSION_NONE) {
 
 $coresCarro   = require __DIR__ . '/_coresCarro.php';
 $combustiveis = require __DIR__ . '/_combustiveis.php';
+
+// "Buscar dados pela placa" só aparece quando há um serviço de consulta configurado (Integrações).
+require_once __DIR__ . '/../../core/ConsultaVeicular.php';
+$consultaPlacaAtiva = (new ConsultaVeicular())->configurada();
 ?>
 
 <!-- MODAL OVERLAY -->
@@ -77,7 +81,7 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                         Identificação
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Cliente <span style="color:var(--color-danger)">*</span></label>
@@ -133,7 +137,7 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                         Dados do Veículo
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-4">
 
                         <!-- PLACA (agora começa com upload) -->
                         <div class="form-field">
@@ -151,14 +155,14 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                     border-radius: var(--radius-md);
                     padding: 14px 10px;
                     cursor: pointer;
-                    background: var(--color-bg-soft, #F9FAFB);
+                    background: var(--color-bg-soft);
                     transition: border-color .2s, background .2s;
                     text-align: center;
                     min-height: 80px;
                     position: relative;
                 "
                                     onmouseenter="this.style.borderColor='var(--color-primary)'; this.style.background='var(--color-primary-soft)'"
-                                    onmouseleave="this.style.borderColor='var(--color-border, #D1D5DB)'; this.style.background='var(--color-bg-soft, #F9FAFB)'">
+                                    onmouseleave="this.style.borderColor='var(--color-border, #D1D5DB)'; this.style.background='var(--color-bg-soft)'">
 
                                     <svg id="iconeFotoPlaca" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
                                         viewBox="0 0 24 24" stroke="var(--color-primary)" stroke-width="1.6">
@@ -225,10 +229,12 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                                         <path stroke-linecap="round" stroke-linejoin="round"
                                             d="M9 3H5a2 2 0 00-2 2v4m6-6h10a2 2 0 012 2v4M9 3v18m0 0h10a2 2 0 002-2V9M9 21H5a2 2 0 01-2-2V9m0 0h18" />
                                     </svg>
-                                    Ler placa pela foto
+                                    Ler a foto de novo
                                 </button>
 
                                 <div id="statusLeituraPlaca" style="font-size:11px; color:var(--color-text-muted); margin-top:4px;"></div>
+                                <!-- Resultado da leitura: sugestão para conferir (placa-ocr.js) -->
+                                <div id="painelLeituraPlaca" style="margin-top:8px;"></div>
                             </div>
 
                             <!-- Entrada manual (toggle) -->
@@ -257,6 +263,13 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
                                     </span>
                                 </div>
                             </div>
+
+                            <?php if ($consultaPlacaAtiva): ?>
+                                <div style="margin-top:8px;">
+                                    <button type="button" id="btnConsultarPlaca" class="btn btn--ghost btn--sm" onclick="consultarDadosPelaPlaca()" style="width:100%; min-height:36px;">Buscar dados pela placa</button>
+                                    <div id="painelConsultaVeiculo" style="font-size:12px; line-height:1.45; margin-top:6px;" aria-live="polite"></div>
+                                </div>
+                            <?php endif; ?>
 
                             <input type="hidden" name="placa_normalizada" id="placa_normalizada">
                         </div>
@@ -412,9 +425,11 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
     </div>
 </div>
 
+<script src="./assets/js/foto-upload.js"></script>
+<script src="./assets/js/placa-ocr.js"></script>
 <script>
-    window.CORES_CARRO = <?= json_encode($coresCarro, JSON_UNESCAPED_UNICODE) ?>;
-    window.COMBUSTIVEIS = <?= json_encode($combustiveis, JSON_UNESCAPED_UNICODE) ?>;
+    window.CORES_CARRO = <?= json_para_script($coresCarro) ?>;
+    window.COMBUSTIVEIS = <?= json_para_script($combustiveis) ?>;
 
     // Reconstrói o <select> de combustível mostrando só os tipos permitidos
     // para o modelo escolhido. Sem restrição (modelo novo/sem regra) → lista completa.
@@ -499,7 +514,7 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
             return;
         }
 
-        fetch('/mecanize/public/?url=modelosPorMarca&marca_id=' + encodeURIComponent(marcaId))
+        fetch('./modelosPorMarca?marca_id=' + encodeURIComponent(marcaId))
             .then(response => response.text())
             .then(texto => {
                 let data;
@@ -556,74 +571,132 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
         }
     });
 
+    // ── Buscar dados pela placa ─────────────────────────────────────────────
+    // Preenche marca, modelo, ano, cor e combustível SÓ com o que o serviço contratado informou e que casa
+    // com o cadastro do sistema. O resto fica para a pessoa preencher — e a tela diz o que ficou de fora.
+    function definirSelect(id, valor) {
+        const s = document.getElementById(id);
+        if (!s) return;
+        if (s.tomselect) s.tomselect.setValue(String(valor), true); else s.value = String(valor);
+        s.dispatchEvent(new Event('change'));
+    }
+
+    function esperarModelos() {
+        return new Promise(function (resolve) {
+            const inicio = Date.now();
+            (function olhar() {
+                const sel = document.getElementById('modelo_id');
+                const pronto = sel.options.length > 1 && sel.options[0].textContent.indexOf('Carregando') === -1;
+                if (pronto || Date.now() - inicio > 4000) resolve(); else setTimeout(olhar, 80);
+            })();
+        });
+    }
+
+    async function consultarDadosPelaPlaca() {
+        const painel = document.getElementById('painelConsultaVeiculo');
+        const botao = document.getElementById('btnConsultarPlaca');
+        const placa = normalizarPlaca(document.getElementById('placa').value);
+
+        function mostrar(linhas, erro) {
+            painel.textContent = '';
+            linhas.forEach(function (l) {
+                const d = document.createElement('div');
+                d.textContent = l;
+                if (erro) { d.style.color = 'var(--color-danger)'; d.style.fontWeight = '600'; }
+                painel.appendChild(d);
+            });
+        }
+
+        if (!PlacaOcr.formato(placa)) {
+            mostrar(['Digite uma placa válida (ABC1D23 ou ABC-1234) para consultar.'], true);
+            return;
+        }
+
+        botao.disabled = true;
+        botao.textContent = 'Consultando…';
+        mostrar(['Consultando o serviço…']);
+
+        let r;
+        try {
+            const dados = new FormData();
+            dados.append('placa', placa);
+            const resp = await fetch('./consultarPlacaVeiculo', { method: 'POST', body: dados, credentials: 'same-origin' });
+            r = JSON.parse(await resp.text());
+        } catch (e) {
+            r = { ok: false, erro: 'Não foi possível consultar agora. Preencha os dados manualmente.' };
+        }
+
+        botao.disabled = false;
+        botao.textContent = 'Buscar dados pela placa';
+
+        if (!r.ok) {
+            mostrar([r.erro || 'Não foi possível consultar. Preencha os dados manualmente.'], true);
+            return;
+        }
+
+        const d = r.dados || {};
+        const naoAplicados = (r.manuais || []).slice();
+
+        if (d.marca_id) {
+            definirSelect('marca_id', d.marca_id);
+            await esperarModelos();
+            if (d.modelo_id) definirSelect('modelo_id', d.modelo_id);
+        }
+
+        if (d.ano) document.getElementById('ano').value = d.ano;
+
+        if (d.cor) {
+            const c = document.getElementById('corSelect');
+            if (c.tomselect) c.tomselect.setValue(d.cor, true); else c.value = d.cor;
+        }
+
+        if (d.combustivel) {
+            const comb = document.getElementById('combustivelSelect');
+            comb.value = d.combustivel;
+            // o modelo escolhido pode restringir os combustíveis permitidos
+            if (comb.value !== d.combustivel) naoAplicados.push('combustível (o serviço informou "' + d.combustivel + '", mas o modelo escolhido não admite)');
+        }
+
+        const linhas = [];
+        if ((r.preenchidos || []).length) linhas.push('Preenchido pela consulta: ' + r.preenchidos.join(', ') + '. Confira antes de gravar.');
+        if (naoAplicados.length) linhas.push('Preencha você: ' + naoAplicados.join('; ') + '.');
+        mostrar(linhas.length ? linhas : ['O serviço não devolveu dados utilizáveis. Preencha manualmente.']);
+    }
+
+    // Leitura da placa pela foto = SUGESTÃO. O campo só é preenchido depois que a pessoa confirma o que foi
+    // lido (ou digita a placa): ver public/assets/js/placa-ocr.js.
+    const leitorPlaca = PlacaOcr.iniciar({
+        inputFoto: '#fotoPlaca',
+        painel: '#painelLeituraPlaca',
+        rota: './lerPlaca',
+        automatico: false,
+        aoConfirmar: function (placa) {
+            atualizarPlaca(placa);
+            mostrarCampoPlaca(false);
+        },
+        aoDigitar: function () { mostrarCampoPlaca(true); }
+    });
+
+    // Mostra o campo da placa (onde o valor confirmado aparece e onde se digita).
+    function mostrarCampoPlaca(focar) {
+        const area = document.getElementById('entradaManualPlaca');
+        const btn = document.getElementById('btnToggleManual');
+        if (area.style.display === 'none') {
+            area.style.display = 'block';
+            btn.textContent = 'Ocultar entrada manual';
+        }
+        if (focar) document.getElementById('placa').focus();
+    }
+
     function lerPlaca() {
         const input = document.getElementById('fotoPlaca');
-        const campoPlaca = document.getElementById('placa');
-        const campoStatus = document.getElementById('statusLeituraPlaca');
-        const botao = document.getElementById('btnLerPlaca');
-
-        if (!input) {
-            alert('Campo de imagem não encontrado.');
-            return;
-        }
-
-        if (!campoPlaca) {
-            alert('Campo de placa não encontrado.');
-            return;
-        }
 
         if (!input.files || !input.files[0]) {
-            alert('Selecione ou tire uma foto da placa.');
+            document.getElementById('statusLeituraPlaca').textContent = 'Selecione ou tire uma foto da placa.';
             return;
         }
 
-        const formData = new FormData();
-        formData.append('imagem', input.files[0]);
-
-        campoStatus.textContent = 'Enviando imagem e lendo placa...';
-        botao.disabled = true;
-        botao.textContent = 'Lendo...';
-
-        fetch('./lerPlaca', {
-                method: 'POST',
-                body: formData
-            })
-            .then(async response => {
-                const texto = await response.text();
-
-                console.log('Resposta bruta do PHP:', texto);
-
-                let data;
-
-                try {
-                    data = JSON.parse(texto);
-                } catch (e) {
-                    campoStatus.textContent = 'Erro: o PHP não retornou JSON válido.';
-                    alert('O PHP não retornou JSON válido. Veja o console do navegador.');
-                    console.error('Resposta recebida:', texto);
-                    return;
-                }
-
-                if (data.sucesso) {
-                    atualizarPlaca(data.placa);
-
-                    campoStatus.textContent = 'Placa reconhecida: ' + normalizarPlaca(data.placa);
-                    alert('Placa reconhecida: ' + normalizarPlaca(data.placa));
-                } else {
-                    campoStatus.textContent = data.erro || 'Não foi possível reconhecer a placa.';
-                    alert(data.erro || 'Não foi possível reconhecer a placa.');
-                    console.log(data);
-                }
-            })
-            .catch(error => {
-                campoStatus.textContent = 'Erro ao conectar com a rota ./lerPlaca.';
-                alert('Erro ao conectar com a rota ./lerPlaca.');
-                console.error(error);
-            })
-            .finally(() => {
-                botao.disabled = false;
-                botao.textContent = 'Ler placa pela foto';
-            });
+        leitorPlaca.processar(input.files[0]);
     }
 
     function atualizarPreviewPlaca(input) {
@@ -657,6 +730,9 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
             document.getElementById('statusLeituraPlaca').textContent = '';
         };
         reader.readAsDataURL(input.files[0]);
+
+        // Um clique a menos no celular: a leitura começa assim que a foto é escolhida.
+        leitorPlaca.processar(input.files[0]);
     }
 
     // Arrastar e soltar a foto da placa direto na área tracejada, como
@@ -673,7 +749,7 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
 
         function estiloParado() {
             dropArea.style.borderColor = 'var(--color-border, #D1D5DB)';
-            dropArea.style.background = 'var(--color-bg-soft, #F9FAFB)';
+            dropArea.style.background = 'var(--color-bg-soft)';
         }
 
         ['dragenter', 'dragover'].forEach(function (evento) {
@@ -725,6 +801,7 @@ $combustiveis = require __DIR__ . '/_combustiveis.php';
         document.getElementById('labelFotoPlaca').style.display = 'flex';
         document.getElementById('btnLerPlaca').style.display = 'none';
         document.getElementById('statusLeituraPlaca').textContent = '';
+        if (typeof leitorPlaca !== 'undefined' && leitorPlaca) leitorPlaca.limpar();
     }
 
     function toggleEntradaManualPlaca() {

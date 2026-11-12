@@ -1,5 +1,9 @@
 <?php
 
+require_once __DIR__ . '/ContaReceber.php';
+
+require_once __DIR__ . '/Relatorio.php';
+
 class Home
 {
     private $conn;
@@ -33,6 +37,10 @@ class Home
 
         return [
             'faturamentoMensal' => $this->faturamentoMensal(),
+            // Faturado não é recebido: o painel mostra os dois, e o que ainda falta entrar.
+            'recebidoMensal'    => $this->recebidoMensal(),
+            'aReceber'          => (new ContaReceber($this->conn))->totais(),
+            'labelsSemana'      => Relatorio::rotulosUltimos7Dias(),
             'graficoOS'         => $this->graficoOSSemana(),
             'graficoReceita'    => $this->graficoReceitaSemana(),
             'orcamentos'        => $this->ultimosOrcamentos(),
@@ -97,6 +105,20 @@ class Home
         WHERE status = 'CONCLUIDA'
         AND MONTH(data_conclusao) = MONTH(CURDATE())
         AND YEAR(data_conclusao) = YEAR(CURDATE())
+    ";
+
+        return (float) $this->conn->query($sql)->fetchColumn();
+    }
+
+    /** Dinheiro que de fato entrou no mês (parcelas de OS baixadas), já descontadas as taxas do meio de pagamento. */
+    private function recebidoMensal(): float
+    {
+        $sql = "
+        SELECT COALESCE(SUM(valor - taxa_valor), 0)
+        FROM ordem_servico_parcelas
+        WHERE pago = 1
+        AND MONTH(data_pagamento) = MONTH(CURDATE())
+        AND YEAR(data_pagamento) = YEAR(CURDATE())
     ";
 
         return (float) $this->conn->query($sql)->fetchColumn();

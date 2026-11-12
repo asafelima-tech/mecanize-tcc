@@ -12,6 +12,8 @@ class VeiculoController extends Controller
 
     public function save()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $veiculo = $this->model('Veiculo');
         $cliente = $this->model('Cliente');
 
@@ -105,8 +107,7 @@ class VeiculoController extends Controller
         $dadosVeiculo = $veiculo->getById($_GET['id']);
 
         if (!$dadosVeiculo) {
-            header('Location: ./listVeiculos');
-            exit;
+            $this->naoEncontrado('Veículo', './listVeiculos');
         }
 
         $dados = [
@@ -168,6 +169,8 @@ class VeiculoController extends Controller
 
     public function edit()
     {
+        $this->requireRole(Permissao::PAPEIS_EQUIPE);
+
         $veiculo = $this->model('Veiculo');
         $cliente = $this->model('Cliente');
 
@@ -230,8 +233,7 @@ class VeiculoController extends Controller
         ];
 
         if (!$dados['veiculo']) {
-            header('Location: ./listVeiculos');
-            exit;
+            $this->naoEncontrado('Veículo', './listVeiculos');
         }
 
         $this->view('Veiculos/editVeiculo', $dados);
@@ -239,17 +241,19 @@ class VeiculoController extends Controller
 
     public function delete()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
-        $id = $_GET['id'] ?? null;
-
-        if (!$id) {
+        // POST em vez de GET: esta exclusão leva junto orçamentos e ordens de
+        // serviço do veículo. Como link, bastava a URL ser carregada de fora
+        // (um <img> numa página qualquer) para apagar tudo isso na sessão de um
+        // ADMIN logado. O gate de CSRF do sistema só cobre POST.
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST' || empty($_POST['id'])) {
             header('Location: ./listVeiculos');
             exit;
         }
 
         $veiculo = $this->model('Veiculo');
-        $veiculo->delete($id);
+        $veiculo->delete((int) $_POST['id']);
 
         header('Location: ./listVeiculos');
         exit;

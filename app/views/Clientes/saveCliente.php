@@ -71,7 +71,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Identificação
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-3">
 
                         <div class="form-field">
                             <label>Tipo de Pessoa <span style="color:var(--color-danger)">*</span></label>
@@ -135,7 +135,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Endereço
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap:14px 18px;">
+                    <div class="form-row-4">
 
                         <div class="form-field">
                             <label>CEP</label>
@@ -224,7 +224,7 @@ if (session_status() === PHP_SESSION_NONE) {
                         Configurações
                     </div>
 
-                    <div style="display:grid; grid-template-columns: 1fr 3fr; gap:14px 18px; align-items:start;">
+                    <div class="form-row-1-3">
 
                         <div class="form-field">
                             <label>Ativo</label>

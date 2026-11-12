@@ -5,12 +5,9 @@
 // $serie       array — seriePeriodo(): [rotulo, entradas, saidas]
 // $lancamentos array — lancamentosPeriodo()
 
-$formaLabel = [
-    'DINHEIRO' => 'Dinheiro',
-    'PIX'      => 'PIX',
-    'CARTAO'   => 'Cartão',
-    'BOLETO'   => 'Boleto',
-];
+// Mapa único em MovimentacaoCaixa: a tela não repete a lista de formas.
+require_once __DIR__ . '/../../models/MovimentacaoCaixa.php';
+$formaLabel = MovimentacaoCaixa::FORMA_LABEL;
 $catSaidaLabel = [
     'PECAS' => 'Peças',
     'BANCO' => 'Retirada para banco',
@@ -88,8 +85,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Total de entradas</div>
-            <div class="stat-card__ico b1">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b1">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="19" x2="12" y2="5" />
                     <polyline points="5 12 12 5 19 12" />
                 </svg>
@@ -102,8 +99,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Total de saídas</div>
-            <div class="stat-card__ico b2">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b2">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="5" x2="12" y2="19" />
                     <polyline points="19 12 12 19 5 12" />
                 </svg>
@@ -116,8 +113,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Resultado do período</div>
-            <div class="stat-card__ico b3">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b3">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <line x1="12" y1="1" x2="12" y2="23" />
                     <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6" />
                 </svg>
@@ -132,8 +129,8 @@ $abas = [
     <div class="stat-card">
         <div class="stat-card__head">
             <div class="stat-card__label">Sessões de caixa</div>
-            <div class="stat-card__ico b4">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <div class="stat-card__icon b4">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                     <rect x="2" y="7" width="20" height="14" rx="2" />
                     <path d="M16 7V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v2" />
                 </svg>
@@ -151,8 +148,8 @@ $abas = [
             Evolução <?= ($periodo['granularidade'] ?? 'dia') === 'mes' ? 'mensal' : 'diária' ?>
         </div>
         <div class="chart-legend">
-            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#16A34A;vertical-align:middle;"></i> Entradas</span>
-            <span style="margin-left:12px;"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:#DC2626;vertical-align:middle;"></i> Saídas</span>
+            <span><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--chart-1);vertical-align:middle;"></i> Entradas</span>
+            <span style="margin-left:12px;"><i style="display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--chart-2);vertical-align:middle;"></i> Saídas</span>
         </div>
     </div>
     <div class="card__body">
@@ -189,7 +186,7 @@ $abas = [
                             </span>
                         </div>
                         <div class="bar">
-                            <span style="width:<?= $pct ?>%;background:var(--color-success, #16A34A);"></span>
+                            <span style="width:<?= $pct ?>%;--barra-cor:var(--chart-1);"></span>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -219,7 +216,7 @@ $abas = [
                             </span>
                         </div>
                         <div class="bar">
-                            <span style="width:<?= $pct ?>%;background:var(--color-danger, #DC2626);"></span>
+                            <span style="width:<?= $pct ?>%;--barra-cor:var(--chart-2);"></span>
                         </div>
                     </div>
                 <?php endforeach; ?>
@@ -299,7 +296,7 @@ $abas = [
     .periodo-tabs {
         display: inline-flex;
         gap: 4px;
-        background: var(--color-bg-subtle, #F1F5F9);
+        background: var(--color-bg-subtle);
         border-radius: var(--radius-md);
         padding: 4px;
     }
@@ -350,8 +347,8 @@ $abas = [
 <?php if (!empty($serie)): ?>
 <script>
     (function () {
-        const serie = <?= json_encode($serie, JSON_UNESCAPED_UNICODE) ?>;
-        const granularidade = <?= json_encode($periodo['granularidade'] ?? 'dia') ?>;
+        const serie = <?= json_para_script($serie) ?>;
+        const granularidade = <?= json_para_script($periodo['granularidade'] ?? 'dia') ?>;
 
         // 'YYYY-MM-DD' → '05/03' | 'YYYY-MM' → 'mar'
         const meses = ['jan', 'fev', 'mar', 'abr', 'mai', 'jun', 'jul', 'ago', 'set', 'out', 'nov', 'dez'];
@@ -365,6 +362,9 @@ $abas = [
         const ctx = document.getElementById('caixaChart');
         if (!ctx || typeof Chart === 'undefined') return;
 
+        // O gradiente é desenhado no contexto do canvas, não no elemento.
+        const pincel = ctx.getContext('2d');
+
         new Chart(ctx, {
             type: 'bar',
             data: {
@@ -373,13 +373,19 @@ $abas = [
                     {
                         label: 'Entradas',
                         data: serie.map(p => p.entradas),
-                        backgroundColor: '#16A34A',
+                        // tokensCor: o footer relê estas variáveis quando o
+                        // tema muda — o azul do modo claro some no fundo escuro.
+                        tokensCor: ['--chart-1'],
+                        gradiente: true,
+                        backgroundColor: gradienteDoTema(pincel, '--chart-1', 300),
                         borderRadius: 4,
                     },
                     {
                         label: 'Saídas',
                         data: serie.map(p => p.saidas),
-                        backgroundColor: '#DC2626',
+                        tokensCor: ['--chart-2'],
+                        gradiente: true,
+                        backgroundColor: gradienteDoTema(pincel, '--chart-2', 300),
                         borderRadius: 4,
                     }
                 ]

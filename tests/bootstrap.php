@@ -12,7 +12,7 @@
 require_once __DIR__ . '/../app/core/Env.php';
 Env::carregar(__DIR__ . '/../.env.testing');
 
-if (getenv('DB_NAME') !== 'mecanize_db_test') {
+if (env('DB_NAME') !== 'mecanize_db_test') {
     fwrite(STDERR, "ABORTADO: DB_NAME não é 'mecanize_db_test' — os testes só podem rodar contra o banco de teste, nunca produção.\n");
     exit(1);
 }
@@ -20,6 +20,7 @@ if (getenv('DB_NAME') !== 'mecanize_db_test') {
 require_once __DIR__ . '/../app/core/Database.php';
 require_once __DIR__ . '/../app/core/Validator.php';
 require_once __DIR__ . '/../app/core/Csrf.php';
+require_once __DIR__ . '/Fixtures.php';
 
 // Precisa iniciar ANTES do PHPUnit imprimir qualquer coisa (o "." de cada
 // teste vai pro stdout na hora) — session_start() falha com "headers already

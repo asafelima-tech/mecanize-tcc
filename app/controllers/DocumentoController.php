@@ -4,7 +4,7 @@ class DocumentoController extends Controller
 {
     public function list()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $documento = $this->model('Documento');
 
@@ -15,7 +15,7 @@ class DocumentoController extends Controller
 
     public function save()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         $os_id = $_GET['os_id'] ?? null;
 
@@ -40,7 +40,7 @@ class DocumentoController extends Controller
 
     public function finalizar()
     {
-        $this->requireRole(['ADMIN']);
+        $this->requireRole(Permissao::PAPEIS_ADMIN);
 
         if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
             header('Location: ./listDocumentos');

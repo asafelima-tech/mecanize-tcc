@@ -2,6 +2,9 @@
 <phpunit bootstrap="tests/bootstrap.php"
          colors="true"
          cacheResultFile=".phpunit.cache/test-results">
+    <listeners>
+        <listener class="LiberaConexoesListener" file="tests/LiberaConexoesListener.php"/>
+    </listeners>
     <testsuites>
         <testsuite name="Mecanize">
             <directory>tests</directory>

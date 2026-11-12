@@ -17,6 +17,13 @@
   /* Surface */
   --color-bg: #F1F5F9;
   --color-bg-alt: #F8FAFC;
+  /* Fundo rebaixado, mais escuro que a superfície: trilho de controles
+     segmentados (abas Ativos/Inativos, período da agenda, relatório do caixa),
+     onde a aba ativa sobe em --color-surface. */
+  --color-bg-subtle: #F1F5F9;
+  /* Preenchimento suave sobre uma superfície (área de soltar arquivo, caixa
+     pontilhada): distinto do card sem virar outra camada. */
+  --color-bg-soft: #F9FAFB;
   --color-surface: #FFFFFF;
   --color-border: #E2E8F0;
   --color-border-strong: #CBD5E1;
@@ -41,6 +48,28 @@
   --color-danger-soft: #FEE2E2;
   --color-info: #3B82F6;
   --color-info-soft: #DBEAFE;
+
+  /* Séries de gráfico — sempre tons de azul da marca.
+     Verde/vermelho ficam reservados para estado (badge de status), nunca
+     para identificar série: num gráfico a cor é identidade, não semáforo.
+     Os passos foram escolhidos com validação de contraste e de visão de
+     cores (separação ≥ 15 ΔE entre vizinhos, com sobra para daltonismo),
+     e a rampa ordinal vai do mais escuro ao mais claro numa única matiz. */
+  --chart-1: #003BDD;
+  --chart-2: #3B82F6;
+
+  --chart-ordinal-1: #002BA8;
+  --chart-ordinal-2: #003BDD;
+  --chart-ordinal-3: #2563EB;
+  --chart-ordinal-4: #3B82F6;
+  --chart-ordinal-5: #7DB0FA;
+
+  /* Gradiente das marcas de dados: claro na origem, cheio na ponta —
+     o mesmo do gráfico de faturamento, agora padrão de todo gráfico.
+     A versão horizontal é para barra de progresso (cresce para a direita)
+     e a vertical para barra de coluna (cresce para cima). */
+  --chart-gradiente-h: linear-gradient(90deg, #60A5FA 0%, #003BDD 100%);
+  --chart-gradiente-v: linear-gradient(180deg, #60A5FA 0%, #003BDD 100%);
 
   /* Layout */
   --sidebar-width: 240px;
@@ -73,6 +102,12 @@
   /* ── Surface ── */
   --color-bg: #0D1117;
   --color-bg-alt: #161B22;
+  /* Mais escuro que a página (#0D1117) para o trilho continuar parecendo
+     rebaixado — no claro o efeito vem do trilho cinza sob a aba branca. */
+  --color-bg-subtle: #010409;
+  /* Um passo ACIMA da superfície (#161B22), não abaixo: no claro a área
+     pontilhada é mais escura que o card; no escuro, mais clara. */
+  --color-bg-soft: #1C2128;
   --color-surface: #161B22;
   --color-border: #21262D;
   --color-border-strong: #30363D;
@@ -97,6 +132,22 @@
   --color-danger-soft: rgba(248, 81, 73, 0.15);
   --color-info: #58A6FF;
   --color-info-soft: rgba(88, 166, 255, 0.12);
+
+  /* ── Séries de gráfico no tema escuro ──
+     Passos próprios, não um espelho do tema claro: sobre a superfície
+     escura o azul #003BDD quase desaparece. Estes foram validados contra
+     o fundo #161B22, mantendo a mesma matiz e a mesma ordem de leitura. */
+  --chart-1: #4D8DF8;
+  --chart-2: #1E4FD1;
+
+  --chart-ordinal-1: #1E4FD1;
+  --chart-ordinal-2: #2F6BEE;
+  --chart-ordinal-3: #4D8DF8;
+  --chart-ordinal-4: #71A9FA;
+  --chart-ordinal-5: #9CC4FC;
+
+  --chart-gradiente-h: linear-gradient(90deg, #9CC4FC 0%, #2F6BEE 100%);
+  --chart-gradiente-v: linear-gradient(180deg, #9CC4FC 0%, #2F6BEE 100%);
 
   /* ── Shadows ── */
   --shadow-sm: 0 1px 3px rgba(0, 0, 0, .35), 0 1px 8px rgba(0, 0, 0, .28);
@@ -221,6 +272,20 @@ img {
   flex-wrap: wrap;
 }
 
+@media (max-width: 480px) {
+  .page-header__title {
+    font-size: 19px;
+  }
+
+  .page-header__actions {
+    width: 100%;
+  }
+
+  .page-header__actions .btn {
+    flex: 1 1 auto;
+  }
+}
+
 /* ====================== CARD ====================== */
 .card {
   background: var(--color-surface);
@@ -289,6 +354,18 @@ img {
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
   margin-bottom: 24px;
+}
+
+/* Seis indicadores (tela inicial): 3 por linha, em 2 linhas, sem sobrar vão. Em janela mais estreita
+   passam a 2 por linha (3 linhas); no celular a regra do sidebar.css os põe em 1 coluna. */
+.stat-grid--3 {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+@media (max-width: 960px) {
+  .stat-grid--3 {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 .stat-card {
@@ -583,6 +660,55 @@ img {
 
 .form-field input::placeholder {
   color: var(--color-text-muted);
+}
+
+/* Linhas de formulário em grid de largura fixa (2/3/5 colunas) — muitos
+   formulários (OS, Produto, Cliente...) montavam isso com
+   style="display:grid;grid-template-columns:1fr 1fr 1fr" direto no HTML,
+   sem classe nenhuma pro breakpoint prender. Aqui vira reutilizável, no
+   mesmo padrão que o resto do arquivo já usa (classe + @media logo abaixo). */
+.form-row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 16px;
+}
+
+.form-row-4 {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+}
+
+.form-row-5 {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 12px;
+}
+
+/* Rótulo estreito + campo largo (ex.: "CPF/CNPJ" + endereço) — proporção
+   assimétrica, então não cabe nas classes acima. */
+.form-row-1-3 {
+  display: grid;
+  grid-template-columns: 1fr 3fr;
+  gap: 14px 18px;
+  align-items: start;
+}
+
+@media (max-width: 720px) {
+
+  .form-row-2,
+  .form-row-3,
+  .form-row-4,
+  .form-row-5,
+  .form-row-1-3 {
+    grid-template-columns: 1fr;
+  }
 }
 
 .form-section {
@@ -968,6 +1094,9 @@ img {
   gap: 2px;
   border-bottom: 1px solid var(--color-border);
   padding: 0 24px;
+  /* Sem isso, telas com 4-5 abas (ex.: listagem de OS) estouravam a
+     largura num celular — não tinha nem quebra de linha nem scroll. */
+  overflow-x: auto;
 }
 
 .tabs__item {
@@ -979,6 +1108,8 @@ img {
   cursor: pointer;
   margin-bottom: -1px;
   transition: color .15s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tabs__item:hover {
@@ -1169,6 +1300,19 @@ img {
   animation: modal-out .16s ease forwards;
 }
 
+@media (max-width: 480px) {
+  .modal-overlay {
+    padding: 16px 10px;
+  }
+
+  .modal__header,
+  .modal__body,
+  .modal__footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
+
 .modal--xl {
   max-width: 1180px;
 }
@@ -1304,11 +1448,30 @@ button.row-action-btn {
   overflow: hidden;
 }
 
+/* A barra preenchida usa o gradiente do sistema. Quando a cor identifica a
+   categoria (status da OS, por exemplo), a view passa o tom em --barra-cor e
+   o gradiente é montado a partir dele: a identidade continua na cor cheia da
+   ponta e o começo é a mesma cor clareada. */
 .bar>span {
   display: block;
   height: 100%;
-  background: var(--color-primary);
   border-radius: 4px;
+  background: linear-gradient(90deg,
+      color-mix(in srgb, var(--barra-cor, var(--chart-1)) 48%, #FFFFFF) 0%,
+      var(--barra-cor, var(--chart-1)) 100%);
+}
+
+/* Badge que também é ação (ativar/desativar usuário). O <button> existe porque
+   a ação virou POST com token CSRF; visualmente ele tem que desaparecer e
+   deixar só o badge, como era quando isso era um link. */
+.badge-botao {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  line-height: 0;
 }
 
 /* ====================== UTILS ====================== */
@@ -2004,7 +2167,7 @@ select:not(.ts-hidden-accessible):focus {
   padding: 10px;
   border: 1px dashed var(--color-border);
   border-radius: var(--radius-md);
-  background: var(--color-bg-soft, var(--color-bg-alt));
+  background: var(--color-bg-soft);
 }
 
 .novo-modelo-box__actions {
@@ -3587,4 +3750,78 @@ select.form-input {
 
 [data-theme="dark"] #orc-resumo-lucro {
   color: #3FB950 !important;
+}
+
+/* ==========================================================================
+   Abas de recorte (controle segmentado)
+   --------------------------------------------------------------------------
+   Alterna o RECORTE de uma listagem — Ativos / Inativos — sem ser um filtro
+   da toolbar: cada aba é uma URL própria (?aba=), então funciona sem JS e
+   pode ser compartilhada.
+
+   Usado por Usuários e Clientes. Estava duplicado em cada tela, o que já
+   custou um bug: uma cor claras "chumbada" como fallback aparecia no tema
+   escuro. Aqui é definido uma vez só.
+   ========================================================================== */
+.abas {
+  display: inline-flex;
+  gap: 4px;
+  background: var(--color-bg-subtle);
+  border-radius: var(--radius-md);
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.aba {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  border-radius: calc(var(--radius-md) - 2px);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+  text-decoration: none;
+  transition: background .12s ease, color .12s ease;
+  white-space: nowrap;
+}
+
+.aba:hover { color: var(--color-text); }
+
+.aba--ativa {
+  background: var(--color-surface);
+  color: var(--color-primary);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .08);
+}
+
+.aba__contador {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 6px;
+  border-radius: 99px;
+  background: var(--color-border);
+  color: var(--color-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.aba--ativa .aba__contador {
+  background: var(--color-primary);
+  color: #fff;
+}
+
+/* Enquanto o fetch da aba/página não volta, o conteúdo antigo esmaece em vez
+   de sumir — evita o "pulo" de altura da tabela. */
+[data-aba-conteudo][aria-busy="true"] {
+  opacity: .5;
+  pointer-events: none;
+  transition: opacity .12s ease;
+}
+
+@media (max-width: 560px) {
+  .abas { display: flex; width: 100%; }
+  .aba { flex: 1; justify-content: center; }
 }

@@ -1,3 +1,4 @@
+<?php require __DIR__ . '/_docImpressoRodape.php'; ?>
 </div>
 <!-- CONTEÚDO DA PÁGINA TERMINA AQUI -->
 
@@ -18,6 +19,23 @@
       // Redesenha os gráficos para refletir o novo tema
       if (typeof Chart !== 'undefined') {
         Object.values(Chart.instances).forEach(function(chart) {
+          // A cor de série mora no canvas, não no CSS: um update() sozinho
+          // redesenharia o gráfico com a paleta do tema anterior. Quem
+          // declarou tokensCor no dataset tem a cor relida do design system.
+          chart.data.datasets.forEach(function(ds) {
+            if (!ds.tokensCor) return;
+
+            var cores = ds.tokensCor.map(function(token) {
+              // Gradiente é objeto do canvas, não cor: precisa ser remontado
+              // com a altura atual do gráfico, não só relido.
+              return ds.gradiente
+                ? window.gradienteDoTema(chart.ctx, token, chart.height)
+                : window.corDoTema(token);
+            });
+
+            ds.backgroundColor = cores.length === 1 ? cores[0] : cores;
+          });
+
           chart.update();
         });
       }
@@ -106,10 +124,15 @@
     });
   })();
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- O bundle JS do Bootstrap saiu daqui: a busca não achou um único data-bs-*
+     nem `new bootstrap.*` em app/views. Eram ~80 KB baixados à toa em toda
+     tela, de um domínio de terceiro. -->
 <script src="./assets/js/masks.js?v=<?= time() ?>"></script>
 <script src="./assets/js/text-format.js?v=<?= time() ?>"></script>
 <script src="./assets/js/csrf.js?v=<?= time() ?>"></script>
+<!-- Rede de segurança do cliente: queda de conexão, requisição sem resposta e
+     falha de JavaScript não tratada. Também alimenta as ações das telas de erro. -->
+<script src="./assets/js/erros.js?v=<?= time() ?>"></script>
 </body>
 
 </html>

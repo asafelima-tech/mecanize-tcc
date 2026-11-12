@@ -85,12 +85,10 @@ $prazoExec = $orcamento['prazo_execucao'] ?? '';
                     </div>
 
                     <div class="form-field">
-                        <label>Status</label>
-                        <select name="status">
-                            <option value="pendente" <?= $status === 'pendente' ? 'selected' : '' ?>>Pendente</option>
-                            <option value="aprovado" <?= $status === 'aprovado' ? 'selected' : '' ?>>Aprovado</option>
-                            <option value="reprovado" <?= $status === 'reprovado' ? 'selected' : '' ?>>Recusado</option>
-                        </select>
+                        <label>Situação</label>
+                        <!-- Só leitura: aprovar, recusar e reabrir são ações da lista de orçamentos
+                             (aprovar cria a OS; trocar o status aqui deixava o orçamento "aprovado" sem OS). -->
+                        <input type="text" value="<?= htmlspecialchars(Orcamento::ROTULOS[$status] ?? $status) ?>" readonly disabled>
                     </div>
 
                     <div class="form-field">

@@ -293,6 +293,8 @@ class Produtos
             return false;
         }
 
+        $this->registrarEstoqueInicial((int) $idProduto, $data);
+
         return true;
 
     } catch (Throwable $e) {
@@ -364,10 +366,18 @@ class Produtos
             $diferenca = round($novoEstoque - (float) $antes['estoque_atual'], 3);
 
             if ($diferenca !== 0.0) {
+                // delta = o efeito real no saldo, com sinal (+ subiu, − desceu); fica
+                // quantidade com o mesmo sinal por compatibilidade com o que já está gravado.
                 $this->conn->prepare("
-                    INSERT INTO movimentacoes_estoque (produto_id, tipo, quantidade, custo_unitario)
-                    VALUES (?, 'AJUSTE', ?, ?)
-                ")->execute([(int) $id, $diferenca, $novoCusto]);
+                    INSERT INTO movimentacoes_estoque
+                        (produto_id, tipo, origem, quantidade, delta, custo_unitario, usuario_id, observacao, justificativa)
+                    VALUES (?, 'AJUSTE', 'MANUAL', ?, ?, ?, ?, ?, ?)
+                ")->execute([
+                    (int) $id, $diferenca, $diferenca, $novoCusto,
+                    $_SESSION['user_id_usuario'] ?? null,
+                    'Correção do estoque no cadastro do produto',
+                    'Estoque alterado manualmente na edição do produto',
+                ]);
             }
         }
 
@@ -389,6 +399,47 @@ class Produtos
         $stmt = $this->conn->prepare($sql);
 
         return $stmt->execute([$id]);
+    }
+
+ /**
+     * Produto cadastrado já com estoque vira uma ENTRADA no histórico.
+     *
+     * A quantidade já está na coluna estoque_atual do próprio produto, então
+     * aqui só se registra o movimento — mexer no estoque de novo somaria a
+     * mesma peça duas vezes. Sem isso, o estoque começava com um saldo que
+     * não tinha nenhuma linha explicando de onde veio.
+     *
+     * Falha ao registrar não desfaz o cadastro: o produto existe e o saldo
+     * está certo; o que falta é uma linha de histórico, que pode ser
+     * lançada à mão depois.
+     */
+    private function registrarEstoqueInicial(int $idProduto, array $data): void
+    {
+        $quantidade = isset($data['estoque_atual']) && $data['estoque_atual'] !== ''
+            ? (float) str_replace(',', '.', $data['estoque_atual'])
+            : 0;
+
+        if ($quantidade <= 0) {
+            return;
+        }
+
+        try {
+            require_once __DIR__ . '/MovimentacaoEstoque.php';
+
+            MovimentacaoEstoque::registrarSemAjustarEstoque($this->conn, [
+                'produto_id'     => $idProduto,
+                'tipo'           => 'ENTRADA',
+                'origem'         => 'CADASTRO',
+                'quantidade'     => $quantidade,
+                'custo_unitario' => isset($data['preco_custo']) && $data['preco_custo'] !== ''
+                    ? (float) str_replace(',', '.', $data['preco_custo'])
+                    : 0,
+                'usuario_id'     => $_SESSION['user_id_usuario'] ?? null,
+                'observacao'     => 'Estoque inicial do cadastro do produto',
+            ]);
+        } catch (\Throwable $e) {
+            error_log('[produto] Falha ao registrar estoque inicial: ' . $e->getMessage());
+        }
     }
 
  private function gerarCodigoInterno($id)

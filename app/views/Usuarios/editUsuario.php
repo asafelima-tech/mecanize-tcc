@@ -5,8 +5,10 @@
 |--------------------------------------------------------------------------
 | Variáveis esperadas:
 | $usuario — array com os dados do usuário
+| $regra   — (opcional) regra de remuneração ativa, se $usuario for técnico
 |--------------------------------------------------------------------------
 */
+require_once __DIR__ . '/../../models/TecnicoRemuneracao.php';
 ?>
 
 <div class="page-header">
@@ -42,14 +44,13 @@
 </div>
 
 <form action="./editUsuario" method="POST">
+    <?= csrf_field() ?>
 
     <input type="hidden" name="id_usuario" value="<?= $usuario['id_usuario'] ?>">
 
     <?php if (!empty($error)): ?>
-        <div style="background: var(--color-danger-soft); color: #991B1B; border: 1px solid #FECACA;
-                    border-radius: var(--radius-md); padding: 12px 16px; margin-bottom: 20px; font-size: 13px;">
-            <?= htmlspecialchars($error) ?>
-        </div>
+        <?php $alertaTipo = 'erro'; $alertaMensagem = $error;
+                  require __DIR__ . '/../layout/_alerta.php'; ?>
     <?php endif; ?>
 
     <div class="usr-edit-grid">
@@ -121,7 +122,7 @@
 
                     <div class="form-field">
                         <label>Tipo de Usuário</label>
-                        <select name="tipo" required>
+                        <select name="tipo" id="campo-tipo" required onchange="alternarSecaoRemuneracao()">
                             <option value="ADMIN" <?= ($usuario['tipo'] ?? '') == 'ADMIN'     ? 'selected' : '' ?>>Admin</option>
                             <option value="TECNICO" <?= ($usuario['tipo'] ?? '') == 'TECNICO'   ? 'selected' : '' ?>>Técnico</option>
                             <option value="ATENDENTE" <?= ($usuario['tipo'] ?? '') == 'ATENDENTE' ? 'selected' : '' ?>>Atendente</option>
@@ -154,14 +155,29 @@
             </div>
         </div>
 
-        <!-- 3. RESUMO DA CONTA -->
+        <!-- 3. REGRA DE REMUNERAÇÃO (só pra TÉCNICO) -->
+        <div class="card" id="secao-remuneracao" style="grid-column: 1 / -1;display:none;">
+            <div class="card__header">
+                <div class="card__title">
+                    <span class="ico-wrap ico" aria-hidden="true">
+                        <i class="bi bi-cash-coin"></i>
+                    </span>
+                    3. Regra de Remuneração
+                </div>
+            </div>
+            <div class="card__body">
+                <?php require __DIR__ . '/_camposRegraRemuneracao.php'; ?>
+            </div>
+        </div>
+
+        <!-- 4. RESUMO DA CONTA -->
         <div class="card" style="grid-column: 1 / -1;">
             <div class="card__header">
                 <div class="card__title">
                     <span class="ico-wrap ico" aria-hidden="true">
                         <i class="bi bi-person-badge"></i>
                     </span>
-                    3. Resumo da Conta
+                    4. Resumo da Conta
                 </div>
             </div>
 
@@ -205,12 +221,16 @@
     <!-- FOOTER DE AÇÕES -->
     <div class="os-edit-footer">
 
-        <a href="./deleteUsuario&id=<?= $usuario['id_usuario'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Deseja realmente excluir este usuário? Esta ação não pode ser desfeita.')">
-            <i class="bi bi-person-x"></i>
-            Excluir Usuário
-        </a>
+        <!-- Fora do <form> de edição: form aninhado não existe em HTML. -->
+        <form method="post" action="./deleteUsuario" style="display:inline;"
+            onsubmit="return confirm('Deseja realmente excluir este usuário? Esta ação não pode ser desfeita.')">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= (int) $usuario['id_usuario'] ?>">
+            <button type="submit" class="btn btn--danger-ghost">
+                <i class="bi bi-person-x"></i>
+                Excluir Usuário
+            </button>
+        </form>
 
         <div class="os-edit-footer__right">
             <a href="./listUsuarios" class="btn btn--ghost">

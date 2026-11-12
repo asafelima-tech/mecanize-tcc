@@ -66,7 +66,7 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
   </script>
 </head>
 
-<body>
+<body class="ap">
   <div class="app">
     <aside class="sidebar" aria-label="Menu principal">
       <div class="sidebar__brand">

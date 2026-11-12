@@ -239,12 +239,16 @@ foreach ($combustiveis as $tipoCombustivel) {
     <div class="veiculo-edit-footer">
 
         <?php if (($_SESSION['user_tipo'] ?? '') === 'ADMIN'): ?>
-        <a href="./deleteVeiculo&id=<?= $veiculo['id_veiculo'] ?>"
-            class="btn btn--danger-ghost"
-            onclick="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
-            <i class="bi bi-trash"></i>
-            Excluir Veículo
-        </a>
+        <!-- Fora do <form> de edição: form aninhado não existe em HTML. -->
+        <form method="post" action="./deleteVeiculo" style="display:inline;"
+            onsubmit="return confirm('Excluir este veículo? Todos os orçamentos e ordens de serviço vinculados a ele também serão APAGADOS. Esta ação é irreversível.')">
+            <?= csrf_field() ?>
+            <input type="hidden" name="id" value="<?= (int) $veiculo['id_veiculo'] ?>">
+            <button type="submit" class="btn btn--danger-ghost">
+                <i class="bi bi-trash"></i>
+                Excluir Veículo
+            </button>
+        </form>
         <?php endif; ?>
 
         <div class="veiculo-edit-footer__right">
@@ -263,9 +267,9 @@ foreach ($combustiveis as $tipoCombustivel) {
 </form>
 
 <script>
-    window.CORES_CARRO = <?= json_encode($coresCarro, JSON_UNESCAPED_UNICODE) ?>;
-    window.COMBUSTIVEIS = <?= json_encode($combustiveis, JSON_UNESCAPED_UNICODE) ?>;
-    window.COMBUSTIVEL_ATUAL = <?= json_encode($combustivelAtual, JSON_UNESCAPED_UNICODE) ?>;
+    window.CORES_CARRO = <?= json_para_script($coresCarro) ?>;
+    window.COMBUSTIVEIS = <?= json_para_script($combustiveis) ?>;
+    window.COMBUSTIVEL_ATUAL = <?= json_para_script($combustivelAtual) ?>;
 
     // Reconstrói o <select> de combustível mostrando só os tipos permitidos
     // para o modelo escolhido. Sem restrição → lista completa. Preserva o valor atual.
@@ -314,7 +318,7 @@ foreach ($combustiveis as $tipoCombustivel) {
             return;
         }
 
-        fetch('/mecanize/public/?url=modelosPorMarca&marca_id=' + encodeURIComponent(marcaId))
+        fetch('./modelosPorMarca?marca_id=' + encodeURIComponent(marcaId))
             .then(response => response.text())
             .then(texto => {
                 let data;

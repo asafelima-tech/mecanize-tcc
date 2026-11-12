@@ -40,6 +40,18 @@ class User
      * Incrementa o contador de tentativas erradas; ao atingir o limite,
      * bloqueia a conta por BLOQUEIO_MINUTOS a partir de agora.
      */
+    /**
+     * Conta mais uma tentativa errada e bloqueia a conta ao atingir o limite.
+     *
+     * Limitação aceita conscientemente: o bloqueio é por CONTA, não por IP —
+     * então dá para travar um usuário de propósito errando a senha dele 5
+     * vezes. Mudar para IP exigiria uma tabela nova e não agrega ao trabalho;
+     * fica registrado aqui para não parecer descuido.
+     *
+     * Não toca em `atualizado_em` de propósito: essa coluna é o que derruba a
+     * sessão do usuário quando a conta muda (ver public/index.php), e tentativa
+     * de login de terceiro não pode expulsar ninguém do sistema.
+     */
     public function registrarTentativaFalha(int $id): void
     {
         $sql = "UPDATE usuarios
@@ -217,6 +229,7 @@ class User
         return $stmt->fetchColumn() > 0;
     }
 
+    /** Retorna o id do usuário criado (int), ou false se falhar — id é sempre "verdadeiro" pra quem só testa sucesso. */
     public function create($data)
     {
         $sql = "INSERT INTO usuarios (
@@ -235,13 +248,15 @@ class User
 
         $stmt = $this->conn->prepare($sql);
 
-        return $stmt->execute([
+        $ok = $stmt->execute([
             ':nome'   => trim($data['nome']),
             ':email'  => trim($data['email']),
             ':senha'  => password_hash($data['senha'], PASSWORD_DEFAULT),
             ':tipo'   => $data['tipo'],
             ':ativo'  => $data['ativo']
         ]);
+
+        return $ok ? (int) $this->conn->lastInsertId() : false;
     }
 
     public function update($data)

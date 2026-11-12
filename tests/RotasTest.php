@@ -115,4 +115,28 @@ final class RotasTest extends TestCase
 
         $this->assertSame([], $duplicadas, 'Rotas declaradas duas vezes: ' . implode(', ', $duplicadas));
     }
+
+    public function testMenuLateralSoCitaRotasRegistradas(): void
+    {
+        // O menu lateral lista, em cada item, as telas "filhas" dele (cadastro, edição, detalhe) só pelo
+        // nome da rota — nome com erro de digitação não dá erro algum, o item simplesmente não fica marcado.
+        // Os links "./x" do menu já são cobertos pelo teste de links; aqui entram essas listas.
+        $rotas  = $this->rotas();
+        $codigo = file_get_contents(self::RAIZ . '/app/views/layout/_sidebarMenu.php');
+
+        preg_match_all("/'rotas'\s*=>\s*\[([^\]]*)\]/", $codigo, $blocos);
+
+        $citadas = [];
+
+        foreach ($blocos[1] as $lista) {
+            preg_match_all("/'([A-Za-z0-9_\-]+)'/", $lista, $nomes);
+            $citadas = array_merge($citadas, $nomes[1]);
+        }
+
+        $this->assertNotEmpty($citadas, 'o menu deveria listar telas filhas');
+
+        $inexistentes = array_values(array_filter(array_unique($citadas), fn($r) => !isset($rotas[$r])));
+
+        $this->assertSame([], $inexistentes, 'Rotas citadas no menu que não existem: ' . implode(', ', $inexistentes));
+    }
 }
