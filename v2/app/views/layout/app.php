@@ -106,12 +106,7 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
     <div class="main">
       <header class="topbar">
         <button type="button" class="topbar__hamburger" id="mobileNavToggle" aria-label="Abrir menu"><?= icone('menu', 20) ?></button>
-        <nav class="topbar__caminho" aria-label="Você está em">
-          <?php foreach ($caminho as $i => [$nome, $link]): $ultimo = $i === count($caminho) - 1; ?>
-            <?php if ($i > 0): ?><span class="topbar__sep" aria-hidden="true">/</span><?php endif; ?>
-            <?php if ($link): ?><a href="<?= e($link) ?>"><?= e($nome) ?></a><?php elseif ($ultimo): ?><b aria-current="page"><?= e($nome) ?></b><?php else: ?><span><?= e($nome) ?></span><?php endif; ?>
-          <?php endforeach; ?>
-        </nav>
+        <?php require __DIR__ . '/_criar.php'; ?>
         <div class="topbar__right">
           <?php if ($oficina): ?>
             <a class="topbar-caixa<?= $caixaAberto ? ' is-aberto' : '' ?>" href="./caixa" title="<?= $caixaAberto ? 'Caixa aberto desde ' . e(data_br($caixaAberto['aberto_em'], true)) : 'Caixa fechado' ?>">
@@ -164,6 +159,28 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
       var fundo = document.getElementById('sidebarBackdrop');
       if (fundo) fundo.addEventListener('click', fechar);
       window.addEventListener('resize', function () { if (window.innerWidth > 900) fechar(); });
+
+      // Criar: painel logo abaixo do botão. Abre e fecha no botão; fecha no Esc, clicando fora ou ao escolher.
+      var btCriar = document.querySelector('[data-abrir-criar]'), pnCriar = document.getElementById('painel-criar');
+      if (btCriar && pnCriar) {
+        var abrirCriar = function (abrir) {
+          pnCriar.hidden = !abrir;
+          btCriar.setAttribute('aria-expanded', abrir ? 'true' : 'false');
+          if (abrir) { var p = pnCriar.querySelector('[role=menuitem]'); if (p) p.focus({ preventScroll: true }); }
+        };
+        btCriar.addEventListener('click', function (e) { e.stopPropagation(); abrirCriar(pnCriar.hidden); });
+        document.addEventListener('click', function (e) { if (!pnCriar.hidden && !pnCriar.contains(e.target)) abrirCriar(false); });
+        document.addEventListener('keydown', function (e) {
+          if (pnCriar.hidden) return;
+          if (e.key === 'Escape') { abrirCriar(false); btCriar.focus(); }
+          // Setas para cima/baixo andam entre as opções.
+          if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+            var itens = Array.prototype.slice.call(pnCriar.querySelectorAll('[role=menuitem]')), k = itens.indexOf(document.activeElement);
+            k = e.key === 'ArrowDown' ? (k + 1) % itens.length : (k - 1 + itens.length) % itens.length;
+            itens[k].focus(); e.preventDefault();
+          }
+        });
+      }
 
       // Avisos: janela aberta pelo sininho. Fecha com Esc, com o X ou clicando fora dela.
       var dlgAvisos = document.getElementById('dlg-avisos');

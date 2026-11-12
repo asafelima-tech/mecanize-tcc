@@ -60,6 +60,10 @@ final class Lancamento extends Modelo
             $b = '%' . $f['busca'] . '%';
             $params += ['b1' => $b, 'b2' => $b, 'b3' => $b, 'b4' => $b, 'b5' => $b];
         }
+        if (isset(self::CATEGORIAS[$params['tipo']][$f['categoria'] ?? ''])) {
+            $where .= ' AND l.categoria = :categoria';
+            $params['categoria'] = $f['categoria'];
+        }
         if (!empty($f['de']) && strtotime($f['de'])) {
             $where .= ' AND l.vencimento >= :de';
             $params['de'] = date('Y-m-d', strtotime($f['de']));
@@ -83,6 +87,36 @@ final class Lancamento extends Modelo
                  {$from} WHERE {$where} ORDER BY l.status IN ('PAGO','CANCELADO'), l.vencimento, l.id" . $p->sql(), $params),
             'saldo'  => (float) $tot['saldo'],
         ];
+    }
+
+    /**
+     * Números do topo de Contas a receber / a pagar (não dependem dos filtros da lista):
+     * em aberto, em atraso, vencendo nos próximos 7 dias e o que foi recebido/pago no mês (pagamentos − estornos).
+     */
+    public function indicadores(string $tipo): array
+    {
+        $tipo = $tipo === 'PAGAR' ? 'PAGAR' : 'RECEBER';
+        $saldo = '(valor - desconto + acrescimo - valor_pago)';
+        $aberta = "status IN ('ABERTO','PARCIAL')";
+        $l = $this->linha(
+            "SELECT COALESCE(SUM(CASE WHEN {$aberta} THEN {$saldo} END), 0) AS aberto, SUM({$aberta}) AS n_aberto,
+                    COALESCE(SUM(CASE WHEN {$aberta} AND vencimento < CURDATE() THEN {$saldo} END), 0) AS atrasado,
+                    SUM({$aberta} AND vencimento < CURDATE()) AS n_atrasado,
+                    COALESCE(SUM(CASE WHEN {$aberta} AND vencimento BETWEEN CURDATE() AND CURDATE() + INTERVAL 7 DAY THEN {$saldo} END), 0) AS proximos,
+                    SUM({$aberta} AND vencimento BETWEEN CURDATE() AND CURDATE() + INTERVAL 7 DAY) AS n_proximos,
+                    SUM(status = 'PAGO') AS pagos, SUM(status = 'CANCELADO') AS cancelados, COUNT(*) AS todos
+             FROM lancamentos WHERE oficina_id = :oficina AND tipo = :tipo",
+            ['tipo' => $tipo]
+        );
+        $m = $this->linha(
+            "SELECT COALESCE(SUM(CASE WHEN m.natureza = 'BAIXA' THEN m.valor WHEN m.natureza = 'ESTORNO' THEN -m.valor END), 0) AS realizado,
+                    SUM(m.natureza = 'BAIXA') AS n_realizado
+             FROM movimentacoes_financeiras m JOIN lancamentos l ON l.oficina_id = m.oficina_id AND l.id = m.lancamento_id
+             WHERE m.oficina_id = :oficina AND l.tipo = :tipo AND m.data_movimento >= DATE_FORMAT(CURDATE(), '%Y-%m-01')",
+            ['tipo' => $tipo]
+        );
+
+        return array_map(fn($v) => $v === null ? 0 : $v + 0, $l + $m);
     }
 
     public function buscar(int $id): ?array
@@ -388,11 +422,108 @@ final class Lancamento extends Modelo
     public function itensComissao(int $tecnicoId): array
     {
         return $this->lista(
-            "SELECT i.id, i.descricao, i.valor_total, i.comissao_percentual, i.comissao_valor, os.id AS os_id, os.numero, os.concluido_em
+            "SELECT i.id, i.tipo, i.descricao, i.valor_total, i.comissao_percentual, i.comissao_valor, os.id AS os_id, os.numero, os.concluido_em
              FROM ordem_servico_itens i JOIN ordens_servico os ON os.oficina_id = i.oficina_id AND os.id = i.ordem_servico_id
              WHERE i.oficina_id = :oficina AND i.tecnico_id = :t AND i.comissao_valor > 0 AND i.comissao_lancamento_id IS NULL
                AND os.status IN ('PRONTA','ENTREGUE') AND i.estoque_status <> 'DEVOLVIDO' ORDER BY os.concluido_em, os.numero",
             ['t' => $tecnicoId]
+        );
+    }
+
+    /**
+     * Comissões por pessoa da equipe (tela Comissões): a regra atual do cadastro, o que está pendente de
+     * lançamento (mesmos critérios de comissoesPendentes) e o saldo das contas de comissão ainda não pagas.
+     * Entra quem tem regra de comissão, comissão pendente ou conta de comissão em aberto.
+     */
+    public function equipeComissoes(): array
+    {
+        return $this->lista(
+            "SELECT u.id, u.nome, u.ativo, u.comissao_tipo, u.comissao_percentual,
+                    COALESCE(p.ordens, 0) AS pend_os, p.desde AS pend_desde, COALESCE(p.base, 0) AS pend_base, COALESCE(p.total, 0) AS pend_total,
+                    COALESCE(a.saldo, 0) AS aberto, COALESCE(a.n, 0) AS n_aberto
+             FROM usuarios u
+             LEFT JOIN (SELECT i.tecnico_id, COUNT(DISTINCT i.ordem_servico_id) AS ordens, MIN(os.concluido_em) AS desde,
+                               SUM(i.valor_total) AS base, SUM(i.comissao_valor) AS total
+                        FROM ordem_servico_itens i
+                        JOIN ordens_servico os ON os.oficina_id = i.oficina_id AND os.id = i.ordem_servico_id
+                        WHERE i.oficina_id = :o1 AND i.comissao_valor > 0 AND i.comissao_lancamento_id IS NULL
+                          AND os.status IN ('PRONTA','ENTREGUE') AND i.estoque_status <> 'DEVOLVIDO'
+                        GROUP BY i.tecnico_id) p ON p.tecnico_id = u.id
+             LEFT JOIN (SELECT funcionario_id, SUM(valor - desconto + acrescimo - valor_pago) AS saldo, COUNT(*) AS n
+                        FROM lancamentos
+                        WHERE oficina_id = :o2 AND tipo = 'PAGAR' AND categoria = 'COMISSAO' AND status IN ('ABERTO','PARCIAL')
+                        GROUP BY funcionario_id) a ON a.funcionario_id = u.id
+             WHERE u.oficina_id = :oficina AND (u.comissao_tipo <> 'NENHUMA' OR p.total IS NOT NULL OR a.n IS NOT NULL)
+             ORDER BY COALESCE(p.total, 0) DESC, u.nome",
+            ['o1' => $this->oficinaId(), 'o2' => $this->oficinaId()]
+        );
+    }
+
+    /** Números do topo da tela Comissões. Pendente e em aberto são o retrato de hoje; lançado e pago, do período. */
+    public function resumoComissoes(string $de, string $ate, int $tecnico = 0): array
+    {
+        $fim = (new DateTimeImmutable($ate))->modify('+1 day')->format('Y-m-d');
+        $porTec = $tecnico ? ' AND l.funcionario_id = :tec' : '';
+        $pTec = $tecnico ? ['tec' => $tecnico] : [];
+        $pend = $this->linha(
+            "SELECT COALESCE(SUM(i.comissao_valor), 0) AS total, COUNT(DISTINCT i.ordem_servico_id) AS ordens, COUNT(DISTINCT i.tecnico_id) AS pessoas
+             FROM ordem_servico_itens i JOIN ordens_servico os ON os.oficina_id = i.oficina_id AND os.id = i.ordem_servico_id
+             WHERE i.oficina_id = :oficina AND i.comissao_valor > 0 AND i.comissao_lancamento_id IS NULL
+               AND os.status IN ('PRONTA','ENTREGUE') AND i.estoque_status <> 'DEVOLVIDO'" . ($tecnico ? ' AND i.tecnico_id = :tec' : ''),
+            $pTec
+        );
+        $contas = $this->linha(
+            "SELECT COALESCE(SUM(CASE WHEN l.status IN ('ABERTO','PARCIAL') THEN l.valor - l.desconto + l.acrescimo - l.valor_pago END), 0) AS aberto,
+                    SUM(l.status IN ('ABERTO','PARCIAL')) AS n_aberto,
+                    COALESCE(SUM(CASE WHEN l.status <> 'CANCELADO' AND l.criado_em >= :de AND l.criado_em < :fim THEN l.valor - l.desconto + l.acrescimo END), 0) AS lancado,
+                    SUM(l.status <> 'CANCELADO' AND l.criado_em >= :de2 AND l.criado_em < :fim2) AS n_lancado
+             FROM lancamentos l WHERE l.oficina_id = :oficina AND l.tipo = 'PAGAR' AND l.categoria = 'COMISSAO'{$porTec}",
+            ['de' => $de, 'fim' => $fim, 'de2' => $de, 'fim2' => $fim] + $pTec
+        );
+        $pago = $this->linha(
+            "SELECT COALESCE(SUM(CASE WHEN m.natureza = 'BAIXA' THEN m.valor WHEN m.natureza = 'ESTORNO' THEN -m.valor END), 0) AS pago,
+                    SUM(m.natureza = 'BAIXA') AS n_pago
+             FROM movimentacoes_financeiras m JOIN lancamentos l ON l.oficina_id = m.oficina_id AND l.id = m.lancamento_id
+             WHERE m.oficina_id = :oficina AND l.tipo = 'PAGAR' AND l.categoria = 'COMISSAO'
+               AND m.data_movimento >= :de AND m.data_movimento < :fim{$porTec}",
+            ['de' => $de, 'fim' => $fim] + $pTec
+        );
+
+        return [
+            'pendente' => (float) $pend['total'], 'pend_os' => (int) $pend['ordens'], 'pend_pessoas' => (int) $pend['pessoas'],
+            'aberto' => (float) $contas['aberto'], 'n_aberto' => (int) $contas['n_aberto'],
+            'lancado' => (float) $contas['lancado'], 'n_lancado' => (int) $contas['n_lancado'],
+            'pago' => (float) $pago['pago'], 'n_pago' => (int) $pago['n_pago'],
+        ];
+    }
+
+    /** Contas de comissão já lançadas (histórico de pagamentos), com as OS que cada uma cobre. */
+    public function historicoComissoes(array $f, Paginacao $p): array
+    {
+        $where = "l.oficina_id = :oficina AND l.tipo = 'PAGAR' AND l.categoria = 'COMISSAO' AND l.criado_em >= :de AND l.criado_em < :fim";
+        $params = ['de' => $f['de'], 'fim' => (new DateTimeImmutable($f['ate']))->modify('+1 day')->format('Y-m-d')];
+        if ($f['tecnico']) {
+            $where .= ' AND l.funcionario_id = :tec';
+            $params['tec'] = $f['tecnico'];
+        }
+        $where .= match ($f['situacao']) {
+            'abertos' => " AND l.status IN ('ABERTO','PARCIAL')",
+            'pagos' => " AND l.status = 'PAGO'",
+            'cancelados' => " AND l.status = 'CANCELADO'",
+            default => '',
+        };
+        $p->total = (int) $this->valor("SELECT COUNT(*) FROM lancamentos l WHERE {$where}", $params);
+
+        return $this->lista(
+            "SELECT l.*, (l.valor - l.desconto + l.acrescimo) AS devido, u.nome AS funcionario,
+                    (SELECT GROUP_CONCAT(DISTINCT os.numero ORDER BY os.numero SEPARATOR ',')
+                       FROM ordem_servico_itens i JOIN ordens_servico os ON os.oficina_id = i.oficina_id AND os.id = i.ordem_servico_id
+                      WHERE i.oficina_id = l.oficina_id AND i.comissao_lancamento_id = l.id) AS ordens,
+                    (SELECT MAX(m.data_movimento) FROM movimentacoes_financeiras m
+                      WHERE m.oficina_id = l.oficina_id AND m.lancamento_id = l.id AND m.natureza = 'BAIXA') AS pago_em
+             FROM lancamentos l LEFT JOIN usuarios u ON u.id = l.funcionario_id
+             WHERE {$where} ORDER BY l.criado_em DESC, l.id DESC" . $p->sql(),
+            $params
         );
     }
 

@@ -17,9 +17,15 @@ final class FinanceiroController extends Controller
             'busca'    => trim((string) ($_GET['busca'] ?? '')),
             'de'       => trim((string) ($_GET['de'] ?? '')),
             'ate'      => trim((string) ($_GET['ate'] ?? '')),
+            'categoria'=> trim((string) ($_GET['categoria'] ?? '')),
         ];
-        $r = (new Lancamento())->listar($f, $p);
-        $this->tela('financeiro/lista', ['contas' => $r['linhas'], 'saldo' => $r['saldo'], 'f' => $f, 'p' => $p]);
+        $m = new Lancamento();
+        $r = $m->listar($f, $p);
+        $this->tela('financeiro/lista', [
+            'contas' => $r['linhas'], 'saldo' => $r['saldo'], 'f' => $f, 'p' => $p,
+            'ind' => $m->indicadores($f['tipo']), 'outro' => $m->indicadores($f['tipo'] === 'PAGAR' ? 'RECEBER' : 'PAGAR'),
+            'caixa' => (new Caixa())->aberto(),
+        ]);
     }
 
     private function resumo(): void
@@ -104,12 +110,42 @@ final class FinanceiroController extends Controller
         $this->executar(fn() => (new Lancamento())->cancelar($id, $this->post('motivo')), 'Conta cancelada.', $id);
     }
 
+    /**
+     * Comissões: números do topo, a equipe com o que falta lançar, o detalhe de um técnico e o histórico das
+     * contas de comissão. O período vale para o histórico e para "lançado" e "pago"; o pendente é sempre o total
+     * (o lançamento leva todos os itens pendentes do técnico, como antes).
+     */
     public function comissoes(): void
     {
         $m = new Lancamento();
-        $tecnico = (int) ($_GET['tecnico'] ?? 0);
+        $p = new Paginacao();
+        $data = fn(string $k) => ($d = DateTimeImmutable::createFromFormat('!Y-m-d', (string) ($_GET[$k] ?? ''))) && $d->format('Y-m-d') === $_GET[$k] ? $d : null;
+        $ate = $data('ate') ?? new DateTimeImmutable('today');
+        $de = $data('de') ?? (new DateTimeImmutable('first day of this month'))->modify('-2 months');
+        if ($de > $ate) {
+            [$de, $ate] = [$ate, $de];
+        }
+        $f = [
+            'tecnico'  => (int) ($_GET['tecnico'] ?? 0),
+            'de'       => $de->format('Y-m-d'),
+            'ate'      => $ate->format('Y-m-d'),
+            'situacao' => in_array($_GET['situacao'] ?? '', ['abertos', 'pagos', 'cancelados'], true) ? $_GET['situacao'] : 'todos',
+        ];
+        $equipe = $m->equipeComissoes();
+        $funcionarios = (new Usuario())->tecnicos();
+        // Só vale filtrar por alguém que aparece na tela (equipe com comissão ou técnico ativo).
+        if ($f['tecnico'] && !in_array($f['tecnico'], array_map('intval', array_merge(array_column($equipe, 'id'), array_column($funcionarios, 'id'))), true)) {
+            $f['tecnico'] = 0;
+        }
         $this->tela('financeiro/comissoes', [
-            'pendentes' => $m->comissoesPendentes(), 'tecnico' => $tecnico, 'itens' => $tecnico ? $m->itensComissao($tecnico) : [],
+            'f' => $f, 'p' => $p, 'equipe' => $equipe,
+            'resumo' => $m->resumoComissoes($f['de'], $f['ate'], $f['tecnico']),
+            'itens' => $f['tecnico'] ? $m->itensComissao($f['tecnico']) : [],
+            'historico' => $m->historicoComissoes($f, $p),
+            'funcionarios' => $funcionarios,
+            'caixa' => (new Caixa())->aberto(),
+            // compatibilidade com quem ainda usa estes nomes
+            'pendentes' => array_values(array_filter($equipe, fn($e) => (float) $e['pend_total'] > 0)), 'tecnico' => $f['tecnico'],
         ]);
     }
 
@@ -148,6 +184,12 @@ final class FinanceiroController extends Controller
             $this->avisar($sucesso);
         } catch (DomainException $e) {
             $this->avisar($e->getMessage(), 'erro');
+        }
+        // Pagamento feito pela lista de contas: volta para a mesma lista, com os mesmos filtros.
+        $voltar = (string) ($_POST['voltar_lista'] ?? '');
+        if ($voltar !== '' && preg_match('/^(financeiro|comissoes)(\?[A-Za-z0-9_=&%.\-+]*)?$/', $voltar)) {
+            header('Location: ./' . $voltar);
+            exit;
         }
         $id > 0 ? $this->redirecionar('conta', ['id' => $id]) : $this->redirecionar('financeiro');
     }

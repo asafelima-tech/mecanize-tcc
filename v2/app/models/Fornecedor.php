@@ -74,6 +74,47 @@ final class Fornecedor extends Modelo
         );
     }
 
+    /**
+     * Números da ficha do fornecedor (só leitura): o que entrou de mercadoria dele (pelo custo da nota, sem
+     * as entradas estornadas, como no resumo da lista), quantas notas e a última; e as contas a pagar em aberto.
+     */
+    public function resumoDe(int $id): array
+    {
+        $c = $this->linha(
+            "SELECT COALESCE(SUM(m.delta * COALESCE(m.custo_unitario, 0)), 0) AS total,
+                    COUNT(DISTINCT CONCAT(COALESCE(m.documento, m.id), '|', DATE(m.criado_em))) AS notas, MAX(m.criado_em) AS ultima
+             FROM movimentacoes_estoque m
+             WHERE m.oficina_id = :oficina AND m.fornecedor_id = :id AND m.motivo = 'COMPRA'
+               AND NOT EXISTS (SELECT 1 FROM movimentacoes_estoque e WHERE e.oficina_id = m.oficina_id AND e.estorno_de_id = m.id)",
+            ['id' => $id]
+        );
+        $p = $this->linha(
+            "SELECT COUNT(*) AS n, COALESCE(SUM(valor - desconto + acrescimo - valor_pago), 0) AS saldo
+             FROM lancamentos WHERE oficina_id = :oficina AND tipo = 'PAGAR' AND fornecedor_id = :id AND status IN ('ABERTO','PARCIAL')",
+            ['id' => $id]
+        );
+
+        return ['compras' => (float) $c['total'], 'notas' => (int) $c['notas'], 'ultima' => $c['ultima'],
+                'pagar_n' => (int) $p['n'], 'pagar_saldo' => (float) $p['saldo']];
+    }
+
+    /** Entradas de mercadoria deste fornecedor (uma por nota), da mais recente para a mais antiga. */
+    public function entradasDe(int $id, int $limite = 10): array
+    {
+        $limite = max(1, min(50, $limite));
+
+        return $this->lista(
+            "SELECT m.documento, MAX(m.criado_em) AS criado_em, COUNT(*) AS itens,
+                    SUM(m.delta * COALESCE(m.custo_unitario, 0)) AS total, MAX(u.nome) AS usuario
+             FROM movimentacoes_estoque m
+             LEFT JOIN usuarios u ON u.id = m.usuario_id
+             WHERE m.oficina_id = :oficina AND m.fornecedor_id = :id AND m.motivo = 'COMPRA'
+             GROUP BY m.documento, DATE(m.criado_em)
+             ORDER BY criado_em DESC LIMIT {$limite}",
+            ['id' => $id]
+        );
+    }
+
     public function buscar(int $id): ?array
     {
         return $this->linha('SELECT * FROM fornecedores WHERE id = :id AND oficina_id = :oficina', ['id' => $id]);

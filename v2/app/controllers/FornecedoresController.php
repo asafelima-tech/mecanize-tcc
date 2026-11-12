@@ -12,8 +12,10 @@ final class FornecedoresController extends Cadastro
 
     public function ver(): void
     {
-        $fornecedor = (new Fornecedor())->buscar($this->idDaUrl()) ?? throw new ErroHttp('registro-inexistente', ['voltar' => './fornecedores']);
-        $this->tela('fornecedores/ver', ['fo' => $fornecedor]);
+        $m = new Fornecedor();
+        $fornecedor = $m->buscar($this->idDaUrl()) ?? throw new ErroHttp('registro-inexistente', ['voltar' => './fornecedores']);
+        $id = (int) $fornecedor['id'];
+        $this->tela('fornecedores/ver', ['fo' => $fornecedor, 'resumo' => $m->resumoDe($id), 'entradas' => $m->entradasDe($id)]);
     }
 
     public function form(): void

@@ -533,6 +533,25 @@
     });
   }, true);
 
+  // Envio de formulário (POST): evita o duplo clique enquanto a página seguinte carrega e mostra o botão ocupado.
+  // Não desativa o botão (o valor dele precisa ir junto); só ignora um segundo envio do mesmo formulário.
+  document.addEventListener('submit', function (e) {
+    var f = e.target;
+    if (e.defaultPrevented || !f.matches || (f.method || '').toLowerCase() !== 'post' || f.target) return;
+    if (f.dataset.enviando) { e.preventDefault(); return; }
+    f.dataset.enviando = '1';
+    var b = e.submitter || f.querySelector('button:not([type=button]), [type=submit]');
+    if (b) { b.classList.add('is-enviando'); b.setAttribute('aria-busy', 'true'); }
+    // Se o envio não sair da página (download, erro de rede), libera de novo depois de alguns segundos.
+    setTimeout(function () { liberar(f); }, 8000);
+  });
+  function liberar(f) {
+    delete f.dataset.enviando;
+    f.querySelectorAll('.is-enviando').forEach(function (b) { b.classList.remove('is-enviando'); b.removeAttribute('aria-busy'); });
+  }
+  // Voltar pelo navegador (página restaurada do cache): os formulários ficam livres de novo.
+  window.addEventListener('pageshow', function () { document.querySelectorAll('form[data-enviando]').forEach(liberar); });
+
   /* ── Início: campos de agora e os que aparecerem depois ───────────────── */
   function preparar(raiz) {
     if (!raiz.querySelectorAll) return;
