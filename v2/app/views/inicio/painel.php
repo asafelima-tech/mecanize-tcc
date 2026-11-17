@@ -17,28 +17,18 @@ $iniciais = function (string $nome): string {
 };
 $pct = fn (float $v): string => number_format($v * 100, 0, ',', '.') . '%';
 
-// Linha suave (curva de Catmull-Rom) para o gráfico de fluxo, em coordenadas do viewBox 520×190.
-$curva = function (array $valores, float $max): array {
-    $n = count($valores);
-    $pts = [];
-    foreach (array_values($valores) as $i => $v) {
-        $pts[] = [$n > 1 ? $i * 520 / ($n - 1) : 260, 170 - ($max > 0 ? $v / $max : 0) * 150];
-    }
-    $d = sprintf('M%.1f %.1f', $pts[0][0], $pts[0][1]);
-    for ($i = 0; $i < $n - 1; $i++) {
-        $p0 = $pts[max(0, $i - 1)]; $p1 = $pts[$i]; $p2 = $pts[$i + 1]; $p3 = $pts[min($n - 1, $i + 2)];
-        // Pontos de controle presos entre os dois pontos na vertical: a curva não passa abaixo do zero.
-        $y1 = min(max($p1[1] + ($p2[1] - $p0[1]) / 6, min($p1[1], $p2[1])), max($p1[1], $p2[1]));
-        $y2 = min(max($p2[1] - ($p3[1] - $p1[1]) / 6, min($p1[1], $p2[1])), max($p1[1], $p2[1]));
-        $d .= sprintf('C%.1f %.1f %.1f %.1f %.1f %.1f', $p1[0] + ($p2[0] - $p0[0]) / 6, $y1, $p2[0] - ($p3[0] - $p1[0]) / 6, $y2, $p2[0], $p2[1]);
-    }
-
-    return [$d, end($pts)];
-};
-$osDia = array_column($g['fluxo'], 'os');
-$recDia = array_column($g['fluxo'], 'receita');
-[$linhaOs, $fimOs] = $curva($osDia, (float) max(array_merge([1], $osDia)) * 1.1);
-[$linhaRec] = $curva($recDia, (float) max(array_merge([1], $recDia)) * 1.1);
+// Matriz de pontos do fluxo: uma coluna por dia (últimos 30), 10 pontos por coluna. Os pontos cheios mostram o
+// valor do dia em relação ao maior do período; dia com movimento tem pelo menos 1 ponto.
+$pmLinhas = 10;
+$pmOs = array_map('intval', array_column($g['fluxo'], 'os'));
+$pmRec = array_map('floatval', array_column($g['fluxo'], 'receita'));
+$pmMaxOs = max(array_merge([1], $pmOs));
+$pmMaxRec = max(array_merge([1.0], $pmRec));
+$pmPontos = fn (float $v, float $max): int => $v <= 0 ? 0 : max(1, (int) round($v / $max * $pmLinhas));
+$pmDias = array_keys($g['fluxo']);
+$pmN = count($pmDias);
+$pmTotOs = array_sum($pmOs);
+$pmTotRec = array_sum($pmRec);
 
 // Rosca da situação das OS no mês.
 $fatias = [
@@ -46,7 +36,7 @@ $fatias = [
     'abertas' => ['Abertas', 'var(--grafico-4)'], 'canceladas' => ['Canceladas', 'var(--grafico-5)'],
 ];
 $totalMes = array_sum($g['status_mes']);
-$circ = 2 * M_PI * 62;
+$circ = 2 * M_PI * 58;
 
 // Barras do faturamento por mês, com a escala arredondada para cima.
 $maxMes = max(array_merge([0.0], array_values($g['meses'])));
@@ -62,11 +52,12 @@ $maxPeca = max(array_merge([1], array_map('floatval', array_column($g['pecas'], 
 $variacao = $g['mes_anterior'] > 0 ? ($resumo['faturado_mes'] - $g['mes_anterior']) / $g['mes_anterior'] : null;
 
 $avisos = [];
-if ($alertas['orc_vencidos']) $avisos[] = ['calendar', $alertas['orc_vencidos'] . ' orçamento(s) com validade vencida', './ordens?situacao=orcamento', ''];
-if ($admin && $alertas['receber_vencidas']) $avisos[] = ['error', (int) $alertas['receber_vencidas'] . ' a receber vencida(s) · ' . dinheiro($alertas['receber_valor']), './financeiro?tipo=RECEBER&situacao=vencidos', 'danger'];
-if ($admin && $alertas['pagar_vencidas']) $avisos[] = ['warning', (int) $alertas['pagar_vencidas'] . ' a pagar vencida(s) · ' . dinheiro($alertas['pagar_valor']), './financeiro?tipo=PAGAR&situacao=vencidos', 'danger'];
-if ($admin && $alertas['estoque_baixo']) $avisos[] = ['part', $alertas['estoque_baixo'] . ' peça(s) no estoque mínimo', './produtos?tipo=PECA&baixo=1', ''];
-if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $alertas['agenda_hoje'] . ' agendamento(s) hoje', './agenda?periodo=dia', ''];
+$plural = fn (int $n, string $um, string $varios): string => $n . ' ' . ($n === 1 ? $um : $varios);
+if ($alertas['orc_vencidos']) $avisos[] = ['calendar', $plural((int) $alertas['orc_vencidos'], 'orçamento vencido', 'orçamentos vencidos'), './ordens?situacao=orcamento', ''];
+if ($admin && $alertas['receber_vencidas']) $avisos[] = ['error', $plural((int) $alertas['receber_vencidas'], 'a receber vencida', 'a receber vencidas') . ' · ' . dinheiro($alertas['receber_valor']), './financeiro?tipo=RECEBER&situacao=vencidos', 'danger'];
+if ($admin && $alertas['pagar_vencidas']) $avisos[] = ['warning', $plural((int) $alertas['pagar_vencidas'], 'a pagar vencida', 'a pagar vencidas') . ' · ' . dinheiro($alertas['pagar_valor']), './financeiro?tipo=PAGAR&situacao=vencidos', 'danger'];
+if ($admin && $alertas['estoque_baixo']) $avisos[] = ['part', $plural((int) $alertas['estoque_baixo'], 'peça no mínimo', 'peças no mínimo'), './produtos?tipo=PECA&baixo=1', ''];
+if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['agenda_hoje'], 'agendamento hoje', 'agendamentos hoje'), './agenda?periodo=dia', ''];
 ?>
 <div class="page-header painel-hero">
   <div>
@@ -104,47 +95,99 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $alertas['agenda_hoje'] . 
 </div>
 
 <?php if ($avisos): ?>
-  <div class="avisos-painel">
+  <div class="avisos-painel" id="avisos-painel">
     <?php foreach ($avisos as [$icone, $texto, $href, $tom]): ?>
       <a class="aviso-chip<?= $tom ? ' aviso-chip--' . $tom : '' ?>" href="<?= e($href) ?>"><?= icone($icone, 14) ?><?= e($texto) ?></a>
     <?php endforeach; ?>
   </div>
 <?php endif; ?>
+<script>
+  // Avisos do painel: esmaece a borda direita só quando há mais avisos para deslizar (e some ao chegar ao fim).
+  (function () {
+    var l = document.getElementById('avisos-painel');
+    if (!l) return;
+    var ver = function () { l.classList.toggle('is-cortado', l.scrollLeft + l.clientWidth < l.scrollWidth - 2); };
+    l.addEventListener('scroll', ver, { passive: true }); window.addEventListener('resize', ver); ver();
+  })();
+</script>
 
 <div class="painel-graficos">
   <section class="card quadro">
-    <div class="quadro__topo"><h2 class="card__title">Fluxo de OS × Receita</h2><span class="etiqueta">Últimos 7 dias</span></div>
-    <svg class="quadro__linha" viewBox="0 0 520 190" preserveAspectRatio="none" role="img"
-         aria-label="OS abertas e receita dos últimos 7 dias: <?= e(implode('; ', array_map(fn ($d, $v) => data_br($d) . ' ' . $v['os'] . ' OS, ' . dinheiro($v['receita']), array_keys($g['fluxo']), $g['fluxo']))) ?>">
-      <defs>
-        <linearGradient id="degrade-os" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".16"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>
-        <linearGradient id="degrade-receita" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="currentColor" stop-opacity=".08"/><stop offset="1" stop-color="currentColor" stop-opacity="0"/></linearGradient>
-      </defs>
-      <path d="M0 20H520M0 70H520M0 120H520" class="quadro__grade"/>
-      <path d="M0 170H520" class="quadro__base"/>
-      <path d="<?= $linhaRec ?>L520 170L0 170Z" class="quadro__area quadro__area--2"/>
-      <path d="<?= $linhaRec ?>" class="quadro__traco quadro__traco--2"/>
-      <path d="<?= $linhaOs ?>L520 170L0 170Z" class="quadro__area"/>
-      <path d="<?= $linhaOs ?>" class="quadro__traco"/>
-      <circle cx="<?= round($fimOs[0] - 3, 1) ?>" cy="<?= round($fimOs[1], 1) ?>" r="4" class="quadro__ponto"/>
-    </svg>
-    <div class="quadro__eixo">
-      <?php $i = 0; foreach (array_keys($g['fluxo']) as $dia): $i++; ?><span><?= $i === count($g['fluxo']) ? 'Hoje' : $curtos[(int) date('N', strtotime($dia))] ?></span><?php endforeach; ?>
-    </div>
-    <div class="quadro__legenda">
-      <span><span class="legenda-cor"></span>Ordens de serviço abertas</span>
-      <span><span class="legenda-cor legenda-cor--tracejada"></span>Receita (R$)</span>
+    <div class="quadro__topo"><h2 class="card__title">Fluxo de OS × Receita</h2><span class="etiqueta">Últimos <?= $pmN ?> dias</span></div>
+    <div class="pm" id="grafico-fluxo" data-metrica="os">
+      <div class="pm__cabeca">
+        <p class="pm__resumo" aria-live="polite">
+          <b data-pm-total data-os="<?= $pmTotOs ?>" data-rec="<?= e(dinheiro($pmTotRec)) ?>"><?= $pmTotOs ?></b>
+          <span data-pm-rotulo><?= $pmTotOs === 1 ? 'OS aberta' : 'OS abertas' ?> no período</span>
+        </p>
+        <div class="pm__alternar" role="radiogroup" aria-label="Mostrar">
+          <button type="button" role="radio" aria-checked="true" data-pm="os">OS abertas</button>
+          <button type="button" role="radio" aria-checked="false" data-pm="rec">Receita</button>
+        </div>
+      </div>
+      <div class="pm__grade" style="--colunas: <?= $pmN ?>" role="img"
+           aria-label="OS abertas e receita por dia nos últimos <?= $pmN ?> dias: <?= e(implode('; ', array_map(fn ($d, $o, $r) => date('d/m', strtotime($d)) . ' ' . $o . ' OS, ' . dinheiro($r), $pmDias, $pmOs, $pmRec))) ?>">
+        <?php foreach ($pmDias as $i => $dia): $po = $pmPontos($pmOs[$i], $pmMaxOs); $pr = $pmPontos($pmRec[$i], $pmMaxRec); $ehHoje = $i === $pmN - 1; ?>
+          <div class="pm__col<?= $ehHoje ? ' is-hoje' : '' ?>" style="--c: <?= $i ?>"
+               data-dia="<?= e(($ehHoje ? 'Hoje' : $curtos[(int) date('N', strtotime($dia))]) . ', ' . date('d/m', strtotime($dia))) ?>"
+               data-os="<?= $pmOs[$i] ?>" data-rec="<?= e(dinheiro($pmRec[$i])) ?>">
+            <?php for ($k = 0; $k < $pmLinhas; $k++): ?><i class="<?= trim(($k < $po ? 'o ' : '') . ($k < $pr ? 'r' : '')) ?>" style="--k: <?= $k ?>"></i><?php endfor; ?>
+          </div>
+        <?php endforeach; ?>
+      </div>
+      <div class="pm__eixo" style="--colunas: <?= $pmN ?>" aria-hidden="true">
+        <?php foreach ($pmDias as $i => $dia): ?><span><?= $i === $pmN - 1 ? 'Hoje' : ($i % 7 === 0 && $i < $pmN - 5 ? date('d/m', strtotime($dia)) : '') ?></span><?php endforeach; ?>
+      </div>
     </div>
   </section>
+  <script>
+    // Matriz de pontos: alterna entre OS abertas e receita. Passar o mouse (ou tocar) numa coluna destaca o dia
+    // e o número grande do topo passa a mostrar o valor daquele dia; ao sair, volta ao total do período.
+    (function () {
+      var g = document.getElementById('grafico-fluxo');
+      if (!g) return;
+      var grade = g.querySelector('.pm__grade'), cols = grade.querySelectorAll('.pm__col');
+      var total = g.querySelector('[data-pm-total]'), rotulo = g.querySelector('[data-pm-rotulo]'), atual = null;
+      var nomeOs = function (n) { return +n === 1 ? 'OS aberta' : 'OS abertas'; };
+      function resumo() {
+        var os = g.dataset.metrica === 'os';
+        if (atual) {
+          total.textContent = os ? atual.dataset.os : atual.dataset.rec;
+          rotulo.textContent = (os ? nomeOs(atual.dataset.os) + ' em ' : 'em ') + atual.dataset.dia;
+        } else {
+          total.textContent = os ? total.dataset.os : total.dataset.rec;
+          rotulo.textContent = os ? nomeOs(total.dataset.os) + ' no período' : 'de receita no período';
+        }
+        g.classList.toggle('is-dia', !!atual);
+      }
+      g.querySelectorAll('[data-pm]').forEach(function (b) {
+        b.addEventListener('click', function () {
+          g.dataset.metrica = b.dataset.pm;
+          g.querySelectorAll('[data-pm]').forEach(function (x) { x.setAttribute('aria-checked', x === b ? 'true' : 'false'); });
+          resumo();
+        });
+      });
+      function mostrar(col) { atual = col; cols.forEach(function (c) { c.classList.toggle('is-ativa', c === col); }); grade.classList.add('is-focada'); resumo(); }
+      function esconder() { atual = null; grade.classList.remove('is-focada'); cols.forEach(function (c) { c.classList.remove('is-ativa'); }); resumo(); }
+      function colunaEm(ev) {
+        var gr = grade.getBoundingClientRect(), i = Math.floor((ev.clientX - gr.left) / gr.width * cols.length);
+        return cols[Math.max(0, Math.min(cols.length - 1, i))];
+      }
+      grade.addEventListener('pointermove', function (ev) { var c = colunaEm(ev); if (c !== atual) mostrar(c); });
+      grade.addEventListener('pointerdown', function (ev) { mostrar(colunaEm(ev)); });
+      grade.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse') esconder(); });
+      document.addEventListener('pointerdown', function (ev) { if (atual && !grade.contains(ev.target)) esconder(); });
+    })();
+  </script>
 
   <section class="card quadro">
     <div class="quadro__topo"><h2 class="card__title">Status das OS</h2><span class="etiqueta">Mês</span></div>
     <div class="rosca">
       <div class="rosca__desenho">
         <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
-          <circle cx="70" cy="70" r="62" fill="none" stroke="var(--grafico-vazio)" stroke-width="16"/>
+          <circle cx="70" cy="70" r="58" fill="none" stroke="var(--grafico-vazio)" stroke-width="24"/>
           <?php $acumulado = 0.0; foreach ($fatias as $k => [, $cor]): $v = $g['status_mes'][$k]; if (!$v) continue; $tam = $v / $totalMes * $circ; ?>
-            <circle cx="70" cy="70" r="62" fill="none" stroke="<?= $cor ?>" stroke-width="16" stroke-dasharray="<?= round(max(0, $tam - 2), 1) ?> <?= round($circ, 1) ?>"
+            <circle cx="70" cy="70" r="58" fill="none" stroke="<?= $cor ?>" stroke-width="24" stroke-dasharray="<?= round(max(0, $tam - 2), 1) ?> <?= round($circ, 1) ?>"
                     stroke-dashoffset="<?= round(-$acumulado, 1) ?>" transform="rotate(-90 70 70)"/>
           <?php $acumulado += $tam; endforeach; ?>
         </svg>
@@ -164,13 +207,14 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $alertas['agenda_hoje'] . 
 
   <section class="card quadro">
     <div class="quadro__topo"><h2 class="card__title">Faturamento por mês</h2><span class="etiqueta">Últimos 6 meses</span></div>
-    <div class="barras" role="img" aria-label="Faturamento por mês: <?= e(implode('; ', array_map(fn ($m, $v) => $mesesCurto[(int) substr($m, 5)] . ' ' . dinheiro($v), array_keys($g['meses']), $g['meses']))) ?>">
+    <?php $picoMes = $maxMes > 0 ? array_search($maxMes, array_values($g['meses']), true) : null; ?>
+    <div class="barras barras--pico" role="img" aria-label="Faturamento por mês: <?= e(implode('; ', array_map(fn ($m, $v) => $mesesCurto[(int) substr($m, 5)] . ' ' . dinheiro($v), array_keys($g['meses']), $g['meses']))) ?>">
       <div class="barras__escala"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topo / 4 * $i) ?></span><?php endfor; ?></div>
       <div class="barras__area">
         <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
-        <?php foreach ($g['meses'] as $m => $v): ?>
-          <div class="barras__coluna" title="<?= e($mesesCurto[(int) substr($m, 5)] . ' · ' . dinheiro($v)) ?>">
-            <span class="barras__barra" style="height:<?= round($v / $topo * 100, 1) ?>%"></span>
+        <?php $iMes = 0; foreach ($g['meses'] as $m => $v): $ehPico = $iMes++ === $picoMes; ?>
+          <div class="barras__coluna<?= $ehPico ? ' is-pico' : '' ?>" title="<?= e($mesesCurto[(int) substr($m, 5)] . ' · ' . dinheiro($v)) ?>">
+            <span class="barras__barra" style="height:<?= round($v / $topo * 100, 1) ?>%"><?php if ($ehPico): ?><span class="rel-pico"><?= e(dinheiro($v)) ?></span><?php endif; ?></span>
             <span class="barras__rotulo"><?= $mesesCurto[(int) substr($m, 5)] ?></span>
           </div>
         <?php endforeach; ?>

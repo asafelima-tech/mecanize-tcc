@@ -10,8 +10,9 @@ final class CaixaController extends Controller
         $this->tela('caixa/atual', [
             'caixa' => $caixa,
             'resumo' => $caixa ? $m->resumo((int) $caixa['id']) : null,
+            'fechamento' => $caixa ? $m->fechamento((int) $caixa['id']) : null,
             'movimentos' => $caixa ? $m->movimentos((int) $caixa['id']) : [],
-            'sugestao' => $m->ultimoFechamento(),
+            'anterior' => $caixa ? null : $m->ultimoFechado(),
             // Últimas sessões no pé da tela (o histórico completo continua só para o ADMIN).
             'sessoes' => Contexto::perfil() === 'ADMIN' ? array_slice($m->historico(new Paginacao(1)), 0, 5) : [],
         ]);
@@ -42,10 +43,8 @@ final class CaixaController extends Controller
     public function fechar(): void
     {
         try {
-            $r = (new Caixa())->fechar($this->post('contado'), $this->post('observacao'));
-            $dif = $r['diferenca'];
-            $this->avisar('Caixa fechado. ' . (abs($dif) < 0.005 ? 'Conferido sem diferença.' : ($dif > 0 ? 'Sobra de ' : 'Falta de ') . dinheiro(abs($dif)) . ' na gaveta.'),
-                abs($dif) < 0.005 ? 'sucesso' : 'aviso');
+            $r = (new Caixa())->fechar($this->post('observacao'));
+            $this->avisar('Caixa fechado com saldo final de ' . dinheiro($r['saldo']) . '. Ficam ' . dinheiro($r['dinheiro']) . ' em dinheiro na gaveta para o próximo caixa.');
             if (Contexto::perfil() === 'ADMIN') {
                 $this->redirecionar('caixa-ver', ['id' => $r['id']]);
             }
@@ -65,6 +64,6 @@ final class CaixaController extends Controller
     {
         $m = new Caixa();
         $caixa = $m->buscar($this->idDaUrl()) ?? throw new ErroHttp('registro-inexistente', ['voltar' => './caixas']);
-        $this->tela('caixa/ver', ['caixa' => $caixa, 'resumo' => $m->resumo((int) $caixa['id']), 'movimentos' => $m->movimentos((int) $caixa['id'])]);
+        $this->tela('caixa/ver', ['caixa' => $caixa, 'fechamento' => $m->fechamento((int) $caixa['id']), 'movimentos' => $m->movimentos((int) $caixa['id'])]);
     }
 }

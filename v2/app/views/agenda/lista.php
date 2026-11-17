@@ -53,32 +53,71 @@ $campos = function () use ($ocultos): string {
   </div>
 </div>
 
-<form class="barra-periodo" method="get" action="./agenda">
-  <input type="hidden" name="periodo" value="<?= e($periodo) ?>">
-  <input type="hidden" name="data" value="<?= e($ref->format('Y-m-d')) ?>">
-  <div class="barra-periodo__nav">
-    <a class="btn btn--contorno btn--icone" href="<?= e($link(['data' => $ref->modify('-' . $passo)->format('Y-m-d')])) ?>" aria-label="Período anterior"><?= icone('chevron-left') ?></a>
-    <a class="btn btn--contorno" href="<?= e($link(['data' => $hoje])) ?>">Hoje</a>
-    <a class="btn btn--contorno btn--icone" href="<?= e($link(['data' => $ref->modify('+' . $passo)->format('Y-m-d')])) ?>" aria-label="Próximo período"><?= icone('chevron-right') ?></a>
-    <h2 class="barra-periodo__titulo"><?= e($tituloPeriodo) ?></h2>
+<?php
+$noPeriodoAtual = $hoje >= $ini && $hoje < $fim;
+// Versão curta do título para o celular: "16–22 nov. 2026", "28 nov. – 4 dez. 2026", "Ter, 17 nov. 2026", "Nov. 2026".
+$mesCurto = fn(DateTimeImmutable $d) => ['', 'jan.', 'fev.', 'mar.', 'abr.', 'maio', 'jun.', 'jul.', 'ago.', 'set.', 'out.', 'nov.', 'dez.'][(int) $d->format('n')];
+if ($periodo === 'dia') {
+    $tituloCurto = mb_substr($diasNome[(int) $ref->format('N')], 0, 3) . ', ' . (int) $ref->format('j') . ' ' . $mesCurto($ref) . ' ' . $ref->format('Y');
+} elseif ($periodo === 'mes') {
+    $tituloCurto = ucfirst($mesesNome[(int) $dIni->format('n')]) . ' ' . $dIni->format('Y');
+} elseif ($dIni->format('n') === $dFim->format('n')) {
+    $tituloCurto = (int) $dIni->format('j') . '–' . (int) $dFim->format('j') . ' ' . $mesCurto($dFim) . ' ' . $dFim->format('Y');
+} else {
+    $tituloCurto = (int) $dIni->format('j') . ' ' . $mesCurto($dIni) . ' – ' . (int) $dFim->format('j') . ' ' . $mesCurto($dFim) . ' ' . $dFim->format('Y');
+}
+$filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
+?>
+<div class="agenda-barra">
+  <div class="agenda-barra__periodo">
+    <h2 class="agenda-barra__titulo"><span class="agenda-barra__longo"><?= e($tituloPeriodo) ?></span><span class="agenda-barra__curto" aria-hidden="true"><?= e($tituloCurto) ?></span></h2>
+    <span class="agenda-barra__setas">
+      <a class="agenda-barra__seta" href="<?= e($link(['data' => $ref->modify('-' . $passo)->format('Y-m-d')])) ?>" aria-label="Período anterior" title="Anterior"><?= icone('chevron-left', 18, 2) ?></a>
+      <a class="agenda-barra__seta" href="<?= e($link(['data' => $ref->modify('+' . $passo)->format('Y-m-d')])) ?>" aria-label="Próximo período" title="Próximo"><?= icone('chevron-right', 18, 2) ?></a>
+    </span>
+    <?php if (!$noPeriodoAtual): ?><a class="agenda-barra__hoje" href="<?= e($link(['data' => $hoje])) ?>">Hoje</a><?php endif; ?>
   </div>
-  <div class="barra-periodo__filtros">
-    <nav class="abas abas--compactas" aria-label="Período">
+  <div class="agenda-barra__acoes">
+    <nav class="agenda-barra__vista" aria-label="Visualizar por">
       <?php foreach (['dia' => 'Dia', 'semana' => 'Semana', 'mes' => 'Mês'] as $k => $r): ?>
         <a href="<?= e($link(['periodo' => $k])) ?>"<?= $periodo === $k ? ' class="ativa" aria-current="page"' : '' ?>><?= $r ?></a>
       <?php endforeach; ?>
     </nav>
-    <select name="status" aria-label="Situação">
-      <option value="">Todas as situações</option>
-      <?php foreach (Agendamento::SITUACOES as $k => [$r]): ?><option value="<?= $k ?>" <?= $f['status'] === $k ? 'selected' : '' ?>><?= e($r) ?></option><?php endforeach; ?>
-    </select>
-    <select name="tecnico" aria-label="Técnico">
-      <option value="">Todos os técnicos</option>
-      <?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $f['tecnico'] === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nome']) ?></option><?php endforeach; ?>
-    </select>
-    <button class="btn btn--ghost" type="submit"><?= icone('filter') ?> Filtrar</button>
+    <details class="agenda-filtros">
+      <summary class="agenda-barra__filtro<?= $filtrosAtivos ? ' is-ativo' : '' ?>" aria-label="Filtros<?= $filtrosAtivos ? ' (' . $filtrosAtivos . ' ativo' . ($filtrosAtivos > 1 ? 's' : '') . ')' : '' ?>">
+        <?= icone('filter', 16) ?><span>Filtros</span><?php if ($filtrosAtivos): ?><b class="agenda-barra__n"><?= $filtrosAtivos ?></b><?php endif; ?>
+      </summary>
+      <form class="agenda-filtros__painel" method="get" action="./agenda" data-aplicar-ao-mudar>
+        <input type="hidden" name="periodo" value="<?= e($periodo) ?>">
+        <input type="hidden" name="data" value="<?= e($ref->format('Y-m-d')) ?>">
+        <label class="agenda-filtros__campo"><span>Situação</span>
+          <select name="status">
+            <option value="">Todas</option>
+            <?php foreach (Agendamento::SITUACOES as $k => [$r]): ?><option value="<?= $k ?>" <?= $f['status'] === $k ? 'selected' : '' ?>><?= e($r) ?></option><?php endforeach; ?>
+          </select>
+        </label>
+        <label class="agenda-filtros__campo"><span>Técnico</span>
+          <select name="tecnico">
+            <option value="">Todos</option>
+            <?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $f['tecnico'] === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nome']) ?></option><?php endforeach; ?>
+          </select>
+        </label>
+        <?php if ($filtrosAtivos): ?><a class="agenda-filtros__limpar" href="<?= e($link(['status' => '', 'tecnico' => ''])) ?>">Limpar filtros</a><?php endif; ?>
+        <noscript><button class="btn btn--ghost btn--sm" type="submit">Aplicar</button></noscript>
+      </form>
+    </details>
   </div>
-</form>
+</div>
+<script>
+  // Filtros da agenda: aplicam ao escolher; o painel fecha com Esc ou tocando fora.
+  (function () {
+    var d = document.querySelector('.agenda-filtros');
+    if (!d) return;
+    d.querySelectorAll('[data-aplicar-ao-mudar] select').forEach(function (s) { s.addEventListener('change', function () { s.form.submit(); }); });
+    document.addEventListener('click', function (e) { if (d.open && !d.contains(e.target)) d.open = false; });
+    document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && d.open) { d.open = false; d.querySelector('summary').focus(); } });
+  })();
+</script>
 
 <div class="stat-grid stat-grid--icone">
   <div class="stat-card">

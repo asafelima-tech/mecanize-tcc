@@ -71,10 +71,50 @@ final class FinanceiroTest extends Cenario
         $this->cx->movimentar('SUPRIMENTO', '5', 'Troco');
 
         $this->assertSame(125.0, $this->cx->resumo($cx)['esperado'], '100 + 50 − 30 + 5');
-        $r = $this->cx->fechar('120', 'Faltou');
-        $this->assertSame(-5.0, $r['diferenca']);
+        $r = $this->cx->fechar('Fim do dia');
+        $this->assertSame(125.0, $r['dinheiro'], 'o fechamento é calculado, ninguém digita o valor');
         $this->assertSame('FECHADO', $this->cx->buscar($cx)['status']);
         $this->assertSame('125.00', $this->cx->buscar($cx)['valor_esperado']);
+        $this->assertSame('125.00', $this->cx->buscar($cx)['valor_fechamento']);
+    }
+
+    public function testFechamentoCalculadoEBaseLevadaParaOProximoCaixa(): void
+    {
+        try {
+            $this->cx->abrir('', '');
+            $this->fail('O primeiro caixa precisa do dinheiro inicial.');
+        } catch (DomainException $e) {
+            $this->assertStringContainsString('gaveta', $e->getMessage());
+        }
+        $cx = $this->cx->abrir('200', '');
+        $receita = $this->conta(['tipo' => 'RECEBER', 'categoria' => 'OUTRAS_RECEITAS', 'descricao' => 'Venda', 'valor' => '300']);
+        $this->f->baixar($receita, ['valor' => '100', 'forma' => 'DINHEIRO']);
+        $this->f->baixar($receita, ['valor' => '150', 'forma' => 'PIX']);
+        $this->f->baixar($receita, ['valor' => '50', 'forma' => 'CARTAO_DEBITO']);
+        $despesa = $this->conta(['valor' => '40']);
+        $this->f->baixar($despesa, ['valor' => '40', 'forma' => 'DINHEIRO']);
+
+        $f = $this->cx->fechamento($cx);
+        $this->assertSame(200.0, $f['anterior']);
+        $this->assertSame(300.0, $f['entradas']);
+        $this->assertSame(40.0, $f['saidas']);
+        $this->assertSame(460.0, $f['saldo'], '200 + 300 − 40');
+        $this->assertSame(260.0, $f['dinheiro'], '200 + 100 − 40');
+        $this->assertSame(200.0, $f['outras'], 'PIX 150 + débito 50');
+        $this->assertSame(['DINHEIRO', 'PIX', 'CARTAO_DEBITO'], array_keys($f['formas']));
+
+        $r = $this->cx->fechar('');
+        $this->assertSame(460.0, $r['saldo']);
+
+        // O próximo caixa começa com o dinheiro que ficou; o valor digitado é ignorado.
+        $novo = $this->cx->abrir('9999', '');
+        $this->assertSame('260.00', $this->cx->buscar($novo)['valor_abertura']);
+        $this->assertSame(260.0, $this->cx->fechamento($novo)['saldo']);
+
+        $h = $this->cx->historico(new Paginacao(1));
+        $this->assertSame(260.0, $h[0]['saldo_final'], 'sessão aberta, sem movimento');
+        $this->assertSame(460.0, $h[1]['saldo_final']);
+        $this->assertSame(260.0, $h[1]['dinheiro']);
     }
 
     public function testPixEntraNoCaixaAbertoMasNaoNoDinheiroEsperado(): void

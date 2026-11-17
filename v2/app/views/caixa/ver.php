@@ -1,15 +1,14 @@
 <?php
 /**
  * Consulta de uma sessão de caixa, no formato das outras fichas: identificação no topo (situação, quem abriu e
- * fechou), os números da sessão (abertura, entradas, saídas e o dinheiro esperado ou contado), os movimentos
- * e, ao lado, os totais por forma e as observações. Os valores vêm do mesmo resumo de antes.
- * Espera: $caixa, $resumo, $movimentos
+ * fechou), o fechamento calculado (saldo anterior, entradas, saídas e saldo final), os movimentos e, ao lado,
+ * o mesmo fechamento por forma de pagamento e as observações.
+ * Espera: $caixa, $fechamento, $movimentos
  */
 $titulo = 'Caixa de ' . data_br($caixa['aberto_em']);
 $fechado = $caixa['status'] === 'FECHADO';
-$entradas = 0.0; $saidas = 0.0;
-foreach ($resumo['por_forma'] as $x) { $entradas += $x['ENTRADA'] ?? 0; $saidas += $x['SAIDA'] ?? 0; }
-$dif = $fechado ? (float) $caixa['valor_fechamento'] - (float) $caixa['valor_esperado'] : 0.0;
+// Sessões antigas eram fechadas por contagem da gaveta; se a contagem diferiu do calculado, fica registrado.
+$dif = $fechado && $caixa['valor_esperado'] !== null ? (float) $caixa['valor_fechamento'] - (float) $caixa['valor_esperado'] : 0.0;
 ?>
 <header class="ver-topo">
   <div class="ver-topo__id">
@@ -27,16 +26,12 @@ $dif = $fechado ? (float) $caixa['valor_fechamento'] - (float) $caixa['valor_esp
   <?php if (!$fechado): ?><div class="ver-topo__acoes"><a class="btn btn--primary btn--sm" href="./caixa"><?= icone('cash') ?> Ir para o caixa atual</a></div><?php endif; ?>
 </header>
 
-<div class="ver-numeros" aria-label="Números da sessão">
-  <div><span>Abertura</span><strong><?= dinheiro($caixa['valor_abertura']) ?></strong><small>troco inicial em dinheiro</small></div>
-  <div><span>Entradas</span><strong><?= dinheiro($entradas) ?></strong><small>todas as formas</small></div>
-  <div><span>Saídas</span><strong><?= dinheiro($saidas) ?></strong><small>todas as formas</small></div>
-  <?php if ($fechado): ?>
-    <div><span>Contado no fechamento</span><strong><?= dinheiro($caixa['valor_fechamento']) ?></strong>
-      <small><?= abs($dif) >= 0.005 ? ($dif > 0 ? 'sobra de ' : 'falta de ') . dinheiro(abs($dif)) : 'conferido com o esperado' ?></small></div>
-  <?php else: ?>
-    <div><span>Dinheiro esperado</span><strong><?= dinheiro($resumo['esperado']) ?></strong><small>na gaveta agora</small></div>
-  <?php endif; ?>
+<div class="ver-numeros" aria-label="Fechamento da sessão">
+  <div><span>Saldo anterior</span><strong><?= dinheiro($fechamento['anterior']) ?></strong><small>em dinheiro, do caixa anterior</small></div>
+  <div><span>Entradas</span><strong><?= dinheiro($fechamento['entradas']) ?></strong><small>todas as formas</small></div>
+  <div><span>Saídas</span><strong><?= dinheiro($fechamento['saidas']) ?></strong><small>todas as formas</small></div>
+  <div><span>Saldo final<?= $fechado ? '' : ' até agora' ?></span><strong><?= ($fechamento['saldo'] < 0 ? '− ' : '') . dinheiro(abs($fechamento['saldo'])) ?></strong>
+    <small><?= dinheiro($fechamento['dinheiro']) ?> em dinheiro na gaveta</small></div>
 </div>
 
 <div class="ver-grade">
@@ -50,22 +45,12 @@ $dif = $fechado ? (float) $caixa['valor_fechamento'] - (float) $caixa['valor_esp
   </div>
 
   <aside class="card ver-lado" aria-labelledby="ver-formas">
-    <header class="ver-lado__cabeca"><h2 id="ver-formas">Por forma</h2></header>
-    <dl class="form-ficha__dados form-ficha__dados--lista caixa-formas">
-      <div><dt>Abertura</dt><dd><?= dinheiro($caixa['valor_abertura']) ?></dd></div>
-      <?php foreach (Lancamento::FORMAS as $k => $r): if (!isset($resumo['por_forma'][$k])) continue; $x = $resumo['por_forma'][$k]; ?>
-        <div><dt><?= $r ?></dt><dd><?= isset($x['ENTRADA']) ? '+' . dinheiro($x['ENTRADA']) : '' ?><?= isset($x['ENTRADA'], $x['SAIDA']) ? ' · ' : '' ?><?= isset($x['SAIDA']) ? '−' . dinheiro($x['SAIDA']) : '' ?></dd></div>
-      <?php endforeach; ?>
-    </dl>
-    <div class="resumo-preco">
-      <span>Dinheiro esperado na gaveta</span>
-      <strong><?= dinheiro($resumo['esperado']) ?></strong>
-    </div>
-    <?php if ($fechado): ?>
+    <header class="ver-lado__cabeca"><h2 id="ver-formas">Fechamento</h2></header>
+    <?php $fechamentoTotais = false; $fechamentoAberto = !$fechado; require __DIR__ . '/_fechamento.php'; ?>
+    <?php if (abs($dif) >= 0.005): ?>
       <p class="caixa-conferencia">
-        <?php if (abs($dif) >= 0.005): ?><span class="badge badge--<?= $dif > 0 ? 'neutral' : 'danger' ?>"><?= $dif > 0 ? 'Sobra' : 'Falta' ?> de <?= dinheiro(abs($dif)) ?></span>
-        <?php else: ?><span class="badge badge--success">Conferido</span><?php endif; ?>
-        <span>Contado: <?= dinheiro($caixa['valor_fechamento']) ?></span>
+        <span class="badge badge--<?= $dif > 0 ? 'neutral' : 'danger' ?>"><?= $dif > 0 ? 'Sobra' : 'Falta' ?> de <?= dinheiro(abs($dif)) ?></span>
+        <span>na contagem da gaveta feita no fechamento</span>
       </p>
     <?php endif; ?>
     <?php foreach (['observacao_abertura' => 'Na abertura', 'observacao_fechamento' => 'No fechamento'] as $k => $r): if ($caixa[$k]): ?>

@@ -1,7 +1,6 @@
 <?php
 /**
- * Layout das telas de quem está logado: navegação global no topo (com painéis por grupo), barra da seção,
- * o conteúdo e um rodapé discreto.
+ * Layout das telas de quem está logado: menu lateral, topo e o conteúdo.
  * Espera: $conteudo (HTML da tela) e, opcional, $titulo.
  */
 $rotas     = require V2_RAIZ . '/config/rotas.php';
@@ -40,35 +39,9 @@ if ($itemAtual) {
     $caminho[] = [$titulo, null];
 }
 
-// Navegação global (estilo barra do topo): os grupos do menu viram itens com um painel que abre abaixo,
-// com as telas do grupo em letras grandes e, ao lado, os atalhos de criação do mesmo assunto. Tudo filtrado pela permissão.
-$podeAbrir = fn(string $rota) => isset($rotas[$rota]) && Permissao::permite($perfil, $rotas[$rota][2]);
-$criarPorGrupo = [
-    'Operação'   => [['os-nova', '', 'Ordem de serviço'], ['agenda-form', '', 'Agendamento']],
-    'Financeiro' => [['conta-form', 'tipo=RECEBER', 'Conta a receber'], ['conta-form', 'tipo=PAGAR', 'Conta a pagar']],
-    'Cadastros'  => [['cliente-form', '', 'Cliente'], ['veiculo-form', '', 'Veículo'], ['produto-form', 'tipo=PECA', 'Peça'],
-                     ['produto-form', 'tipo=SERVICO', 'Serviço'], ['fornecedor-form', '', 'Fornecedor'], ['estoque-entrada', '', 'Entrada de peças']],
-    'Gestão'     => [['usuario-form', '', 'Usuário']],
-    'Plataforma' => [['plataforma-nova', '', 'Oficina']],
-];
-$gruposNav = [];
-foreach ($menu as $item) {
-    if (!$podeAbrir($item['rota'])) continue;
-    $item['ativo'] = $rotaAtual === $item['rota'] || in_array($rotaAtual, $item['rotas'] ?? [], true);
-    $chave = $item['grupo'] === '' ? '_solto' . count($gruposNav) : $item['grupo'];
-    if (!isset($gruposNav[$chave])) {
-        $gruposNav[$chave] = ['nome' => $item['grupo'], 'itens' => [], 'ativo' => false,
-            'criar' => array_values(array_filter($criarPorGrupo[$item['grupo']] ?? [], fn($c) => $podeAbrir($c[0])))];
-    }
-    $gruposNav[$chave]['itens'][] = $item;
-    $gruposNav[$chave]['ativo'] = $gruposNav[$chave]['ativo'] || $item['ativo'];
-}
-$gruposNav = array_values($gruposNav);
-// Barra da seção (abaixo da navegação): o nome da tela do menu e as telas irmãs do mesmo grupo.
-$irmaos = $itemAtual ? array_values(array_filter($menu, fn($i) => $i['grupo'] !== '' && $i['grupo'] === $itemAtual['grupo'] && $podeAbrir($i['rota']))) : [];
-
-// Situação do caixa no topo: a gaveta é da oficina, todo mundo da equipe vê.
-$caixaAberto = $oficina ? (new Caixa())->aberto() : null;
+// Situação do caixa no topo: só para quem opera o caixa (o técnico não vê).
+$veCaixa = $oficina && Permissao::permite($perfil, Permissao::BALCAO);
+$caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
 ?>
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -81,6 +54,7 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
   <?php require V2_RAIZ . '/app/views/layout/_favicon.php'; ?>
   <link rel="stylesheet" href="./css/mecanize.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/mecanize.css') ?>">
   <link rel="stylesheet" href="./css/identidade.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/identidade.css') ?>">
+  <link rel="stylesheet" href="./css/responsivo.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/responsivo.css') ?>">
   <script>
     // Tema antes de desenhar a tela (sem "piscar" claro → escuro).
     (function () {
@@ -89,6 +63,7 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
         if (salvo === 'dark' || (!salvo && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
+        if (localStorage.getItem('sidebar-collapsed') === 'true') document.documentElement.classList.add('pre-collapsed');
       } catch (e) {}
     })();
   </script>
@@ -96,112 +71,140 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
 
 <body>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
-  <header class="gn" id="gn">
-    <nav class="gn__barra" aria-label="Menu principal">
-      <a class="gn__marca" href="./<?= e(Permissao::inicio($perfil)) ?>" aria-label="Mecanize — início">
-        <img class="gn__logo gn__logo--claro" src="./img/logo.png" alt="Mecanize">
-        <img class="gn__logo gn__logo--escuro" src="./img/logo-branco.png" alt="" aria-hidden="true">
-      </a>
-
-      <ul class="gn__itens" id="gn-itens">
-        <?php foreach ($gruposNav as $g => $grupo): $temAtivo = $grupo['ativo']; ?>
-          <?php if ($grupo['nome'] === ''): foreach ($grupo['itens'] as $item): $ativo = $item['ativo']; ?>
-            <li class="gn__item gn__item--solto"><a class="gn__link<?= $ativo ? ' is-ativo' : '' ?>" href="./<?= e($item['rota']) ?>" <?= $ativo ? 'aria-current="page"' : '' ?>><?= e($item['rotulo']) ?></a></li>
-          <?php endforeach; else: ?>
-            <li class="gn__item" data-gn-item>
-              <button type="button" class="gn__link<?= $temAtivo ? ' is-ativo' : '' ?>" aria-expanded="false" aria-controls="gn-fly-<?= $g ?>"><?= e($grupo['nome']) ?></button>
-              <div class="gn__flyout" id="gn-fly-<?= $g ?>">
-                <div class="gn__flyout-in">
-                  <div class="gn__col gn__col--principal">
-                    <h2 class="gn__col-titulo"><?= e($grupo['nome']) ?></h2>
-                    <ul>
-                      <?php foreach ($grupo['itens'] as $item): ?>
-                        <li><a class="gn__grande<?= $item['ativo'] ? ' is-ativo' : '' ?>" href="./<?= e($item['rota']) ?>" <?= $item['ativo'] ? 'aria-current="page"' : '' ?>><?= e($item['rotulo']) ?></a></li>
-                      <?php endforeach; ?>
-                    </ul>
-                  </div>
-                  <?php if ($grupo['criar']): ?>
-                    <div class="gn__col">
-                      <h2 class="gn__col-titulo">Criar</h2>
-                      <ul>
-                        <?php foreach ($grupo['criar'] as [$rota, $query, $rotulo]): ?>
-                          <li><a class="gn__pequeno" href="./<?= e($rota) ?><?= $query !== '' ? '?' . e($query) : '' ?>"><?= e($rotulo) ?></a></li>
-                        <?php endforeach; ?>
-                      </ul>
-                    </div>
-                  <?php endif; ?>
-                </div>
-              </div>
-            </li>
-          <?php endif; ?>
-        <?php endforeach; ?>
-      </ul>
-
-      <div class="gn__direita">
-        <?php require __DIR__ . '/_criar.php'; ?>
-        <?php if ($oficina): ?>
-          <a class="gn-caixa<?= $caixaAberto ? ' is-aberto' : '' ?>" href="./caixa" title="<?= $caixaAberto ? 'Caixa aberto desde ' . e(data_br($caixaAberto['aberto_em'], true)) : 'Caixa fechado' ?>">
-            <span class="gn-caixa__ponto" aria-hidden="true"></span><span class="gn-caixa__texto"><?= $caixaAberto ? 'Caixa aberto' : 'Caixa fechado' ?></span>
-          </a>
-          <button type="button" class="gn-icone topbar-sino" data-abrir-avisos aria-haspopup="dialog" aria-controls="dlg-avisos" aria-label="Avisos<?= $avisosNaoLidos ? ' (' . $avisosNaoLidos . ' não lidos)' : '' ?>" title="Avisos">
-            <?= icone('bell', 17) ?><?php if ($avisosNaoLidos): ?><span class="topbar-sino__n"><?= $avisosNaoLidos > 9 ? '9+' : $avisosNaoLidos ?></span><?php endif; ?>
-          </button>
-        <?php endif; ?>
-        <div class="gn__item gn__item--conta" data-gn-item>
-          <button type="button" class="gn-avatar" aria-expanded="false" aria-controls="gn-fly-conta" aria-label="Sua conta: <?= e($usuario['nome']) ?>" title="<?= e($usuario['nome']) ?>"><?= e($iniciais) ?></button>
-          <div class="gn__flyout gn__flyout--conta" id="gn-fly-conta">
-            <div class="gn-conta">
-              <div class="gn-conta__quem">
-                <span class="gn-conta__avatar" aria-hidden="true"><?= e($iniciais) ?></span>
-                <div><strong><?= e($usuario['nome']) ?></strong><span><?= e($nomesPerfil[$perfil] ?? $perfil) ?><?= $oficina ? ' · ' . e($oficina['nome']) : '' ?></span></div>
-              </div>
-              <a class="gn-conta__opcao" href="<?= $oficina ? './perfil' : './plataforma' ?>"><?= icone('user', 16) ?> Meu perfil</a>
-              <button type="button" class="gn-conta__opcao" id="darkToggle" aria-label="Alternar tema escuro"><?= icone('eye', 16) ?> <span>Tema escuro</span><span class="interruptor" aria-hidden="true"></span></button>
-              <a class="gn-conta__opcao" href="./sair"><?= icone('logout', 16) ?> Sair</a>
-            </div>
-          </div>
-        </div>
-        <button type="button" class="gn-icone gn__hamburger" id="mobileNavToggle" aria-label="Abrir menu" aria-expanded="false" aria-controls="gn-itens"><?= icone('menu', 18) ?></button>
+  <div class="app">
+    <aside class="sidebar" id="menu-principal" aria-label="Menu principal">
+      <div class="sidebar__brand">
+        <a href="./<?= e(Permissao::inicio($perfil)) ?>" aria-label="Mecanize — início">
+          <img class="sidebar__logo-full logo-p-claro" src="./img/logo.png" alt="Mecanize">
+          <img class="sidebar__logo-full logo-p-escuro" src="./img/logo-branco.png" alt="" aria-hidden="true">
+          <img class="sidebar__logo-icon logo-p-claro" src="./img/simbolo.png" alt="Mecanize">
+          <img class="sidebar__logo-icon logo-p-escuro" src="./img/simbolo-branco-recorte.png" alt="" aria-hidden="true">
+        </a>
+        <button type="button" class="sidebar__retrair" id="sidebarCollapseBtn" aria-label="Retrair barra lateral" title="Retrair barra lateral"><?= icone('sidebar-collapse', 20) ?></button>
       </div>
-    </nav>
-  </header>
-  <div class="gn-veu" id="gn-veu" aria-hidden="true"></div>
 
-  <?php if ($itemAtual && $itemAtual['grupo'] !== ''): ?>
-    <div class="ln">
-      <div class="ln__in">
-        <a class="ln__titulo" href="./<?= e($itemAtual['rota']) ?>"><?= e($itemAtual['rotulo']) ?></a>
-        <?php if (count($irmaos) > 1): ?>
-          <nav class="ln__links" aria-label="<?= e($itemAtual['grupo'] ?: 'Seção') ?>">
-            <?php foreach ($irmaos as $ir): ?>
-              <a href="./<?= e($ir['rota']) ?>"<?= $ir['rota'] === $itemAtual['rota'] ? ' class="is-ativo" aria-current="true"' : '' ?>><?= e($ir['rotulo']) ?></a>
+      <?php $grupoAtual = null; foreach ($menu as $item):
+        if (!isset($rotas[$item['rota']]) || !Permissao::permite($perfil, $rotas[$item['rota']][2])) continue;
+        $ativo = $rotaAtual === $item['rota'] || in_array($rotaAtual, $item['rotas'] ?? [], true);
+        if ($item['grupo'] !== $grupoAtual):
+          if ($grupoAtual !== null) echo '</nav>';
+          $grupoAtual = $item['grupo']; ?>
+        <nav class="sidebar__grupo" aria-label="<?= e($grupoAtual !== '' ? $grupoAtual : 'Início') ?>"><?php if ($grupoAtual !== ''): ?><span class="sidebar__rotulo"><?= e($grupoAtual) ?></span><?php endif; ?>
+        <?php endif; ?>
+          <a class="sidebar__item<?= $ativo ? ' is-active' : '' ?>" href="./<?= e($item['rota']) ?>" title="<?= e($item['rotulo']) ?>" <?= $ativo ? 'aria-current="page"' : '' ?>>
+            <?= icone($item['icone'], 20, $ativo ? 2 : 1.5) ?><span class="label"><?= e($item['rotulo']) ?></span>
+          </a>
+      <?php endforeach; if ($grupoAtual !== null) echo '</nav>'; ?>
+
+      <div class="sidebar__rodape">
+        <button type="button" class="sidebar__tema" id="darkToggle" aria-label="Alternar tema escuro"><span class="interruptor" aria-hidden="true"></span><span>Tema escuro</span></button>
+        <div class="sidebar__perfil">
+          <a href="<?= $oficina ? './perfil' : './plataforma' ?>" title="Meu perfil<?= $oficina ? ' · ' . e($oficina['nome']) : '' ?>">
+            <span class="sidebar__avatar"><?= e($iniciais) ?></span>
+            <div style="min-width:0"><div class="sidebar__nome"><?= e($usuario['nome']) ?></div><div class="sidebar__papel"><?= e($nomesPerfil[$perfil] ?? $perfil) ?></div></div>
+          </a>
+          <a href="./sair" class="sidebar__sair" aria-label="Sair" title="Sair"><?= icone('logout', 16) ?></a>
+        </div>
+      </div>
+    </aside>
+    <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
+
+    <div class="main">
+      <header class="topbar">
+        <button type="button" class="topbar__hamburger" id="mobileNavToggle" aria-label="Abrir menu"><?= icone('menu', 20) ?></button>
+        <?php if ($caminho): ?>
+          <nav class="topbar__caminho" aria-label="Você está em">
+            <?php foreach ($caminho as $k => [$rotulo, $link]): ?>
+              <?php if ($k > 0): ?><span class="topbar__sep" aria-hidden="true"><?= icone('chevron-right', 12, 2) ?></span><?php endif; ?>
+              <?php if ($link): ?><a href="<?= e($link) ?>"><?= e($rotulo) ?></a><?php elseif ($k === count($caminho) - 1): ?><b aria-current="page"><?= e($rotulo) ?></b><?php else: ?><span><?= e($rotulo) ?></span><?php endif; ?>
             <?php endforeach; ?>
           </nav>
         <?php endif; ?>
-      </div>
+        <div class="topbar__right">
+          <?php require __DIR__ . '/_criar.php'; ?>
+          <?php if ($oficina): ?>
+            <?php if ($veCaixa): ?>
+            <a class="topbar-caixa<?= $caixaAberto ? ' is-aberto' : '' ?>" href="./caixa" title="<?= $caixaAberto ? 'Caixa aberto desde ' . e(data_br($caixaAberto['aberto_em'], true)) : 'Caixa fechado' ?>">
+              <span class="topbar-caixa__ponto" aria-hidden="true"></span><?= $caixaAberto ? 'Caixa aberto · ' . e(strtok((string) $caixaAberto['aberto_por_nome'], ' ')) : 'Caixa fechado' ?>
+            </a>
+            <?php endif; ?>
+            <button type="button" class="topbar-sino" data-abrir-avisos aria-haspopup="dialog" aria-controls="dlg-avisos" aria-label="Avisos<?= $avisosNaoLidos ? ' (' . $avisosNaoLidos . ' não lidos)' : '' ?>" title="Avisos">
+              <?= icone('bell', 18) ?><?php if ($avisosNaoLidos): ?><span class="topbar-sino__n"><?= $avisosNaoLidos > 9 ? '9+' : $avisosNaoLidos ?></span><?php endif; ?>
+            </button>
+          <?php endif; ?>
+        </div>
+      </header>
+
+      <main class="content" id="conteudo">
+        <?php if ($avisoLicenca): ?>
+          <?php $alertaTipo = $somenteLeitura ? 'erro' : 'aviso'; $alertaTitulo = $somenteLeitura ? 'Somente leitura' : 'Licença';
+                $alertaMensagem = $avisoLicenca; require __DIR__ . '/_alerta.php'; ?>
+        <?php endif; ?>
+        <?php if ($aviso): ?>
+          <?php $alertaTipo = $aviso['tipo']; $alertaMensagem = $aviso['mensagem']; require __DIR__ . '/_alerta.php'; ?>
+        <?php endif; ?>
+
+        <?= $conteudo ?>
+      </main>
     </div>
-  <?php endif; ?>
-
-  <main class="content" id="conteudo">
-    <?php if ($avisoLicenca): ?>
-      <?php $alertaTipo = $somenteLeitura ? 'erro' : 'aviso'; $alertaTitulo = $somenteLeitura ? 'Somente leitura' : 'Licença';
-            $alertaMensagem = $avisoLicenca; require __DIR__ . '/_alerta.php'; ?>
-    <?php endif; ?>
-    <?php if ($aviso): ?>
-      <?php $alertaTipo = $aviso['tipo']; $alertaMensagem = $aviso['mensagem']; require __DIR__ . '/_alerta.php'; ?>
-    <?php endif; ?>
-
-    <?= $conteudo ?>
-  </main>
-
-  <footer class="rodape-app">
-    <div class="rodape-app__in">
-      <span>Mecanize<?= $oficina ? ' · ' . e($oficina['nome']) : '' ?></span>
-      <span>Conectado como <?= e($usuario['nome']) ?> · <?= e($nomesPerfil[$perfil] ?? $perfil) ?></span>
-      <span>© <?= date('Y') ?> Mecanize</span>
-    </div>
-  </footer>
+  </div>
   <?php if ($oficina) require __DIR__ . '/_avisos.php'; ?>
+  <script>
+    // Tabelas no celular: cada linha vira um cartão (ver responsivo.css, seção 7). Aqui cada célula recebe o nome
+    // da sua coluna (data-rotulo) e são marcadas a coluna principal (título do cartão) e a de ações.
+    (function () {
+      var PRINCIPAL = /^(os|nome|cliente|descri|fornecedor|produto|pe[cç]a|servi[cç]o|usu[aá]rio|item|sess[aã]o|oficina|t[eé]cnico|conta|ve[ií]culo)/i;
+      function rotular(tabela) {
+        if (tabela.dataset.semCartao !== undefined || tabela.dataset.rotulada) return;
+        var linhaCab = tabela.tHead && tabela.tHead.rows[tabela.tHead.rows.length - 1];
+        if (!linhaCab) return;
+        var cab = [];
+        [].forEach.call(linhaCab.cells, function (th) {
+          var t = (th.textContent || '').replace(/\s+/g, ' ').trim();
+          for (var k = 0; k < (th.colSpan || 1); k++) cab.push(t);
+        });
+        var principal = 0;
+        if (!PRINCIPAL.test(cab[0] || '')) { for (var i = 1; i < cab.length; i++) if (PRINCIPAL.test(cab[i])) { principal = i; break; } }
+        var ultimo = cab.length - 1, acoes = /^(a[cç][oõ]es)?$/i.test(cab[ultimo] || '') ? ultimo : -1;
+        [].forEach.call(tabela.tBodies, function (tb) {
+          [].forEach.call(tb.rows, function (tr) {
+            var col = 0;
+            [].forEach.call(tr.cells, function (td) {
+              if (td.colSpan > 1 && tr.cells.length === 1) { col += td.colSpan; return; }
+              if (col === principal) td.classList.add('td-principal');
+              else if (col === acoes) td.classList.add('td-acoes');
+              else if (cab[col]) td.setAttribute('data-rotulo', cab[col]);
+              else td.classList.add('td-vazio');
+              col += td.colSpan || 1;
+            });
+          });
+        });
+        tabela.classList.add('table--cartoes');
+        tabela.dataset.rotulada = '1';
+      }
+      function rotularTudo(raiz) { (raiz || document).querySelectorAll('table.table').forEach(rotular); }
+      window.rotularTabelas = rotularTudo;
+      // Menus "⋯" fora de tabelas: se a lista abrir além da borda esquerda, ela passa a abrir para a direita.
+      document.addEventListener('toggle', function (e) {
+        var d = e.target;
+        if (!d.matches || !d.matches('details.menu-mais') || !d.open || d.closest('.table-wrap') || window.innerWidth < 600) return;
+        var l = d.querySelector('.menu-mais__lista');
+        if (!l) return;
+        l.classList.remove('is-a-direita');
+        if (l.getBoundingClientRect().left < 8) l.classList.add('is-a-direita');
+      }, true);
+      rotularTudo();
+      if (window.MutationObserver) {
+        new MutationObserver(function (ms) {
+          ms.forEach(function (m) { [].forEach.call(m.addedNodes, function (n) {
+            if (n.nodeType !== 1) return;
+            var t = n.closest && n.closest('table.table');
+            if (t) { delete t.dataset.rotulada; rotular(t); } else if (n.querySelectorAll) rotularTudo(n);
+          }); });
+        }).observe(document.querySelector('.content') || document.body, { childList: true, subtree: true });
+      }
+    })();
+  </script>
   <script src="./js/campos.js?v=<?= (int) @filemtime(V2_RAIZ . '/public/js/campos.js') ?>"></script>
 
   <script>
@@ -214,52 +217,92 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
         try { localStorage.setItem('mecanize-theme', escuro ? 'dark' : 'light'); } catch (e) {}
       });
 
-      // Navegação global: cada grupo abre o seu painel ao passar o mouse (com uma pequena espera) ou ao clicar;
-      // fecha ao sair da barra, com Esc ou clicando fora. No celular, o botão de menu abre a lista inteira.
-      var gn = document.getElementById('gn'), veu = document.getElementById('gn-veu');
-      var itens = Array.prototype.slice.call(document.querySelectorAll('[data-gn-item]'));
-      var timer = null, aberto = null;
-      var desktop = function () { return window.matchMedia('(min-width: 1025px)').matches; };
-      function abrir(li) {
-        if (aberto === li) return;
-        if (aberto) fecharItem(aberto);
-        aberto = li;
-        li.classList.add('is-aberto');
-        li.querySelector('[aria-expanded]').setAttribute('aria-expanded', 'true');
-        document.body.classList.toggle('gn-aberto', !li.classList.contains('gn__item--conta'));
-      }
-      function fecharItem(li) {
-        li.classList.remove('is-aberto');
-        li.querySelector('[aria-expanded]').setAttribute('aria-expanded', 'false');
-      }
-      function fecharTudo() {
-        clearTimeout(timer);
-        if (aberto) fecharItem(aberto);
-        aberto = null;
-        document.body.classList.remove('gn-aberto');
-      }
-      itens.forEach(function (li) {
-        var bt = li.querySelector('[aria-expanded]');
-        bt.addEventListener('click', function (e) { e.stopPropagation(); if (aberto === li) fecharTudo(); else abrir(li); });
-        if (!li.classList.contains('gn__item--conta')) {
-          li.addEventListener('mouseenter', function () { if (!desktop()) return; clearTimeout(timer); timer = setTimeout(function () { abrir(li); }, aberto ? 0 : 140); });
-        }
-      });
-      if (gn) gn.addEventListener('mouseleave', function () { if (!desktop() || !aberto || aberto.classList.contains('gn__item--conta')) return; clearTimeout(timer); timer = setTimeout(fecharTudo, 180); });
-      if (gn) gn.addEventListener('mouseenter', function () { if (aberto && !aberto.classList.contains('gn__item--conta')) clearTimeout(timer); });
-      document.addEventListener('click', function (e) { if (aberto && !aberto.contains(e.target)) fecharTudo(); });
-      document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && aberto) { var b = aberto.querySelector('[aria-expanded]'); fecharTudo(); b.focus(); } });
-      if (veu) veu.addEventListener('click', fecharTudo);
+      if (html.classList.contains('pre-collapsed')) document.body.classList.add('sidebar-collapsed');
+      var recolher = document.getElementById('sidebarCollapseBtn');
+      if (recolher) (function () {
+        // Recolher/expandir com movimento contínuo: a coluna anima pelo CSS e os itens que mudam de lugar
+        // (ícones, títulos de grupo, logo, perfil) deslizam da posição antiga para a nova (técnica FLIP).
+        var corpo = document.body, barra = document.querySelector('.sidebar'), ocupado = false;
+        var ALVOS = '.sidebar__brand > a, .sidebar__retrair, .sidebar__rotulo, .sidebar__item, .sidebar__tema, .sidebar__perfil';
+        var TEXTOS = '.sidebar__item .label, .sidebar__rotulo, .sidebar__logo-full, .sidebar__tema > span:not(.interruptor), .sidebar__perfil > a:first-child > div, .sidebar__sair';
+        var CURVA = 'cubic-bezier(.32, .72, 0, 1)';
+        var semAnimacao = function () {
+          return !barra || !barra.animate || window.innerWidth <= 900 || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+        };
+        var lista = function () { return [].slice.call(barra.querySelectorAll(ALVOS)); };
+        var medir = function (els) { return els.map(function (el) { return el.getBoundingClientRect(); }); };
+        var deslizar = function (els, antes, depois, dur, soVertical) {
+          els.forEach(function (el, i) {
+            var a = antes[i], b = depois[i];
+            if (!a.width || !b.width) return;
+            var dx = soVertical && soVertical(el) ? 0 : a.left - b.left, dy = a.top - b.top;
+            if (Math.abs(dx) < .5 && Math.abs(dy) < .5) return;
+            el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: dur, easing: CURVA });
+          });
+        };
+        var surgir = function (sel, atraso, dur) {
+          [].forEach.call(barra.querySelectorAll(sel), function (el) {
+            el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, delay: atraso, easing: 'ease-out', fill: 'backwards' });
+          });
+        };
+        var recolherBarra = function () {
+          corpo.classList.add('sidebar-fechando');               // a coluna encolhe e os textos esmaecem
+          setTimeout(function () {
+            var els = lista(), antes = medir(els);
+            corpo.classList.add('sidebar-collapsed');
+            corpo.classList.remove('sidebar-fechando');
+            deslizar(els, antes, medir(els), 280);                // os ícones se acomodam no centro
+            surgir('.sidebar__logo-icon, .sidebar__rotulo', 40, 240);
+            setTimeout(function () { ocupado = false; }, 290);
+          }, 330);
+        };
+        var expandirBarra = function () {
+          var els = lista(), antes = medir(els);
+          corpo.classList.add('sidebar-medindo');                 // mede a posição final sem transição
+          corpo.classList.remove('sidebar-collapsed');
+          var depois = medir(els);
+          corpo.classList.add('sidebar-collapsed');
+          void barra.offsetWidth;
+          corpo.classList.remove('sidebar-medindo');
+          void barra.offsetWidth;
+          corpo.classList.remove('sidebar-collapsed');            // agora a coluna cresce com transição
+          deslizar(els, antes, depois, 340, function (el) { return el.classList.contains('sidebar__retrair'); });
+          surgir(TEXTOS, 90, 280);
+          setTimeout(function () { ocupado = false; }, 350);
+        };
+        recolher.addEventListener('click', function () {
+          if (ocupado) return;
+          var r = !corpo.classList.contains('sidebar-collapsed');
+          recolher.setAttribute('aria-label', r ? 'Expandir barra lateral' : 'Retrair barra lateral');
+          try { localStorage.setItem('sidebar-collapsed', r); } catch (e) {}
+          if (semAnimacao()) { corpo.classList.toggle('sidebar-collapsed', r); return; }
+          ocupado = true;
+          if (r) recolherBarra(); else expandirBarra();
+        });
+      })();
 
       var hamb = document.getElementById('mobileNavToggle');
-      var fecharMenu = function () { document.body.classList.remove('mobile-nav-open'); if (hamb) hamb.setAttribute('aria-expanded', 'false'); };
-      if (hamb) hamb.addEventListener('click', function (e) {
-        e.stopPropagation();
-        var a = document.body.classList.toggle('mobile-nav-open');
-        hamb.setAttribute('aria-expanded', a ? 'true' : 'false');
-        hamb.setAttribute('aria-label', a ? 'Fechar menu' : 'Abrir menu');
-      });
-      window.addEventListener('resize', function () { if (desktop()) fecharMenu(); });
+      var fechar = function () {
+        if (!document.body.classList.contains('mobile-nav-open')) return;
+        document.body.classList.remove('mobile-nav-open');
+        if (hamb) { hamb.setAttribute('aria-expanded', 'false'); hamb.focus({ preventScroll: true }); }
+      };
+      if (hamb) {
+        hamb.setAttribute('aria-expanded', 'false');
+        hamb.setAttribute('aria-controls', 'menu-principal');
+        hamb.addEventListener('click', function (e) {
+          e.stopPropagation();
+          var aberto = document.body.classList.toggle('mobile-nav-open');
+          hamb.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+          if (aberto) { var ativo = document.querySelector('.sidebar__item.is-active') || document.querySelector('.sidebar__item'); if (ativo) ativo.focus({ preventScroll: true }); }
+        });
+      }
+      // Menu sobreposto: fecha com Esc e ao escolher um destino.
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
+      document.querySelectorAll('.sidebar a').forEach(function (a) { a.addEventListener('click', function () { if (window.innerWidth <= 899) fechar(); }); });
+      var fundo = document.getElementById('sidebarBackdrop');
+      if (fundo) fundo.addEventListener('click', fechar);
+      window.addEventListener('resize', function () { if (window.innerWidth > 900) fechar(); });
 
       // Criar: painel logo abaixo do botão. Abre e fecha no botão; fecha no Esc, clicando fora ou ao escolher.
       var btCriar = document.querySelector('[data-abrir-criar]'), pnCriar = document.getElementById('painel-criar');
@@ -283,18 +326,20 @@ $caixaAberto = $oficina ? (new Caixa())->aberto() : null;
         });
       }
 
-      // Avisos: janela aberta pelo sininho. Fecha com Esc, com o X ou clicando fora dela.
+      // Avisos: painel simples ancorado no sininho (não é janela modal: sem véu, sem travar a página).
+      // O sininho abre e fecha; também fecha com Esc, com o X ou clicando fora.
       var dlgAvisos = document.getElementById('dlg-avisos');
       var sino = document.querySelector('[data-abrir-avisos]');
       if (dlgAvisos && sino) {
-        var abrirAvisos = function () { if (!dlgAvisos.open) { dlgAvisos.showModal(); sino.setAttribute('aria-expanded', 'true'); } };
-        sino.addEventListener('click', abrirAvisos);
+        sino.setAttribute('aria-haspopup', 'true');
+        sino.setAttribute('aria-expanded', 'false');
+        var abrirAvisos = function () { if (!dlgAvisos.open) { dlgAvisos.show(); sino.setAttribute('aria-expanded', 'true'); } };
+        var fecharAvisos = function () { if (dlgAvisos.open) dlgAvisos.close(); };
+        sino.addEventListener('click', function (e) { e.stopPropagation(); dlgAvisos.open ? fecharAvisos() : abrirAvisos(); });
         dlgAvisos.addEventListener('close', function () { sino.setAttribute('aria-expanded', 'false'); });
-        dlgAvisos.addEventListener('click', function (e) {
-          var r = dlgAvisos.getBoundingClientRect();
-          if (e.target === dlgAvisos && (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom)) dlgAvisos.close();
-        });
-        dlgAvisos.querySelector('[data-fechar-avisos]').addEventListener('click', function () { dlgAvisos.close(); });
+        document.addEventListener('click', function (e) { if (dlgAvisos.open && !dlgAvisos.contains(e.target)) fecharAvisos(); });
+        document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dlgAvisos.open) { fecharAvisos(); sino.focus(); } });
+        dlgAvisos.querySelector('[data-fechar-avisos]').addEventListener('click', fecharAvisos);
         if (location.hash === '#avisos') { history.replaceState(null, '', location.pathname + location.search); abrirAvisos(); }
 
         // "Marcar todos como lidos" sem sair da página (sem JS, o formulário volta para cá).

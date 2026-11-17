@@ -7,20 +7,22 @@
  *   PUBLICO     sem login (entrar, recuperar senha, link de acompanhamento)
  *   LOGADO      qualquer pessoa logada, inclusive a plataforma (sair, o próprio perfil)
  *   EQUIPE      ADMIN, ATENDENTE e TECNICO da oficina — a operação do dia a dia
+ *   BALCAO      ADMIN e ATENDENTE — dinheiro: caixa e recebimento pela OS (o técnico não mexe em dinheiro)
  *   ADMIN       só o administrador da oficina (usuários, financeiro, relatórios, configurações)
  *   PLATAFORMA  só a equipe do Mecanize (cadastro de oficinas e licenças); não vê dados de oficina
  *
- * ATENDENTE e TECNICO têm as mesmas permissões (decisão da v1, mantida): muda a tela inicial, não o acesso.
+ * ATENDENTE e TECNICO têm as mesmas permissões, exceto o dinheiro: caixa e recebimento são só do BALCAO.
  */
 final class Permissao
 {
     public const PUBLICO    = 'PUBLICO';
     public const LOGADO     = 'LOGADO';
     public const EQUIPE     = 'EQUIPE';
+    public const BALCAO     = 'BALCAO';
     public const ADMIN      = 'ADMIN';
     public const PLATAFORMA = 'PLATAFORMA';
 
-    public const NIVEIS = [self::PUBLICO, self::LOGADO, self::EQUIPE, self::ADMIN, self::PLATAFORMA];
+    public const NIVEIS = [self::PUBLICO, self::LOGADO, self::EQUIPE, self::BALCAO, self::ADMIN, self::PLATAFORMA];
 
     public const PERFIS_OFICINA = ['ADMIN', 'ATENDENTE', 'TECNICO'];
 
@@ -33,6 +35,8 @@ final class Permissao
                 return $perfil !== null;
             case self::EQUIPE:
                 return in_array($perfil, self::PERFIS_OFICINA, true);
+            case self::BALCAO:
+                return in_array($perfil, ['ADMIN', 'ATENDENTE'], true);
             case self::ADMIN:
                 return $perfil === 'ADMIN';
             case self::PLATAFORMA:

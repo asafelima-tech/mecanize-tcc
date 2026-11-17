@@ -1,6 +1,6 @@
 <?php /** Espera: $caixas, $p */ $titulo = 'Sessões de caixa'; ?>
 <div class="page-header">
-  <div><h1 class="page-header__title">Sessões de caixa</h1><p class="page-header__subtitle">Aberturas e fechamentos da gaveta, com a conferência de cada um.</p></div>
+  <div><h1 class="page-header__title">Sessões de caixa</h1><p class="page-header__subtitle">Aberturas e fechamentos, com o saldo calculado de cada sessão.</p></div>
   <div class="page-header__actions"><a class="btn btn--contorno" href="./caixa"><?= icone('arrow-left') ?> Caixa atual</a></div>
 </div>
 <div class="card card--tabela">

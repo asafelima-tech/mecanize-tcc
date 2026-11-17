@@ -64,8 +64,7 @@ $totalTela = $kanban ? array_sum(array_map('count', $colunas)) : (int) $p->total
                 <td><a href="<?= e($link) ?>"><?= os_numero($o['numero']) ?></a></td>
                 <td><?= e($o['cliente']) ?><?php if ($o['cliente_telefone']): ?><span class="sub"><?= e(telefone_fmt($o['cliente_telefone'])) ?></span><?php endif; ?></td>
                 <td><?= e($o['modelo'] ?: 'Veículo') ?><span class="sub placa"><?= e($o['placa']) ?></span></td>
-                <td><span class="badge badge--<?= $cor ?>"><?= $r ?></span>
-                  <?php if (OrdemServico::atrasada($o)): ?><span class="sub"><strong>Atrasada</strong></span><?php endif; ?></td>
+                <td><span class="os-situacao"><span class="badge badge--<?= $cor ?>"><?= $r ?></span><?php if (OrdemServico::atrasada($o)): ?><span class="os-situacao__atraso" title="Passou da previsão de entrega (<?= e(data_br($o['previsao_conclusao'], true)) ?>)"><?= icone('clock', 13, 2) ?>Atrasada</span><?php endif; ?></span></td>
                 <td class="secundario tabular"><?= data_br($o['criado_em']) ?></td>
                 <td><?= e($o['tecnico'] ?? '—') ?></td>
                 <td class="num"><strong><?= dinheiro($o['valor_total']) ?></strong></td>

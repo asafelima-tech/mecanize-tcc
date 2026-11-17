@@ -17,7 +17,7 @@ $iniciais = $partes ? mb_strtoupper(mb_substr($partes[0], 0, 1) . (count($partes
 $descPerfil = [
     'ADMIN'     => ['lock', 'Tudo da oficina, inclusive financeiro, relatórios, configurações e usuários.'],
     'ATENDENTE' => ['users', 'Operação do dia a dia: clientes, veículos, agenda, OS e caixa.'],
-    'TECNICO'   => ['mechanic', 'As mesmas permissões do atendente; responde pelas OS e pode ter comissão.'],
+    'TECNICO'   => ['mechanic', 'Conduz e responde pelas OS e pode ter comissão. Não acessa caixa nem financeiro.'],
 ];
 $bloqueado = !empty($u['bloqueado_ate']) && strtotime($u['bloqueado_ate']) > time();
 $situacao = !isset($u['ativo']) ? null : ($u['ativo'] ? ($bloqueado ? 'Bloqueado por tentativas' : 'Ativo') : 'Inativo');

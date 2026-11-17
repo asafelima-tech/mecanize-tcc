@@ -42,6 +42,20 @@ final class OrdemServico extends Modelo
 
     /** Colunas do Kanban: as situações em aberto, na ordem do fluxo. */
     public const KANBAN = ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA'];
+
+    /**
+     * O que acontece ao arrastar uma OS no Kanban ("de>para" => operação). São as mesmas operações
+     * dos botões da tela da OS, com as mesmas regras (estoque, aprovação, comissão). Fora desta
+     * lista o Kanban não aceita: "Aguardando peça" é decidido pelo estoque, e entregar ou cancelar
+     * continuam na tela da OS.
+     */
+    public const MOVIMENTOS_KANBAN = [
+        'ORCAMENTO>APROVADA'          => 'aprovar',
+        'APROVADA>EM_EXECUCAO'        => 'iniciar',
+        'AGUARDANDO_PECA>EM_EXECUCAO' => 'baixar',
+        'EM_EXECUCAO>PRONTA'          => 'concluir',
+        'PRONTA>EM_EXECUCAO'          => 'retomar',
+    ];
     public const KANBAN_LIMITE = 200;
 
     private Historico $hist;
@@ -87,8 +101,8 @@ final class OrdemServico extends Modelo
     }
 
     /**
-     * OS em aberto agrupadas por situação, para o Kanban. É só consulta: a troca de situação
-     * continua na tela da OS, onde ficam as regras de estoque, aprovação e comissão.
+     * OS em aberto agrupadas por situação, para o Kanban. A troca de situação ao arrastar um
+     * cartão passa pelas mesmas operações da tela da OS (ver MOVIMENTOS_KANBAN).
      * Devolve [situação => [OS...]] com todas as colunas (mesmo vazias) e no máximo $limite OS.
      */
     public function kanban(array $f, int $limite = self::KANBAN_LIMITE): array

@@ -124,13 +124,13 @@ final class Painel extends Modelo
                AND entregue_em < DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01') + INTERVAL DAY(CURDATE()) DAY"
         );
 
-        // Fluxo dos últimos 7 dias: OS abertas por dia e receita (OS entregues) por dia.
+        // Fluxo dos últimos 30 dias: OS abertas por dia e receita (OS entregues) por dia.
         $abertas = [];
         foreach ($this->lista("SELECT DATE(criado_em) AS dia, COUNT(*) AS n FROM ordens_servico
-                               WHERE oficina_id = :oficina AND criado_em >= CURDATE() - INTERVAL 6 DAY GROUP BY DATE(criado_em)") as $l) {
+                               WHERE oficina_id = :oficina AND criado_em >= CURDATE() - INTERVAL 29 DAY GROUP BY DATE(criado_em)") as $l) {
             $abertas[$l['dia']] = (int) $l['n'];
         }
-        $receita = $this->faturamentoDias(7);
+        $receita = $this->faturamentoDias(30);
         $fluxo = [];
         foreach ($receita as $dia => $valor) {
             $fluxo[$dia] = ['os' => $abertas[$dia] ?? 0, 'receita' => $valor];

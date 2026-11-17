@@ -201,39 +201,53 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       <?php endif; ?>
 
       <?php if ($editavel): ?>
-        <div class="os-incluir">
-          <div class="os-incluir__cabeca">
-            <h3><?= icone('plus', 15, 2) ?> <?= $noOrcamento ? 'Incluir serviço ou peça' : 'Incluir adicional' ?></h3>
-            <?php if (!$noOrcamento): ?><p>O orçamento já foi aprovado: o que for incluído agora aparece como <strong>adicional</strong>, separado do valor aprovado.</p><?php endif; ?>
-          </div>
-          <form method="post" action="./os-item?id=<?= (int) $os['id'] ?>" class="os-novo-item" id="form-item">
+        <div class="os-incluir<?= $itens ? '' : ' is-aberto' ?>" id="os-incluir">
+          <button type="button" class="os-incluir__abrir" aria-expanded="<?= $itens ? 'false' : 'true' ?>" aria-controls="form-item">
+            <span class="os-incluir__mais" aria-hidden="true"><?= icone('plus', 14, 2.2) ?></span><?= $noOrcamento ? 'Incluir serviço ou peça' : 'Incluir adicional' ?>
+          </button>
+          <form method="post" action="./os-item?id=<?= (int) $os['id'] ?>" class="os-incluir__form" id="form-item">
             <?= csrf_field() ?><input type="hidden" name="operacao" value="incluir">
-            <div class="form-field span-3">
-              <label for="produto_id">Do catálogo</label>
-              <select id="produto_id" name="produto_id">
-                <option value="">Serviço avulso (descrever ao lado)</option>
-                <?php foreach (['SERVICO' => 'Serviços', 'PECA' => 'Peças'] as $tipo => $grupo): ?>
-                  <optgroup label="<?= $grupo ?>">
-                    <?php foreach ($catalogo as $c): if ($c['tipo'] !== $tipo) continue; ?>
-                      <option value="<?= (int) $c['id'] ?>" data-tipo="<?= $tipo ?>" data-preco="<?= e(number_format((float) $c['preco_venda'], 2, ',', '.')) ?>">
-                        <?= e($c['nome']) ?> — <?= dinheiro($c['preco_venda']) ?><?= $tipo === 'PECA' ? ' (estoque ' . $qtd($c['estoque_atual']) . ')' : '' ?>
-                      </option>
-                    <?php endforeach; ?>
-                  </optgroup>
-                <?php endforeach; ?>
-              </select>
+            <div class="os-incluir__topo">
+              <div class="os-incluir__tipo" role="radiogroup" aria-label="Tipo do item">
+                <button type="button" role="radio" aria-checked="true" data-tipo-item="SERVICO"><?= icone('mechanic', 15) ?>Serviço</button>
+                <button type="button" role="radio" aria-checked="false" data-tipo-item="PECA"><?= icone('part', 15) ?>Peça</button>
+              </div>
+              <?php if (!$noOrcamento): ?><p class="os-incluir__nota">Entra como <strong>adicional</strong>, separado do valor aprovado.</p><?php endif; ?>
+              <?php if ($itens): ?><button type="button" class="os-incluir__fechar" aria-label="Fechar"><?= icone('close', 15) ?></button><?php endif; ?>
             </div>
-            <div class="form-field span-3"><label for="descricao">Descrição</label><input id="descricao" name="descricao" maxlength="200" placeholder="Ex.: Troca de óleo e filtro"></div>
-            <div class="form-field"><label for="quantidade">Qtd</label><input id="quantidade" name="quantidade" value="1" inputmode="decimal"></div>
-            <div class="form-field"><label for="valor_unitario">Unitário (R$)</label><input id="valor_unitario" name="valor_unitario" inputmode="decimal"></div>
-            <div class="form-field"><label for="desconto">Desconto (R$)</label><input id="desconto" name="desconto" inputmode="decimal" placeholder="0,00"></div>
-            <div class="form-field span-3" id="campo-tecnico">
-              <label for="tecnico_item">Técnico</label>
-              <select id="tecnico_item" name="tecnico_id"><option value="">Responsável da OS</option>
-                <?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>"><?= e($t['nome']) ?></option><?php endforeach; ?>
-              </select>
+
+            <div class="os-incluir__item">
+              <label class="os-campo os-campo--item"><span data-rotulo-item>Serviço</span>
+                <select id="produto_id" name="produto_id">
+                  <option value="" data-tipo="SERVICO">Avulso (descrever)</option>
+                  <?php foreach ($catalogo as $c): if ($c['tipo'] !== 'SERVICO') continue; ?>
+                    <option value="<?= (int) $c['id'] ?>" data-tipo="SERVICO" data-preco="<?= e(number_format((float) $c['preco_venda'], 2, ',', '.')) ?>"><?= e($c['nome']) ?> · <?= dinheiro($c['preco_venda']) ?></option>
+                  <?php endforeach; ?>
+                  <option value="" data-tipo="PECA">Escolha a peça</option>
+                  <?php foreach ($catalogo as $c): if ($c['tipo'] !== 'PECA') continue; $saldo = (float) $c['estoque_atual']; ?>
+                    <option value="<?= (int) $c['id'] ?>" data-tipo="PECA" data-preco="<?= e(number_format((float) $c['preco_venda'], 2, ',', '.')) ?>"><?= e($c['nome']) ?> · <?= dinheiro($c['preco_venda']) ?> · <?= $saldo > 0 ? $qtd($c['estoque_atual']) . ' em estoque' : 'sem estoque' ?></option>
+                  <?php endforeach; ?>
+                </select>
+              </label>
+              <label class="os-campo os-campo--desc" id="campo-descricao"><span>Descrição</span>
+                <input id="descricao" name="descricao" maxlength="200" placeholder="Ex.: Troca de óleo e filtro">
+              </label>
             </div>
-            <div class="os-novo-item__acao"><button class="btn btn--primary"><?= icone('plus') ?> Incluir<?= $noOrcamento ? '' : ' adicional' ?></button></div>
+
+            <div class="os-incluir__valores">
+              <label class="os-campo os-campo--qtd"><span>Qtd</span><input id="quantidade" name="quantidade" value="1" inputmode="decimal" autocomplete="off"></label>
+              <label class="os-campo os-campo--din"><span>Unitário</span><span class="os-campo__moeda"><i>R$</i><input id="valor_unitario" name="valor_unitario" inputmode="decimal" placeholder="0,00" autocomplete="off"></span></label>
+              <label class="os-campo os-campo--din"><span>Desconto</span><span class="os-campo__moeda"><i>R$</i><input id="desconto" name="desconto" inputmode="decimal" placeholder="0,00" autocomplete="off"></span></label>
+              <label class="os-campo os-campo--tec" id="campo-tecnico"><span>Técnico</span>
+                <select id="tecnico_item" name="tecnico_id"><option value="">Responsável da OS</option>
+                  <?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>"><?= e($t['nome']) ?></option><?php endforeach; ?>
+                </select>
+              </label>
+              <div class="os-incluir__fim">
+                <span class="os-incluir__total" aria-live="polite"><small>Total do item</small><b data-total-item>R$ 0,00</b></span>
+                <button class="btn btn--primary"><?= icone('plus') ?> Incluir</button>
+              </div>
+            </div>
           </form>
         </div>
       <?php endif; ?>
@@ -321,8 +335,9 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       <?php endif; ?>
     </aside>
 
-    <!-- Pagamento -->
-    <?php if ($cobravel || $contas): ?>
+    <!-- Pagamento (só o balcão: o técnico não mexe em dinheiro) -->
+    <?php $veDinheiro = Permissao::permite(Contexto::perfil(), Permissao::BALCAO); ?>
+    <?php if ($veDinheiro && ($cobravel || $contas)): ?>
       <aside class="card ver-lado" aria-label="Pagamento">
         <header class="ver-lado__cabeca"><h2>Pagamento</h2>
           <?php if ($st !== 'CANCELADA'): ?><span class="badge badge--<?= $aReceber <= 0.004 ? 'success' : ($recebido > 0 ? 'info' : 'neutral') ?>"><?= $aReceber <= 0.004 ? 'Quitada' : 'Falta ' . dinheiro($aReceber) ?></span><?php endif; ?>
@@ -387,7 +402,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
   </div>
 </div>
 
-<?php $dlgId = 'dlg-receber'; $acao = $acaoUrl; $extras = ['acao' => 'receber']; $tipo = 'RECEBER'; require V2_RAIZ . '/app/views/financeiro/_baixa.php'; ?>
+<?php if ($veDinheiro): $dlgId = 'dlg-receber'; $acao = $acaoUrl; $extras = ['acao' => 'receber']; $tipo = 'RECEBER'; require V2_RAIZ . '/app/views/financeiro/_baixa.php'; endif; ?>
 
 <!-- Diálogos -->
 <dialog id="dlg-dados" class="dlg dlg--largo">
@@ -515,19 +530,53 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       });
     });
 
-    // Novo item: preço do catálogo e campos conforme o tipo
-    var sel = document.getElementById('produto_id');
-    if (sel) {
-      var valor = document.getElementById('valor_unitario'), desc = document.getElementById('descricao'), tec = document.getElementById('campo-tecnico');
+    // Incluir item: abre e fecha a área, Serviço/Peça filtra o catálogo, campos aparecem só quando fazem sentido
+    // e o total do item é calculado enquanto se digita.
+    var caixa = document.getElementById('os-incluir'), sel = document.getElementById('produto_id');
+    if (caixa && sel) {
+      var form = document.getElementById('form-item'), botaoAbrir = caixa.querySelector('.os-incluir__abrir'), fecharB = caixa.querySelector('.os-incluir__fechar');
+      var valor = document.getElementById('valor_unitario'), desc = document.getElementById('descricao'), qtdI = document.getElementById('quantidade'), descI = document.getElementById('desconto');
+      var campoDesc = document.getElementById('campo-descricao'), campoTec = document.getElementById('campo-tecnico'), rotulo = caixa.querySelector('[data-rotulo-item]');
+      var totalEl = caixa.querySelector('[data-total-item]'), botoesTipo = caixa.querySelectorAll('[data-tipo-item]');
+      var opcoes = { SERVICO: [], PECA: [] };
+      [].slice.call(sel.options).forEach(function (o) { opcoes[o.dataset.tipo].push(o); });
+      var num = function (v) { v = String(v || '').replace(/[^\d,.-]/g, ''); if (v.indexOf(',') >= 0) v = v.replace(/\./g, '').replace(',', '.'); var n = parseFloat(v); return isFinite(n) ? n : 0; };
+      var brl = function (n) { return n.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }); };
+      var total = function () { totalEl.textContent = brl(Math.max(0, Math.round(num(qtdI.value) * num(valor.value) * 100) / 100 - num(descI.value))); };
+      var tipo = 'SERVICO';
       var sync = function () {
-        var o = sel.options[sel.selectedIndex];
-        var peca = o && o.dataset.tipo === 'PECA';
+        var o = sel.options[sel.selectedIndex], avulso = tipo === 'SERVICO' && !sel.value;
         if (o && o.dataset.preco) valor.value = o.dataset.preco;
-        desc.placeholder = sel.value ? 'Opcional — usa o nome do catálogo' : 'Ex.: Troca de óleo e filtro';
-        desc.required = !sel.value;
-        tec.style.visibility = peca ? 'hidden' : 'visible';
+        campoDesc.hidden = !avulso;
+        if (!avulso) desc.value = '';
+        desc.required = avulso;
+        campoTec.hidden = tipo === 'PECA';
+        sel.required = tipo === 'PECA';
+        total();
       };
-      sel.addEventListener('change', sync); sync();
+      var mudarTipo = function (t) {
+        tipo = t;
+        botoesTipo.forEach(function (b) { b.setAttribute('aria-checked', b.dataset.tipoItem === t ? 'true' : 'false'); });
+        while (sel.options.length) sel.remove(0);
+        opcoes[t].forEach(function (o) { sel.add(o); });
+        sel.selectedIndex = 0;
+        rotulo.textContent = t === 'PECA' ? 'Peça do estoque' : 'Serviço';
+        valor.value = ''; desc.value = ''; descI.value = ''; qtdI.value = '1';
+        sync();
+      };
+      var abrirArea = function (sim) {
+        caixa.classList.toggle('is-aberto', sim);
+        botaoAbrir.setAttribute('aria-expanded', sim ? 'true' : 'false');
+        if (sim) setTimeout(function () { sel.focus({ preventScroll: true }); caixa.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }, 60);
+        else botaoAbrir.focus({ preventScroll: true });
+      };
+      botoesTipo.forEach(function (b) { b.addEventListener('click', function () { mudarTipo(b.dataset.tipoItem); sel.focus(); }); });
+      botaoAbrir.addEventListener('click', function () { abrirArea(true); });
+      if (fecharB) fecharB.addEventListener('click', function () { abrirArea(false); });
+      form.addEventListener('keydown', function (e) { if (e.key === 'Escape' && fecharB) abrirArea(false); });
+      sel.addEventListener('change', sync);
+      [qtdI, valor, descI].forEach(function (i) { i.addEventListener('input', total); });
+      mudarTipo('SERVICO');
     }
 
     // Alterar / remover item

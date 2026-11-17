@@ -129,7 +129,13 @@ final class OrdensController extends Controller
         $id = $this->idDaUrl();
         $m  = new OrdemServico();
 
-        switch ($_POST['acao'] ?? '') {
+        $acao = $_POST['acao'] ?? '';
+        // Dinheiro (cobrar e receber) é do balcão; o técnico não mexe em dinheiro.
+        if (in_array($acao, ['cobrar', 'receber'], true) && !Permissao::permite(Contexto::perfil(), Permissao::BALCAO)) {
+            throw new ErroHttp('sem-permissao');
+        }
+
+        switch ($acao) {
             case 'aprovar':
                 $assinatura = (string) ($_POST['assinatura'] ?? '');
                 // Só PNG gerado pelo canvas de assinatura; o resto é descartado.
@@ -168,6 +174,57 @@ final class OrdensController extends Controller
             default:
                 throw new ErroHttp('nao-encontrado');
         }
+    }
+
+    /**
+     * Kanban: muda a situação ao soltar o cartão em outra coluna. Usa as mesmas operações dos
+     * botões da OS (estoque, aprovação, comissão) e responde em JSON com a situação final, que
+     * pode não ser a coluna escolhida (ex.: sem estoque, a OS vai para "Aguardando peça").
+     */
+    public function mover(): void
+    {
+        $id = $this->idDaUrl();
+        $m  = new OrdemServico();
+        $os = $m->buscar($id) ?? throw new ErroHttp('registro-inexistente');
+        $para = $this->post('para');
+
+        if ($this->post('de') !== $os['status']) {
+            $this->json(['ok' => false, 'mensagem' => 'Esta OS já mudou de situação. Atualize a página para ver como ela está agora.'], 409);
+        }
+        $operacao = OrdemServico::MOVIMENTOS_KANBAN[$os['status'] . '>' . $para] ?? null;
+        if ($operacao === null) {
+            $this->json(['ok' => false, 'mensagem' => 'Não dá para mover de ' . os_status($os['status'])[0] . ' para ' . os_status($para)[0] . '.'], 422);
+        }
+
+        $faltam = [];
+        try {
+            switch ($operacao) {
+                case 'aprovar':
+                    $m->aprovar($id, $this->post('aprovado_por') ?: (string) $os['cliente'], null);
+                    $mensagem = 'Orçamento ' . os_numero($os['numero']) . ' aprovado.';
+                    break;
+                case 'iniciar':
+                    $faltam = $m->iniciar($id);
+                    $mensagem = $faltam ? 'Falta estoque de: ' . implode(', ', $faltam) . '. A OS ficou aguardando peça.' : 'Execução iniciada. Peças baixadas do estoque.';
+                    break;
+                case 'baixar':
+                    $faltam = $m->baixarPendentes($id);
+                    $mensagem = $faltam ? 'Ainda sem estoque: ' . implode(', ', $faltam) . '.' : 'Peças baixadas. A OS voltou para execução.';
+                    break;
+                case 'concluir':
+                    $m->concluir($id);
+                    $mensagem = os_numero($os['numero']) . ' pronta para entrega.';
+                    break;
+                default: // retomar
+                    $m->retomar($id, $this->post('motivo'));
+                    $mensagem = os_numero($os['numero']) . ' voltou para execução.';
+            }
+        } catch (DomainException $e) {
+            $this->json(['ok' => false, 'mensagem' => $e->getMessage()], 422);
+        }
+
+        $os = $m->buscar($id);
+        $this->json(['ok' => true, 'status' => $os['status'], 'mensagem' => $mensagem, 'tipo' => $faltam ? 'aviso' : 'sucesso', 'atrasada' => OrdemServico::atrasada($os)]);
     }
 
     public function imprimir(): void

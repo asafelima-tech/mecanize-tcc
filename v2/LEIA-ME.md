@@ -89,7 +89,7 @@ cancelar: de qualquer situação antes de ENTREGUE (as peças baixadas voltam ao
 - **Estorno.** Cria uma movimentação contrária; a original continua registrada. Um pagamento só pode ser estornado uma vez (o banco garante).
 - **Cancelamento.** Só para conta sem pagamento. Cancelar a conta de comissão libera os itens para uma nova geração.
 - **Comissões.** Lista o que os técnicos têm a receber das OS concluídas e gera a conta a pagar de cada um. Depois disso a OS não volta para execução sem cancelar essa conta.
-- **Caixa.** É a gaveta da oficina: um caixa aberto por vez, aberto e fechado por qualquer pessoa da equipe. Recebimento em dinheiro exige caixa aberto. Suprimento e sangria ficam registrados. No fechamento o sistema compara o contado com o esperado e mostra sobra ou falta. O histórico de caixas é do ADMIN.
+- **Caixa.** É a gaveta da oficina: um caixa aberto por vez, aberto e fechado por qualquer pessoa da equipe. Recebimento em dinheiro exige caixa aberto. Suprimento e sangria ficam registrados. Ninguém digita valor: a abertura usa como saldo anterior o dinheiro que ficou no último fechamento (só o primeiro caixa pede o valor inicial) e o fechamento é calculado pelos lançamentos (saldo anterior + entradas − saídas, no total e por forma de pagamento). O dinheiro que fica na gaveta vira o saldo anterior do caixa seguinte; se a gaveta não bater, registra-se suprimento ou sangria antes de fechar. O histórico de caixas é do ADMIN.
 - **Clique duplo.** Cada pagamento leva uma chave única; repetir o envio não lança duas vezes.
 
 ## Agenda, anexos, avisos, relatórios e configurações (etapa 6)

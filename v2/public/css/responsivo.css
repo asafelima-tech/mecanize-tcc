@@ -1,0 +1,359 @@
+/* =====================================================================================================
+   Mecanize v2 · Camada responsiva
+   Carregada depois de mecanize.css e identidade.css. Concentra aqui as adaptações de celular e tablet,
+   em vez de regras soltas por tela.
+
+   Pontos de quebra (os mesmos em todo o sistema):
+     celular   até 599 px      → navegação sobreposta, tabelas viram cartões, janelas viram "folhas" que sobem da base
+     tablet    600 a 899 px    → navegação sobreposta, tabelas compactas, janelas centralizadas
+     desktop   a partir de 900 → barra lateral fixa (recolhível), layout completo
+   Toque (pointer: coarse), em qualquer largura: áreas de toque de pelo menos 44 px.
+
+   Causas corrigidas (análise da estrutura atual):
+   1. Janelas (.dlg): identidade.css impõe padding 32 px e título de 24 px a TODA janela, inclusive ao painel de
+      avisos, que foi feito para ter padding 0. No celular o conteúdo ficava espremido e o "fechar" saía da tela.
+   2. Tabelas: a única adaptação era min-width + rolagem lateral; no celular metade das colunas ficava fora da tela.
+   3. Menus "⋯" e o painel "Criar" abrem ancorados à direita do botão; perto da borda esquerda saíam da tela.
+   4. Campos com fonte menor que 16 px fazem o iPhone dar zoom ao tocar.
+   5. Pontos de quebra espalhados (520, 560, 640, 700, 720, 860, 900, 960, 1100): agora a referência é esta lista.
+   ===================================================================================================== */
+
+/* ── 1. Base ─────────────────────────────────────────────────────────────────────────────────────── */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+.main { min-width: 0; }
+.content img, .content video { max-width: 100%; }
+
+/* ── 2. Janelas: correção do painel de avisos (todas as larguras) ─────────────────────────────────── */
+.dlg.dlg--avisos { padding: 0 !important; border-radius: 18px !important; }
+.dlg.dlg--avisos h3 { font-size: 19px !important; margin: 0 !important; }
+.dlg.dlg--avisos[open] { animation: avisos-entra .24s var(--ease-saida); }
+.avisos__topo { align-items: center; flex-wrap: wrap; row-gap: 8px; }
+.avisos__topo > div:first-child { min-width: 0; }
+.avisos__acoes { flex-wrap: wrap; justify-content: flex-end; margin-left: auto; }
+.avisos__acoes .btn { white-space: nowrap; }
+
+/* ── 3. Toque: alvos confortáveis e sem zoom automático ───────────────────────────────────────────── */
+@media (pointer: coarse) {
+  .btn { min-height: 44px; }
+  .btn--sm { min-height: 40px; }
+  .btn--icone { min-width: 44px; }
+  .sidebar__item, .sidebar__tema { min-height: 44px; }
+  .row-action-btn, .menu-mais > summary, .topbar-sino, .avisos__fechar { min-width: 44px; min-height: 44px; }
+  .menu-mais__lista a, .menu-mais__lista button { min-height: 44px; }
+  .abas a { min-height: 40px; }
+  .avisos__item, .avisos__lista a { min-height: 52px; }
+}
+@media (max-width: 899.98px) {
+  :root input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), :root select, :root textarea { font-size: 16px !important; }
+}
+
+/* ── 4. Navegação (celular e tablet): menu lateral sobreposto ─────────────────────────────────────── */
+@media (max-width: 899.98px) {
+  .topbar { position: sticky; top: 0; z-index: 30; padding-left: max(16px, env(safe-area-inset-left)) !important; padding-right: max(16px, env(safe-area-inset-right)) !important; }
+  .topbar__hamburger { width: 40px !important; height: 40px !important; flex: none; }
+  .sidebar { width: min(300px, 86vw) !important; padding-top: max(18px, env(safe-area-inset-top)) !important; padding-bottom: max(14px, env(safe-area-inset-bottom)) !important;
+    transition: transform .3s cubic-bezier(.32, .72, 0, 1), box-shadow .3s ease !important; will-change: transform; overscroll-behavior: contain; }
+  .sidebar__item { height: 44px !important; }
+  .sidebar-backdrop { display: block !important; position: fixed; inset: 0; z-index: 35; background: rgba(0, 0, 0, .32);
+    opacity: 0; pointer-events: none; transition: opacity .3s ease; -webkit-backdrop-filter: blur(2px); backdrop-filter: blur(2px); }
+  body.mobile-nav-open .sidebar-backdrop { opacity: 1; pointer-events: auto; }
+  body.mobile-nav-open { overflow: hidden; }
+  .content { padding-left: max(16px, env(safe-area-inset-left)) !important; padding-right: max(16px, env(safe-area-inset-right)) !important;
+    padding-bottom: calc(48px + env(safe-area-inset-bottom)) !important; }
+}
+
+/* ── 5. Cabeçalhos de página e barras de ações ────────────────────────────────────────────────────── */
+@media (max-width: 599.98px) {
+  .page-header { flex-direction: column; align-items: stretch !important; gap: 14px !important; }
+  .page-header__actions { display: grid !important; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 8px !important; width: 100%; }
+  .page-header__actions > * { width: 100%; justify-content: center; }
+  .page-header__actions > .btn--primary, .page-header__actions > .btn--contorno { grid-column: 1 / -1; order: -1; }
+  .page-header__actions > .menu-mais { width: auto; justify-self: end; }
+  .ver-topo { flex-wrap: wrap; }
+  .ver-topo__meta { flex-wrap: wrap; row-gap: 6px; }
+  .ver-topo__acoes { width: 100%; display: flex; flex-wrap: wrap; gap: 8px; }
+  .ver-topo__acoes > .btn { flex: 1 1 auto; justify-content: center; }
+  .ver-chip { max-width: 100%; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+}
+
+/* ── 6. Abas e filtros: rolam de lado dentro de si mesmos, nunca a página ─────────────────────────── */
+@media (max-width: 899.98px) {
+  .abas { display: flex !important; max-width: 100%; overflow-x: auto !important; scrollbar-width: none; scroll-snap-type: x proximity;
+    -webkit-mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); mask-image: linear-gradient(90deg, #000 calc(100% - 24px), transparent); }
+  .abas::-webkit-scrollbar { display: none; }
+  .abas a { flex: none; scroll-snap-align: start; }
+  .filtros { flex-wrap: wrap; }
+  .filtros > * { min-width: 0; }
+}
+@media (max-width: 599.98px) {
+  .filtros__busca, .filtros__busca--largo, .filtros__busca--compacta { flex: 1 1 100% !important; width: 100% !important; max-width: none !important; }
+  .filtros select, .filtros .campo-periodo { flex: 1 1 auto; }
+  .filtros__fim { margin-left: 0 !important; flex-basis: 100%; }
+}
+
+/* ── 7. Tabelas ───────────────────────────────────────────────────────────────────────────────────── */
+/* Telas médias com barra lateral fixa (900 a 1099 px): tabela compacta, o texto quebra em vez de empurrar a largura. */
+@media (min-width: 900px) and (max-width: 1099.98px) {
+  .card--tabela .table { min-width: 0 !important; }
+  .table th, .table td { padding-left: 10px; padding-right: 10px; }
+  .table td { white-space: normal; }
+  .table td:first-child { white-space: nowrap; }
+}
+/* Celular e tablet: cada linha vira um cartão (no tablet, dois por fileira). O rótulo de cada valor vem do
+   cabeçalho da coluna (data-rotulo, preenchido pelo layout em JS); a coluna principal vira o título e as ações ficam no canto. */
+@media (max-width: 899.98px) {
+  .table.table--cartoes { min-width: 0 !important; display: block; font-size: 14px; }
+  .table--cartoes thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  .table--cartoes tbody, .table--cartoes tfoot { display: block; }
+  .table--cartoes tr { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: 12px; row-gap: 6px; padding: 14px 16px;
+    border-bottom: 1px solid var(--border-subtle); position: relative; }
+  .table--cartoes tbody tr:last-child { border-bottom: 0; }
+  .table--cartoes td { display: block; grid-column: 1 / -1; height: auto !important; min-height: 0; padding: 0 !important; border: 0 !important;
+    white-space: normal !important; text-align: right !important; font-size: 13.5px; }
+  .table--cartoes td[data-rotulo] { position: relative; padding-left: calc(42% + 8px) !important; min-height: 20px; }
+  .table--cartoes td[data-rotulo]::before { content: attr(data-rotulo); position: absolute; left: 0; top: 0; width: 42%; text-align: left;
+    color: var(--text-secondary); font-size: 12.5px; font-weight: 400; line-height: 20px; white-space: normal; }
+  .table--cartoes td .sub { margin-top: 1px; }
+  .table--cartoes td { overflow-wrap: anywhere; }
+  .table--cartoes td.td-principal { grid-column: 1; order: -2; text-align: left !important; padding-left: 0 !important; font-size: 15px; font-weight: 600; line-height: 1.35; }
+  .table--cartoes td.td-principal::before { content: none; }
+  .table--cartoes td.td-principal .sub { font-weight: 400; }
+  .table--cartoes td.td-acoes { grid-column: 2; grid-row: 1; order: -1; align-self: start; padding-left: 0 !important; text-align: right !important; }
+  .table--cartoes td.td-acoes::before { content: none; }
+  .table--cartoes td.td-acoes > * { justify-content: flex-end; }
+  .table--cartoes td.td-vazio { text-align: left !important; padding-left: 0 !important; }
+  .table--cartoes td.td-vazio::before { content: none; }
+  .table--cartoes td[colspan] { grid-column: 1 / -1; text-align: center !important; padding: 8px 0 !important; }
+  .table--cartoes td[colspan]::before { content: none; }
+  .table--cartoes tfoot tr { background: var(--surface); }
+  .table--cartoes tr[data-href] { cursor: pointer; }
+  .card--tabela .table-wrap, .table-wrap:has(> .table--cartoes) { overflow: visible; }
+}
+
+/* ── 8. Formulários ───────────────────────────────────────────────────────────────────────────────── */
+@media (max-width: 599.98px) {
+  .form-row-2, .form-row-3, .form-row-4 { grid-template-columns: minmax(0, 1fr) !important; }
+  .form-acoes { flex-direction: column-reverse; align-items: stretch; }
+  .form-acoes > .btn, .form-acoes > a.btn, .form-acoes > button { width: 100%; justify-content: center; }
+  .form-field input, .form-field select, .form-field textarea { min-height: 44px; }
+}
+
+/* ── 9. Cartões, números e painéis ────────────────────────────────────────────────────────────────── */
+@media (max-width: 599.98px) {
+  .stat-grid { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; gap: 10px !important; }
+  .stat-card__value { font-size: clamp(18px, 5.6vw, 22px) !important; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .stat-card__topo { flex-wrap: wrap; row-gap: 4px; }
+  .card { border-radius: 18px; }
+  .quadro { padding: 18px 16px !important; }
+  .quadro__topo { flex-wrap: wrap; row-gap: 6px; }
+  .rosca { flex-wrap: wrap; justify-content: center; }
+  .rosca__legenda { width: 100%; }
+  .mini-numeros { grid-template-columns: minmax(0, 1fr) !important; }
+  .barras__escala span { font-size: 10px; }
+  /* Kanban: uma coluna por vez (84% da tela), rolando de lado. As trilhas têm a largura da coluna, senão elas se sobrepõem. */
+  .kanban { grid-template-columns: repeat(5, 84vw); scroll-snap-type: x mandatory; scroll-padding: 0 16px; }
+  .kanban > * { scroll-snap-align: start; min-width: 0; }
+}
+
+/* ── 10. Janelas (diálogos) ───────────────────────────────────────────────────────────────────────── */
+/* Tablet: centralizadas, com margem segura e rolagem interna. */
+@media (min-width: 600px) and (max-width: 899.98px) {
+  .dlg:not(.dlg--avisos) { width: min(560px, calc(100vw - 48px)) !important; max-height: calc(100dvh - 48px) !important; overflow-y: auto; }
+  .dlg.dlg--avisos { inset: 64px 16px auto auto !important; width: min(400px, calc(100vw - 32px)) !important; }
+}
+/* Celular: "folha" que sobe da base, largura total, área do polegar, rolagem interna. */
+@media (max-width: 599.98px) {
+  .dlg, .dlg.dlg--avisos, .dlg--largo, .dlg--confirmar { position: fixed !important; inset: auto 0 0 0 !important; margin: 0 !important;
+    width: 100% !important; max-width: 100% !important; max-height: calc(100dvh - 32px) !important;
+    border-radius: 22px 22px 0 0 !important; overflow-y: auto; overscroll-behavior: contain; }
+  .dlg:not(.dlg--avisos) { padding: 28px 20px calc(20px + env(safe-area-inset-bottom)) !important; }
+  .dlg::before { content: ""; position: absolute; top: 8px; left: 50%; width: 36px; height: 5px; margin-left: -18px; border-radius: 3px; background: var(--fill-forte); }
+  .dlg[open] { animation: folha-sobe .34s cubic-bezier(.32, .72, 0, 1) !important; }
+  @keyframes folha-sobe { from { transform: translateY(100%); } to { transform: none; } }
+  .dlg h3 { font-size: 21px !important; padding-right: 36px; }
+  .dlg .form-acoes { flex-direction: column-reverse; align-items: stretch; position: sticky; bottom: calc(-20px - env(safe-area-inset-bottom));
+    background: var(--card); margin: 18px -20px calc(-20px - env(safe-area-inset-bottom)) !important; padding: 12px 20px calc(16px + env(safe-area-inset-bottom)) !important; }
+  .dlg .form-acoes .btn { width: 100%; justify-content: center; }
+  /* Avisos */
+  .dlg.dlg--avisos { max-height: min(86dvh, 640px) !important; display: none; }
+  .dlg.dlg--avisos[open] { display: flex !important; }
+  .avisos__topo { padding: 22px 16px 12px 20px !important; }
+  .avisos__lista { padding: 6px 6px calc(10px + env(safe-area-inset-bottom)) !important; }
+  .avisos__fechar { width: 36px !important; height: 36px !important; }
+}
+
+/* ── 11. Menus "⋯" e painel "Criar": no celular viram folha na base da tela ────────────────────────── */
+@media (max-width: 599.98px) {
+  details.menu-mais[open] > summary::before { content: ""; position: fixed; inset: 0; z-index: 90; background: rgba(0, 0, 0, .32); cursor: default; }
+  details.menu-mais[open] > .menu-mais__lista { position: fixed !important; inset: auto 8px calc(8px + env(safe-area-inset-bottom)) 8px !important;
+    top: auto !important; width: auto !important; min-width: 0 !important; max-height: 70dvh; overflow-y: auto; z-index: 91 !important;
+    padding: 8px !important; border-radius: 18px !important; animation: folha-sobe .3s cubic-bezier(.32, .72, 0, 1); }
+  details.menu-mais[open] > .menu-mais__lista a, details.menu-mais[open] > .menu-mais__lista button { height: 48px !important; font-size: 15px !important; border-radius: 12px !important; padding: 0 14px !important; }
+  .topbar .painel-criar { position: fixed !important; left: 8px !important; right: 8px !important; top: calc(56px + env(safe-area-inset-top)) !important;
+    width: auto !important; max-height: calc(100dvh - 72px); overflow-y: auto; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dlg[open], details.menu-mais[open] > .menu-mais__lista { animation: none !important; }
+  .sidebar, .sidebar-backdrop { transition: none !important; }
+}
+
+/* Avisos no celular: o "fechar" fica fixo no canto; "Marcar todos" vai para baixo do título. */
+@media (max-width: 599.98px) {
+  .avisos__topo { position: relative; padding-right: 64px !important; }
+  .avisos__fechar { position: absolute; top: 18px; right: 14px; }
+  .avisos__acoes { margin-left: 0; justify-content: flex-start; width: 100%; }
+  .avisos__acoes .btn { padding: 0 10px !important; margin-left: -10px; height: 36px !important; min-height: 36px; }
+  .aviso { padding: 12px 10px !important; }
+}
+
+@media (min-width: 600px) and (max-width: 899.98px) {
+  .table--cartoes tbody { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .table--cartoes tbody tr { border-bottom: 1px solid var(--border-subtle); }
+  .table--cartoes tbody tr:nth-child(odd) { border-right: 1px solid var(--border-subtle); }
+  .table--cartoes tbody tr:nth-last-child(2):nth-child(odd) { border-bottom: 0; }
+  .table--cartoes tbody tr:only-child, .table--cartoes tbody tr:has(> td[colspan]) { grid-column: 1 / -1; border-right: 0; }
+}
+
+/* Período (datas de/até): os dois campos dividem a largura e nunca cortam a data. */
+@media (max-width: 899.98px) {
+  .campo-periodo { flex: 1 1 340px !important; max-width: none !important; }
+  .campo-periodo input { flex: 1 1 0; width: 0; min-width: 0; }
+}
+@media (max-width: 599.98px) {
+  .campo-periodo { flex-basis: 100% !important; }
+}
+
+/* Menu "⋯" aberto perto da borda esquerda (tablet e telas médias): o JS marca e ele passa a abrir para a direita. */
+.menu-mais__lista.is-a-direita { left: 0 !important; right: auto !important; }
+
+/* Fichas de cadastro (cliente, veículo, peça, OS, agenda, usuário): no celular e no tablet o "Salvar" fica numa barra fixa
+   na base da tela, sempre ao alcance do polegar, em vez de no fim de uma página longa. */
+@media (max-width: 899.98px) {
+  .form-ficha { padding-bottom: calc(76px + env(safe-area-inset-bottom)); }
+  .form-ficha__acoes { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; flex-direction: row-reverse !important; gap: 8px !important;
+    padding: 10px max(16px, env(safe-area-inset-right)) calc(10px + env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+    background: color-mix(in srgb, var(--bg) 86%, transparent); -webkit-backdrop-filter: blur(16px) saturate(160%); backdrop-filter: blur(16px) saturate(160%);
+    box-shadow: 0 -1px 0 var(--hairline); }
+  .form-ficha__acoes .btn { width: auto !important; flex: 1 1 0; height: 48px !important; }
+  .form-ficha__acoes .btn--primary { flex-grow: 2; }
+  body.mobile-nav-open .form-ficha__acoes { visibility: hidden; }
+}
+
+/* Agenda: no celular, período em cima (título + setas) e, embaixo, visualização ocupando a linha com "Filtros" ao lado.
+   O painel de filtros sobe da base, como os outros menus. */
+@media (max-width: 599.98px) {
+  .agenda-barra { flex-direction: column; align-items: stretch; gap: 12px; }
+  .agenda-barra__periodo { justify-content: space-between; }
+  .agenda-barra__titulo { font-size: 20px; flex: 1; min-width: 0; }
+  .agenda-barra__longo { display: none; }
+  .agenda-barra__curto { display: inline; }
+  .agenda-barra__setas { order: 2; }
+  .agenda-barra__hoje { order: 1; }
+  .agenda-barra__acoes { width: 100%; }
+  .agenda-barra__vista { flex: 1; height: 40px; }
+  .agenda-barra__vista a { flex: 1; min-width: 0; }
+  .agenda-barra__filtro { height: 40px; }
+  .agenda-barra__seta { width: 40px; height: 40px; }
+  .agenda-filtros[open] > summary::before { content: ""; position: fixed; inset: 0; z-index: 90; background: rgba(0, 0, 0, .32); }
+  .agenda-filtros__painel { position: fixed; inset: auto 8px calc(8px + env(safe-area-inset-bottom)) 8px; top: auto; width: auto; z-index: 91;
+    padding: 18px 16px; border-radius: 18px; animation: folha-sobe .3s cubic-bezier(.32, .72, 0, 1); }
+  .agenda-filtros__campo select { height: 48px; }
+}
+@media (max-width: 899.98px) { .table--cartoes .os-situacao { justify-content: flex-end; } }
+
+/* OS · incluir item: a disposição interna segue a largura do próprio painel (container query em identidade.css);
+   aqui só os ajustes de espaçamento e toque do celular. */
+@media (max-width: 599.98px) {
+  .os-incluir__form { margin: 12px 12px 14px; padding: 16px 14px; }
+  .os-incluir__abrir { padding: 0 16px; height: 52px; }
+  .os-incluir__topo { flex-wrap: wrap; }
+  .os-incluir__tipo { flex: 1; }
+  .os-incluir__tipo button { flex: 1; justify-content: center; height: 36px; }
+}
+
+/* Configurações no celular: cartão de visita empilhado, rótulos mais estreitos e barra de salvar na largura toda. */
+@media (max-width: 599.98px) {
+  .ajustes { padding-top: 24px; }
+  .ajustes__titulo { font-size: 28px; margin-bottom: 18px; }
+  .ajustes-cartao { padding: 18px; gap: 16px; align-items: flex-start; }
+  .ajustes-cartao__logo { width: 64px; height: 64px; border-radius: 16px; }
+  .ajustes-cartao__nome { font-size: 19px; white-space: normal; }
+  .ajustes-linha { padding: 0 16px; gap: 12px; }
+  .ajustes-linha > span:first-child { width: 96px; }
+  .ajustes-linha--tema { flex-wrap: wrap; padding-top: 10px; padding-bottom: 10px; }
+  .ajustes-linha--tema .ajustes-segmento { width: 100%; }
+  .ajustes-segmento label { flex: 1; }
+  .ajustes-segmento span { width: 100%; justify-content: center; height: 34px; }
+  .ajustes-salvar { width: auto; margin-left: 0; margin-right: 0; bottom: calc(12px + env(safe-area-inset-bottom)); border-radius: 18px; }
+  .ajustes-salvar > span { flex: 1; }
+}
+/* Avisos no celular: o painel sobe da base, sem véu; toca fora para fechar. */
+@media (max-width: 599.98px) {
+  .dlg.dlg--avisos { box-shadow: 0 -1px 0 var(--hairline), 0 -12px 40px rgba(0, 0, 0, .18) !important; }
+  .dlg.dlg--avisos[open] { animation: folha-sobe .28s cubic-bezier(.32, .72, 0, 1) !important; }
+}
+
+/* Fluxo (matriz de pontos) no celular: 30 colunas cabem com pontos menores; o total e a troca ficam um embaixo do outro. */
+@media (max-width: 599.98px) {
+  .pm__grade, .pm__eixo { column-gap: 2px; }
+  .pm__col { gap: 4px; }
+  .pm__cabeca { align-items: flex-start; }
+  .pm__resumo b { font-size: 24px; }
+}
+
+/* Avisos do painel: uma linha só; no celular desliza de lado, com a borda direita esmaecida indicando que há mais. */
+@media (max-width: 899.98px) {
+  .avisos-painel { margin-right: -16px !important; padding-right: 16px; }
+}
+
+/* Relatórios: telas médias com 2 números por linha; celular com tudo empilhado e o seletor de período rolando de lado. */
+@media (max-width: 1199.98px) {
+  .rl-kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rl-kpi:nth-child(3)::before { display: none; }
+  .rl-kpi:nth-child(n+3) { box-shadow: inset 0 1px 0 var(--border-subtle); }
+  .rl-kpi__valor { font-size: clamp(18px, 5.2cqi, 28px); }
+  .rl-faixa { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .rl-faixa > div:nth-child(3)::before { display: none; }
+  .rl-faixa > div:nth-child(n+3) { box-shadow: inset 0 1px 0 var(--border-subtle); }
+  .rl-faixa strong { font-size: clamp(17px, 4.4cqi, 22px); }
+}
+@media (max-width: 899.98px) {
+  .rl-grade { grid-template-columns: minmax(0, 1fr); }
+  .rl-numeros { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 599.98px) {
+  .rl { padding-top: 22px; }
+  .rl-topo__titulo { font-size: 28px; }
+  .rl-topo__acoes { width: 100%; }
+  .rl-imprimir { display: none; }
+  .rl-periodo { flex: 1; min-width: 0; }
+  .rl-periodo > a { flex: 1 1 auto; justify-content: center; padding: 0 6px; font-size: 13px; }
+  .rl-datas > summary { padding: 0 11px; }
+  .rl-datas__texto { display: none; }
+  .rl-periodo > a > span { display: none; }
+  .rl-periodo > a::after { content: attr(data-curto); }
+  .rl-datas { position: static; }
+  .rl-datas[open] > summary::before { content: ""; position: fixed; inset: 0; z-index: 90; background: rgba(0, 0, 0, .32); }
+  .rl-datas__painel { position: fixed; inset: auto 8px calc(8px + env(safe-area-inset-bottom)) 8px; top: auto; width: auto; z-index: 91; padding: 18px 16px; animation: folha-sobe .3s cubic-bezier(.32, .72, 0, 1); }
+  .rl-kpi { padding: 16px; }
+  .rl-kpi__rotulo { flex-wrap: wrap; font-size: 12.5px; }
+  .rl-abas { display: flex; }
+  .rl-abas button { flex: 1 1 auto; padding: 0 10px; }
+  .rl-abas__extra { display: none; }
+  .rl-cartao { padding: 18px 16px !important; }
+  .rl-cartao--tabela { padding: 18px 0 4px !important; }
+  .rl-cartao--tabela > .rl-cartao__cabeca { padding: 0 16px; }
+  .rl-faixa > div { padding: 14px 16px; }
+  .rl-rodape { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .rl-barras { height: 200px !important; }
+}
+
+/* Celulares bem estreitos (320 a 374): números um por linha para nenhum valor ser cortado. */
+@media (max-width: 374.98px) {
+  .rl-kpis, .rl-faixa, .rl-numeros { grid-template-columns: minmax(0, 1fr); }
+  .rl-kpi::before, .rl-faixa > div::before { display: none; }
+  .rl-kpi + .rl-kpi, .rl-faixa > div + div { box-shadow: inset 0 1px 0 var(--border-subtle); }
+  .rl-kpi__valor { font-size: 22px; }
+  .rl-abas button { padding: 0 6px; font-size: 13px; }
+}

@@ -33,6 +33,7 @@ return [
     'os-dados'        => ['OrdensController', 'dados', Permissao::EQUIPE],
     'os-item'         => ['OrdensController', 'item', Permissao::EQUIPE],
     'os-acao'         => ['OrdensController', 'acao', Permissao::EQUIPE],
+    'os-mover'        => ['OrdensController', 'mover', Permissao::EQUIPE],   // Kanban: arrastar o cartão
     'os-imprimir'     => ['OrdensController', 'imprimir', Permissao::EQUIPE],
     'os-veiculos'     => ['OrdensController', 'veiculosDoCliente', Permissao::EQUIPE],
 
@@ -73,15 +74,15 @@ return [
     'produto-ativo'   => ['ProdutosController', 'ativo', Permissao::ADMIN],
     'produto-excluir' => ['ProdutosController', 'excluir', Permissao::ADMIN],
 
-    // Caixa — a equipe opera; o histórico é do ADMIN
-    'caixa'           => ['CaixaController', 'atual', Permissao::EQUIPE],
-    'caixa-abrir'     => ['CaixaController', 'abrir', Permissao::EQUIPE],
-    'caixa-movimento' => ['CaixaController', 'movimentar', Permissao::EQUIPE],
-    'caixa-fechar'    => ['CaixaController', 'fechar', Permissao::EQUIPE],
+    // Caixa — o balcão (ADMIN e ATENDENTE) opera; o técnico não mexe em dinheiro; o histórico é do ADMIN
+    'caixa'           => ['CaixaController', 'atual', Permissao::BALCAO],
+    'caixa-abrir'     => ['CaixaController', 'abrir', Permissao::BALCAO],
+    'caixa-movimento' => ['CaixaController', 'movimentar', Permissao::BALCAO],
+    'caixa-fechar'    => ['CaixaController', 'fechar', Permissao::BALCAO],
     'caixas'          => ['CaixaController', 'historico', Permissao::ADMIN],
     'caixa-ver'       => ['CaixaController', 'ver', Permissao::ADMIN],
 
-    // Financeiro — só ADMIN (o recebimento de OS é feito na própria OS, pela equipe)
+    // Financeiro — só ADMIN (o recebimento de OS é feito na própria OS, pelo balcão)
     'financeiro'      => ['FinanceiroController', 'lista', Permissao::ADMIN],
     'conta'           => ['FinanceiroController', 'ver', Permissao::ADMIN],
     'conta-form'      => ['FinanceiroController', 'form', Permissao::ADMIN],

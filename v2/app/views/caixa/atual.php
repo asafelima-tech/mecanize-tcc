@@ -2,7 +2,7 @@
 /**
  * Caixa (Design System, tela 15): situação da sessão, dinheiro esperado na gaveta, entradas e saídas
  * da sessão, últimos lançamentos e o histórico de sessões (ADMIN).
- * Espera: $caixa, $resumo, $movimentos, $sugestao, $sessoes
+ * Espera: $caixa, $resumo, $fechamento, $movimentos, $anterior (último fechamento, com o caixa fechado), $sessoes
  */
 $titulo = 'Caixa';
 $admin = Contexto::perfil() === 'ADMIN';
@@ -63,11 +63,19 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
 </div>
 
 <?php if (!$caixa): ?>
-  <form class="card form-card" method="post" action="./caixa-abrir" style="max-width:520px">
+  <form class="card form-card caixa-abrir" method="post" action="./caixa-abrir">
     <?= csrf_field() ?>
     <h2 class="card__titulo">Abrir caixa</h2>
-    <div class="form-field"><label for="valor">Dinheiro na gaveta agora (R$)</label><input id="valor" name="valor" inputmode="decimal" value="<?= $sugestao !== null ? e(number_format($sugestao, 2, ',', '.')) : '' ?>" required>
-      <?php if ($sugestao !== null): ?><span class="form-dica">Sugestão: o valor contado no último fechamento.</span><?php endif; ?></div>
+    <?php if ($anterior): ?>
+      <div class="caixa-abrir__base">
+        <span>Saldo anterior</span>
+        <strong><?= dinheiro($anterior['valor_fechamento']) ?></strong>
+        <small>Dinheiro que ficou na gaveta no fechamento de <?= data_br($anterior['fechado_em'], true) ?><?= $anterior['fechado_por_nome'] ? ', por ' . e(strtok((string) $anterior['fechado_por_nome'], ' ')) : '' ?>.</small>
+      </div>
+    <?php else: ?>
+      <div class="form-field"><label for="valor">Dinheiro na gaveta para começar (R$)</label><input id="valor" name="valor" inputmode="decimal" required>
+        <span class="form-dica">Só no primeiro caixa. Depois o saldo de cada fechamento vira o saldo anterior do caixa seguinte.</span></div>
+    <?php endif; ?>
     <div class="form-field" style="margin-top:12px"><label for="observacao">Observação</label><input id="observacao" name="observacao" maxlength="255"></div>
     <div class="form-acoes"><button class="btn btn--primary">Abrir caixa</button></div>
   </form>
@@ -76,7 +84,7 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
     <div class="stat-card stat-card--destaque">
       <div class="stat-card__topo"><span class="stat-card__label">Status</span></div>
       <span class="stat-card__value stat-card__value--status"><span class="ponto-status" aria-hidden="true"></span>Aberto</span>
-      <span class="stat-card__pe">desde <?= $aberturaHoje ? $horaAbertura : data_br($caixa['aberto_em'], true) ?> · troco <?= dinheiro($caixa['valor_abertura']) ?></span>
+      <span class="stat-card__pe">desde <?= $aberturaHoje ? $horaAbertura : data_br($caixa['aberto_em'], true) ?> · saldo anterior <?= dinheiro($caixa['valor_abertura']) ?></span>
     </div>
     <div class="stat-card">
       <div class="stat-card__topo"><span class="stat-card__label">Caixa atual (dinheiro)</span><?= icone('cash') ?></div>
@@ -152,14 +160,14 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
       <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Cancelar</button><button class="btn btn--primary">Registrar</button></div>
     </form>
   </dialog>
-  <dialog id="dlg-fechar" class="dlg">
+  <dialog id="dlg-fechar" class="dlg dlg--fechamento" aria-labelledby="dlg-fechar-titulo">
     <form method="post" action="./caixa-fechar">
       <?= csrf_field() ?>
-      <h3>Fechar caixa</h3>
-      <p class="form-dica">Conte o dinheiro da gaveta e informe o valor. O sistema compara com o esperado (<?= dinheiro($resumo['esperado']) ?>) e registra sobra ou falta.</p>
-      <div class="form-field"><label>Dinheiro contado (R$)</label><input name="contado" inputmode="decimal" required></div>
-      <div class="form-field"><label>Observação</label><input name="observacao" maxlength="255"></div>
-      <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Cancelar</button><button class="btn btn--primary">Fechar caixa</button></div>
+      <h3 id="dlg-fechar-titulo" tabindex="-1" autofocus>Fechar caixa</h3>
+      <p class="form-dica">Calculado pelos lançamentos desde <?= $aberturaHoje ? 'hoje às ' . $horaAbertura : data_br($caixa['aberto_em'], true) ?>.</p>
+      <?php require __DIR__ . '/_fechamento.php'; ?>
+      <div class="form-field"><label for="obs-fechar">Observação <span class="opcional">(opcional)</span></label><input id="obs-fechar" name="observacao" maxlength="255"></div>
+      <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Cancelar</button><button class="btn btn--primary">Confirmar fechamento</button></div>
     </form>
   </dialog>
   <script>
