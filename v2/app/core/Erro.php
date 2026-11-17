@@ -61,9 +61,14 @@ final class Erro
     public static function css(): string
     {
         // A tela de erro leva o CSS em linha: ela precisa aparecer mesmo quando o caminho dos arquivos falha.
-        $arquivo = V2_RAIZ . '/public/css/mecanize.css';
+        $css = '';
+        foreach (['mecanize.css', 'identidade.css'] as $nome) {
+            $arquivo = V2_RAIZ . '/public/css/' . $nome;
+            $css .= is_file($arquivo) ? (string) file_get_contents($arquivo) . "\n" : '';
+        }
 
-        return is_file($arquivo) ? (string) file_get_contents($arquivo) : '';
+        // Em linha, o caminho da fonte passa a ser relativo à página (public/), não à pasta css/.
+        return str_replace('../fonts/', './fonts/', $css);
     }
 }
 

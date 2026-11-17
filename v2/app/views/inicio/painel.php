@@ -68,10 +68,11 @@ if ($admin && $alertas['pagar_vencidas']) $avisos[] = ['warning', (int) $alertas
 if ($admin && $alertas['estoque_baixo']) $avisos[] = ['part', $alertas['estoque_baixo'] . ' peça(s) no estoque mínimo', './produtos?tipo=PECA&baixo=1', ''];
 if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $alertas['agenda_hoje'] . ' agendamento(s) hoje', './agenda?periodo=dia', ''];
 ?>
-<div class="page-header">
+<div class="page-header painel-hero">
   <div>
-    <h1 class="page-header__title">Olá, <?= e(explode(' ', Contexto::usuario()['nome'])[0]) ?>!</h1>
-    <p class="page-header__subtitle">Visão geral da oficina e das ordens de serviço · <?= e($hoje) ?></p>
+    <p class="painel-hero__data"><?= e(mb_strtoupper(mb_substr($hoje, 0, 1)) . mb_substr($hoje, 1)) ?></p>
+    <h1 class="page-header__title">Olá, <?= e(explode(' ', Contexto::usuario()['nome'])[0]) ?>.</h1>
+    <p class="page-header__subtitle">Visão geral da oficina e das ordens de serviço.</p>
   </div>
   <div class="page-header__actions">
     <a class="btn btn--primary" href="./os-nova"><?= icone('plus') ?> Nova OS</a>
