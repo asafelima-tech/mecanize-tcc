@@ -169,8 +169,8 @@ CREATE TABLE ordens_servico (
   cliente_id           BIGINT UNSIGNED NOT NULL,
   veiculo_id           BIGINT UNSIGNED NOT NULL,
   tecnico_id           BIGINT UNSIGNED NULL,
-  status               ENUM('ORCAMENTO','APROVADA','EM_EXECUCAO','AGUARDANDO_PECA','PRONTA','ENTREGUE','RECUSADA','CANCELADA')
-                       NOT NULL DEFAULT 'ORCAMENTO',
+  status               ENUM('ORCAMENTO','APROVADA','EM_EXECUCAO','AGUARDANDO_PECA','AGUARDANDO_VALIDACAO','PRONTA','ENTREGUE','RECUSADA','CANCELADA')
+                       NOT NULL DEFAULT 'ORCAMENTO',   -- AGUARDANDO_VALIDACAO: o técnico terminou; falta o ADMIN validar
   km_veiculo           INT UNSIGNED  NULL,
   defeito_relatado     TEXT          NULL,
   diagnostico          TEXT          NULL,
@@ -188,8 +188,14 @@ CREATE TABLE ordens_servico (
   motivo_recusa        VARCHAR(255)  NULL,
   -- execução / entrega
   concluido_em         DATETIME      NULL,
-  conferido_por        BIGINT UNSIGNED NULL,
+  conferido_por        BIGINT UNSIGNED NULL,      -- ADMIN que validou a execução do técnico
   conferido_em         DATETIME      NULL,
+  -- execução pelo técnico (o histórico guarda cada passo; aqui fica a situação atual)
+  execucao_iniciada_em      DATETIME     NULL,     -- o técnico informou que começou
+  execucao_enviada_em       DATETIME     NULL,     -- o técnico informou que terminou (foi para validação)
+  execucao_observacao       TEXT         NULL,     -- relato do técnico ao terminar
+  execucao_devolvida_em     DATETIME     NULL,     -- o ADMIN devolveu para correção
+  execucao_devolucao_motivo VARCHAR(255) NULL,
   entregue_em          DATETIME      NULL,
   cancelado_em         DATETIME      NULL,
   motivo_cancelamento  VARCHAR(255)  NULL,
@@ -489,4 +495,64 @@ CREATE TABLE notificacoes (
   UNIQUE KEY uq_notif_idem (usuario_id, chave_idempotencia),
   KEY ix_notif_usuario (oficina_id, usuario_id, lida_em),
   CONSTRAINT fk_notif_usuario FOREIGN KEY (oficina_id, usuario_id) REFERENCES usuarios(oficina_id, id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 18. OS_MATERIAIS — peças e materiais que o TÉCNICO informou ter usado na OS (24/11/2026).
+--     Informar NÃO mexe no estoque. Na validação, o ADMIN aprova ou recusa cada linha; a aprovada vira um
+--     item ADICIONAL da OS (item_id) e só então é baixada, pela regra de estoque de sempre. item_id único:
+--     um registro gera no máximo um item, então não há baixa em dobro. Nada é apagado: o técnico cancela.
+CREATE TABLE os_materiais (
+  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  oficina_id       BIGINT UNSIGNED NOT NULL,
+  ordem_servico_id BIGINT UNSIGNED NOT NULL,
+  tecnico_id       BIGINT UNSIGNED NOT NULL,
+  produto_id       BIGINT UNSIGNED NOT NULL,
+  quantidade       DECIMAL(10,3)   NOT NULL,
+  observacao       VARCHAR(255)    NULL,
+  status           ENUM('PENDENTE','APROVADO','RECUSADO','CANCELADO') NOT NULL DEFAULT 'PENDENTE',
+  item_id          BIGINT UNSIGNED NULL,          -- item criado na OS quando aprovado
+  decidido_por     BIGINT UNSIGNED NULL,
+  decidido_em      DATETIME        NULL,
+  motivo_decisao   VARCHAR(255)    NULL,
+  criado_em        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_osm_tenant (oficina_id, id),
+  UNIQUE KEY uq_osm_item (item_id),
+  KEY ix_osm_os (oficina_id, ordem_servico_id, status),
+  CONSTRAINT fk_osm_os      FOREIGN KEY (oficina_id, ordem_servico_id) REFERENCES ordens_servico(oficina_id, id),
+  CONSTRAINT fk_osm_tecnico FOREIGN KEY (oficina_id, tecnico_id)       REFERENCES usuarios(oficina_id, id),
+  CONSTRAINT fk_osm_produto FOREIGN KEY (oficina_id, produto_id)       REFERENCES produtos(oficina_id, id),
+  CONSTRAINT fk_osm_item    FOREIGN KEY (oficina_id, item_id)          REFERENCES ordem_servico_itens(oficina_id, id),
+  CONSTRAINT fk_osm_decidiu FOREIGN KEY (oficina_id, decidido_por)     REFERENCES usuarios(oficina_id, id),
+  CONSTRAINT ck_osm_qtd     CHECK (quantidade > 0),
+  CONSTRAINT ck_osm_item    CHECK ((status = 'APROVADO') = (item_id IS NOT NULL)),
+  CONSTRAINT ck_osm_decisao CHECK (status = 'PENDENTE' OR decidido_em IS NOT NULL)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+-- 19. SOLICITACOES_MATERIAL — pedidos e avisos do técnico ao ADMIN (24/11/2026): peça que acabou,
+--     reposição, peça indisponível, compra, material usado que não está no catálogo e problemas.
+--     A situação atual fica aqui; cada mudança dela fica no histórico.
+CREATE TABLE solicitacoes_material (
+  id               BIGINT UNSIGNED AUTO_INCREMENT PRIMARY KEY,
+  oficina_id       BIGINT UNSIGNED NOT NULL,
+  tecnico_id       BIGINT UNSIGNED NOT NULL,      -- quem pediu
+  ordem_servico_id BIGINT UNSIGNED NULL,
+  tipo             ENUM('ACABOU','REPOSICAO','INDISPONIVEL','COMPRA','NAO_CADASTRADO','PROBLEMA') NOT NULL,
+  produto_id       BIGINT UNSIGNED NULL,          -- peça do catálogo, quando houver
+  item_descricao   VARCHAR(150)    NULL,          -- peça escrita à mão (fora do catálogo)
+  quantidade       DECIMAL(10,3)   NULL,
+  justificativa    VARCHAR(500)    NOT NULL,
+  status           ENUM('RECEBIDA','APROVADA','ATENDIDA','RECUSADA') NOT NULL DEFAULT 'RECEBIDA',
+  resposta         VARCHAR(255)    NULL,
+  respondido_por   BIGINT UNSIGNED NULL,
+  respondido_em    DATETIME        NULL,
+  criado_em        DATETIME        NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  UNIQUE KEY uq_sol_tenant (oficina_id, id),
+  KEY ix_sol_status (oficina_id, status, criado_em),
+  KEY ix_sol_tecnico (oficina_id, tecnico_id, criado_em),
+  CONSTRAINT fk_sol_tecnico  FOREIGN KEY (oficina_id, tecnico_id)       REFERENCES usuarios(oficina_id, id),
+  CONSTRAINT fk_sol_os       FOREIGN KEY (oficina_id, ordem_servico_id) REFERENCES ordens_servico(oficina_id, id),
+  CONSTRAINT fk_sol_produto  FOREIGN KEY (oficina_id, produto_id)       REFERENCES produtos(oficina_id, id),
+  CONSTRAINT fk_sol_resposta FOREIGN KEY (oficina_id, respondido_por)   REFERENCES usuarios(oficina_id, id),
+  CONSTRAINT ck_sol_qtd      CHECK (quantidade IS NULL OR quantidade > 0),
+  CONSTRAINT ck_sol_resposta CHECK (status = 'RECEBIDA' OR respondido_em IS NOT NULL)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

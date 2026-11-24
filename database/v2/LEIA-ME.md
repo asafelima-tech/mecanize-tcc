@@ -1,4 +1,4 @@
-# Mecanize v2 — banco simplificado (17 tabelas, multi-oficina)
+# Mecanize v2 — banco simplificado (19 tabelas, multi-oficina)
 
 | Arquivo | Para quê |
 |---|---|
