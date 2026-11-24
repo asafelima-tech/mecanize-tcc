@@ -28,13 +28,13 @@ final class RotasEPermissoesTest extends TestCase
     public function testMatriz(): void
     {
         $esperado = [
-            //             LOGADO EQUIPE ADMIN PLATAFORMA
-            'ADMIN'      => [true,  true,  true,  false],
-            'ATENDENTE'  => [true,  true,  false, false],
-            'TECNICO'    => [true,  true,  false, false],
-            'PLATAFORMA' => [true,  false, false, true],
+            //             LOGADO EQUIPE ATEND. BALCAO TECNICO ADMIN PLATAFORMA
+            'ADMIN'      => [true,  true,  true,  true,  false,  true,  false],
+            'ATENDENTE'  => [true,  true,  true,  true,  false,  false, false],
+            'TECNICO'    => [true,  true,  false, false, true,   false, false],
+            'PLATAFORMA' => [true,  false, false, false, false,  false, true],
         ];
-        $niveis = [Permissao::LOGADO, Permissao::EQUIPE, Permissao::ADMIN, Permissao::PLATAFORMA];
+        $niveis = [Permissao::LOGADO, Permissao::EQUIPE, Permissao::ATENDIMENTO, Permissao::BALCAO, Permissao::TECNICO, Permissao::ADMIN, Permissao::PLATAFORMA];
 
         foreach ($esperado as $perfil => $linha) {
             foreach ($niveis as $i => $nivel) {
@@ -47,10 +47,26 @@ final class RotasEPermissoesTest extends TestCase
         $this->assertFalse(Permissao::permite('ADMIN', 'QUALQUER'), 'nível desconhecido é negado');
     }
 
-    public function testAtendenteETecnicoTemAsMesmasPermissoes(): void
+    /** O técnico só abre a área dele e o que é de todos (início, perfil, avisos, anexos conferidos). */
+    public function testTecnicoNaoAbreAsTelasDoEscritorio(): void
     {
-        foreach (Permissao::NIVEIS as $nivel) {
-            $this->assertSame(Permissao::permite('ATENDENTE', $nivel), Permissao::permite('TECNICO', $nivel), $nivel);
+        $doTecnico = array_keys(array_filter($this->rotas(), fn($r) => Permissao::permite('TECNICO', $r[2]) && $r[2] !== Permissao::PUBLICO));
+        sort($doTecnico);
+        $this->assertSame(['anexo', 'inicio', 'notificacao', 'notificacoes', 'notificacoes-ler-todas', 'oficina-logo', 'os-anexar', 'pedido-criar', 'pedidos',
+                           'perfil', 'perfil-salvar', 'sair', 'servico', 'servico-acao', 'servico-material', 'servicos'], $doTecnico);
+        foreach (['ordens', 'os', 'os-acao', 'os-item', 'clientes', 'veiculos', 'produtos', 'agenda', 'estoque', 'financeiro', 'relatorios', 'solicitacoes'] as $r) {
+            $this->assertFalse(Permissao::permite('TECNICO', $this->rotas()[$r][2]), $r);
+        }
+        $this->assertSame('servicos', Permissao::inicio('TECNICO'));
+    }
+
+    public function testAtendenteContinuaComOEscritorio(): void
+    {
+        foreach (['ordens', 'os', 'os-acao', 'clientes', 'veiculos', 'produtos', 'agenda', 'caixa'] as $r) {
+            $this->assertTrue(Permissao::permite('ATENDENTE', $this->rotas()[$r][2]), $r);
+        }
+        foreach (['servicos', 'servico', 'pedidos', 'solicitacoes'] as $r) {
+            $this->assertFalse(Permissao::permite('ATENDENTE', $this->rotas()[$r][2]), $r);
         }
     }
 }

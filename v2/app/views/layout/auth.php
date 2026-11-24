@@ -25,7 +25,7 @@ $authTitulo = $authTitulo ?? 'Acesso';
 
       <section class="login-painel">
         <div class="login-form">
-          <img class="login-logo-movel logo-claro" src="./img/logo.png" alt="Mecanize">
+          <img class="login-logo-movel logo-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
           <?= $conteudo ?>
         </div>
         <span class="login-rodape">© <?= date('Y') ?> Mecanize</span>

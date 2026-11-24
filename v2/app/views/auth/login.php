@@ -20,7 +20,7 @@
 
       <section class="login-painel" aria-label="Entrar">
         <form class="login-form" method="POST" action="./login" novalidate>
-          <img class="login-logo-movel logo-claro" src="./img/logo.png" alt="Mecanize">
+          <img class="login-logo-movel logo-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
 
           <?php if (!empty($retorno)): ?>
             <!-- Tela que a pessoa tentou abrir antes de entrar (validada no controller). -->

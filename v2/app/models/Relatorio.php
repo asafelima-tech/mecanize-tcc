@@ -88,7 +88,7 @@ final class Relatorio extends Modelo
     {
         $abertas = [];
         foreach ($this->lista("SELECT status, COUNT(*) AS n FROM ordens_servico WHERE oficina_id = :oficina
-                               AND status IN ('ORCAMENTO','APROVADA','EM_EXECUCAO','AGUARDANDO_PECA','PRONTA') GROUP BY status") as $l) {
+                               AND status IN ('ORCAMENTO','APROVADA','EM_EXECUCAO','AGUARDANDO_PECA','AGUARDANDO_VALIDACAO','PRONTA') GROUP BY status") as $l) {
             $abertas[$l['status']] = (int) $l['n'];
         }
 
@@ -326,7 +326,7 @@ final class Relatorio extends Modelo
     /** OS abertas no período, pela situação de hoje (para a lista "OS por situação"). */
     public function situacaoDasAbertas(): array
     {
-        $grupos = ['Concluídas' => ['PRONTA', 'ENTREGUE'], 'Em execução' => ['APROVADA', 'EM_EXECUCAO'], 'Aguardando peça' => ['AGUARDANDO_PECA'],
+        $grupos = ['Concluídas' => ['PRONTA', 'ENTREGUE'], 'Em execução' => ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_VALIDACAO'], 'Aguardando peça' => ['AGUARDANDO_PECA'],
                    'Orçamento' => ['ORCAMENTO'], 'Recusadas' => ['RECUSADA'], 'Canceladas' => ['CANCELADA']];
         $porStatus = [];
         foreach ($this->lista('SELECT status, COUNT(*) AS n FROM ordens_servico WHERE oficina_id = :oficina AND criado_em >= :ini AND criado_em < :fim

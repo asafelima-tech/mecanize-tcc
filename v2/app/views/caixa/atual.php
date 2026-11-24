@@ -6,34 +6,60 @@
  */
 $titulo = 'Caixa';
 $admin = Contexto::perfil() === 'ADMIN';
-$iconeForma = ['DINHEIRO' => 'cash', 'PIX' => 'qr-code', 'CARTAO_DEBITO' => 'credit-card', 'CARTAO_CREDITO' => 'credit-card',
-               'BOLETO' => 'barcode', 'TRANSFERENCIA' => 'bank', 'OUTRO' => 'more-h'];
+
+/**
+ * Composição de um total (entradas por forma, saídas por destino): uma barra única dividida em tons de uma mesma
+ * cor e, abaixo, a legenda com nome, participação e valor. Sem ícones nem trilhos: a barra já mostra a proporção.
+ */
+$composicao = function (array $partes, float $total, string $vazio): string {
+    if (!$partes || $total <= 0) {
+        return '<p class="composicao__vazio">' . e($vazio) . '</p>';
+    }
+    $pct = fn (float $v): string => ($p = $v / $total * 100) > 0 && $p < 1 ? '<1%' : round($p) . '%';
+    $barra = $lista = '';
+    $i = 0;
+    foreach ($partes as $nome => $v) {
+        $tom = min($i++, 4);
+        $barra .= '<span class="composicao__fatia" data-tom="' . $tom . '" style="flex-grow:' . round($v, 2) . '"></span>';
+        $lista .= '<li><span class="composicao__ponto" data-tom="' . $tom . '" aria-hidden="true"></span><span class="composicao__nome">' . e($nome)
+            . '</span><span class="composicao__pct">' . $pct($v) . '</span><b>' . dinheiro($v) . '</b></li>';
+    }
+    $rotulo = implode('; ', array_map(fn ($n, $v) => $n . ' ' . $pct($v), array_keys($partes), $partes));
+
+    return '<div class="composicao__barra" role="img" aria-label="' . e($rotulo) . '">' . $barra . '</div><ul class="composicao__lista">' . $lista . '</ul>';
+};
 
 if ($caixa) {
     // Entradas por forma e saídas por destino, somadas dos movimentos da sessão.
     $entradas = $saidas = 0.0;
     $nEntradas = $nSaidas = 0;
+    $entradasDinheiro = $saidasDinheiro = 0.0;
     $porForma = [];
     $porDestino = [];
     foreach ($movimentos as $m) {
         $v = (float) $m['valor'];
+        $emDinheiro = $m['forma_pagamento'] === 'DINHEIRO';
         if ($m['direcao'] === 'ENTRADA') {
             $entradas += $v;
             $nEntradas++;
-            $porForma[$m['forma_pagamento']] = ($porForma[$m['forma_pagamento']] ?? 0) + $v;
+            $entradasDinheiro += $emDinheiro ? $v : 0;
+            $nome = Lancamento::FORMAS[$m['forma_pagamento']] ?? $m['forma_pagamento'];
+            $porForma[$nome] = ($porForma[$nome] ?? 0) + $v;
         } else {
             $saidas += $v;
             $nSaidas++;
-            $destino = match (true) {
-                $m['natureza'] === 'SANGRIA' => ['Retirada (sangria)', 'bank'],
-                $m['natureza'] === 'ESTORNO' => ['Estornos', 'refresh'],
-                default => [Lancamento::CATEGORIAS['PAGAR'][$m['lancamento_categoria']] ?? 'Pagamentos', $m['lancamento_categoria'] === 'PECAS' ? 'part' : 'receipt'],
+            $saidasDinheiro += $emDinheiro ? $v : 0;
+            $nome = match (true) {
+                $m['natureza'] === 'SANGRIA' => 'Retirada (sangria)',
+                $m['natureza'] === 'ESTORNO' => 'Estornos',
+                default => Lancamento::CATEGORIAS['PAGAR'][$m['lancamento_categoria']] ?? 'Pagamentos',
             };
-            $porDestino[$destino[0]] = [$destino[1], ($porDestino[$destino[0]][1] ?? 0) + $v];
+            $porDestino[$nome] = ($porDestino[$nome] ?? 0) + $v;
         }
     }
     arsort($porForma);
-    uasort($porDestino, fn ($a, $b) => $b[1] <=> $a[1]);
+    arsort($porDestino);
+    $resultado = $entradas - $saidas;
     $aberturaHoje = substr($caixa['aberto_em'], 0, 10) === date('Y-m-d');
     $horaAbertura = date('H:i', strtotime($caixa['aberto_em']));
 }
@@ -81,7 +107,7 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
   </form>
 <?php else: ?>
   <div class="stat-grid stat-grid--icone">
-    <div class="stat-card stat-card--destaque">
+    <div class="stat-card">
       <div class="stat-card__topo"><span class="stat-card__label">Status</span></div>
       <span class="stat-card__value stat-card__value--status"><span class="ponto-status" aria-hidden="true"></span>Aberto</span>
       <span class="stat-card__pe">desde <?= $aberturaHoje ? $horaAbertura : data_br($caixa['aberto_em'], true) ?> · saldo anterior <?= dinheiro($caixa['valor_abertura']) ?></span>
@@ -104,29 +130,34 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
   </div>
 
   <div class="grade-3">
-    <section class="card">
-      <h2 class="card__titulo">Entradas por forma</h2>
-      <?php if (!$porForma): ?><p class="form-dica">Nenhuma entrada nesta sessão.</p><?php endif; ?>
-      <ul class="ranking ranking--icone">
-        <?php foreach ($porForma as $forma => $v): ?>
-          <li><span class="ranking__nome"><?= icone($iconeForma[$forma] ?? 'coins') ?><?= e(Lancamento::FORMAS[$forma] ?? $forma) ?></span><b><?= dinheiro($v) ?></b>
-            <span class="ranking__trilho"><span style="width:<?= $entradas > 0 ? round($v / $entradas * 100, 1) : 0 ?>%"></span></span></li>
-        <?php endforeach; ?>
-      </ul>
-      <p class="form-dica">Só o dinheiro soma no caixa atual. PIX, cartão e boleto ficam registrados no financeiro.</p>
+    <section class="card composicao" aria-labelledby="comp-entradas">
+      <header class="composicao__cabeca">
+        <h2 class="card__titulo" id="comp-entradas">Entradas</h2>
+        <span><?= count($porForma) ?> forma<?= count($porForma) === 1 ? '' : 's' ?> de pagamento</span>
+      </header>
+      <?= $composicao($porForma, $entradas, 'Nenhuma entrada nesta sessão.') ?>
+      <?php if ($entradas > 0): ?>
+        <p class="composicao__nota"><?= $entradasDinheiro > 0
+            ? '<b>' . dinheiro($entradasDinheiro) . '</b> em dinheiro foi para a gaveta. O restante fica no financeiro.'
+            : 'Nada em dinheiro: tudo fica registrado no financeiro.' ?></p>
+      <?php endif; ?>
     </section>
 
-    <section class="card">
-      <h2 class="card__titulo">Saídas por destino</h2>
-      <?php if (!$porDestino): ?><p class="form-dica">Nenhuma saída nesta sessão.</p><?php endif; ?>
-      <ul class="ranking ranking--icone">
-        <?php foreach ($porDestino as $nome => [$ic, $v]): ?>
-          <li><span class="ranking__nome"><?= icone($ic) ?><?= e($nome) ?></span><b><?= dinheiro($v) ?></b>
-            <span class="ranking__trilho"><span style="width:<?= $saidas > 0 ? round($v / $saidas * 100, 1) : 0 ?>%"></span></span></li>
-        <?php endforeach; ?>
-      </ul>
-      <p class="form-dica">Saídas em dinheiro descontam do caixa atual.</p>
-      <div class="resultado"><span>Resultado da sessão</span><b><?= $entradas - $saidas < 0 ? '−' : '' ?><?= dinheiro(abs($entradas - $saidas)) ?></b></div>
+    <section class="card composicao" aria-labelledby="comp-saidas">
+      <header class="composicao__cabeca">
+        <h2 class="card__titulo" id="comp-saidas">Saídas</h2>
+        <span><?= count($porDestino) ?> destino<?= count($porDestino) === 1 ? '' : 's' ?></span>
+      </header>
+      <?= $composicao($porDestino, $saidas, 'Nenhuma saída nesta sessão.') ?>
+      <?php if ($saidas > 0): ?>
+        <p class="composicao__nota"><?= $saidasDinheiro > 0
+            ? '<b>' . dinheiro($saidasDinheiro) . '</b> saiu da gaveta em dinheiro.'
+            : 'Nada saiu da gaveta: as saídas foram por outras formas.' ?></p>
+      <?php endif; ?>
+      <div class="composicao__resultado">
+        <span>Resultado da sessão<small>entradas menos saídas</small></span>
+        <b><?= $resultado < 0 ? '−' : '' ?><?= dinheiro(abs($resultado)) ?></b>
+      </div>
     </section>
 
     <section class="card">

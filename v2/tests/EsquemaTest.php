@@ -16,9 +16,10 @@ final class EsquemaTest extends TestCase
             WHERE table_schema = DATABASE() AND column_name = 'oficina_id' ORDER BY table_name")->fetchAll(PDO::FETCH_COLUMN);
     }
 
-    public function testSaoDezesseteTabelas(): void
+    /** 17 da v2 + os_materiais e solicitacoes_material (área do técnico, 24/11/2026). */
+    public function testSaoDezenoveTabelas(): void
     {
-        $this->assertSame(17, (int) $this->db()->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()')->fetchColumn());
+        $this->assertSame(19, (int) $this->db()->query('SELECT COUNT(*) FROM information_schema.tables WHERE table_schema = DATABASE()')->fetchColumn());
     }
 
     public function testTodaTabelaDeOficinaTemChaveUnicaComposta(): void

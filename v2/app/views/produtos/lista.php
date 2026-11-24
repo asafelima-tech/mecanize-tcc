@@ -45,7 +45,7 @@ $ocultos = array_filter(['tipo' => $f['tipo']]);
     <span class="stat-card__pe">sem saldo em estoque</span>
   </a>
   <?php if ($admin): ?>
-    <div class="stat-card stat-card--destaque">
+    <div class="stat-card">
       <div class="stat-card__topo"><span class="stat-card__label">Valor em inventário</span></div>
       <span class="stat-card__value"><?= dinheiro($resumo['inventario']) ?></span>
       <span class="stat-card__pe">custo das peças em estoque</span>

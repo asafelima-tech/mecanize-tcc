@@ -53,6 +53,8 @@ $variacao = $g['mes_anterior'] > 0 ? ($resumo['faturado_mes'] - $g['mes_anterior
 
 $avisos = [];
 $plural = fn (int $n, string $um, string $varios): string => $n . ' ' . ($n === 1 ? $um : $varios);
+if (!empty($alertas['validar'])) $avisos[] = ['checklist', $plural((int) $alertas['validar'], 'serviço para validar', 'serviços para validar'), './ordens?situacao=validacao', ''];
+if (!empty($alertas['pedidos'])) $avisos[] = ['box', $plural((int) $alertas['pedidos'], 'pedido de técnico', 'pedidos de técnicos'), './solicitacoes', ''];
 if ($alertas['orc_vencidos']) $avisos[] = ['calendar', $plural((int) $alertas['orc_vencidos'], 'orçamento vencido', 'orçamentos vencidos'), './ordens?situacao=orcamento', ''];
 if ($admin && $alertas['receber_vencidas']) $avisos[] = ['error', $plural((int) $alertas['receber_vencidas'], 'a receber vencida', 'a receber vencidas') . ' · ' . dinheiro($alertas['receber_valor']), './financeiro?tipo=RECEBER&situacao=vencidos', 'danger'];
 if ($admin && $alertas['pagar_vencidas']) $avisos[] = ['warning', $plural((int) $alertas['pagar_vencidas'], 'a pagar vencida', 'a pagar vencidas') . ' · ' . dinheiro($alertas['pagar_valor']), './financeiro?tipo=PAGAR&situacao=vencidos', 'danger'];
@@ -86,7 +88,7 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
     <span class="stat-card__value"><?= (int) $resumo['aguardando'] ?></span>
     <span class="stat-card__pe">OS paradas</span>
   </a>
-  <div class="stat-card stat-card--destaque">
+  <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Faturamento mensal</span>
       <?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '−' ?><?= $pct(abs($variacao)) ?></span><?php endif; ?></div>
     <span class="stat-card__value"><?= dinheiro($resumo['faturado_mes']) ?></span>
@@ -213,8 +215,8 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
       <div class="barras__area">
         <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
         <?php $iMes = 0; foreach ($g['meses'] as $m => $v): $ehPico = $iMes++ === $picoMes; ?>
-          <div class="barras__coluna<?= $ehPico ? ' is-pico' : '' ?>" title="<?= e($mesesCurto[(int) substr($m, 5)] . ' · ' . dinheiro($v)) ?>">
-            <span class="barras__barra" style="height:<?= round($v / $topo * 100, 1) ?>%"><?php if ($ehPico): ?><span class="rel-pico"><?= e(dinheiro($v)) ?></span><?php endif; ?></span>
+          <div class="barras__coluna<?= $ehPico ? ' is-pico' : '' ?>">
+            <span class="barras__barra" style="height:<?= round($v / $topo * 100, 1) ?>%"><span class="rel-pico"><?= e(dinheiro($v)) ?></span></span>
             <span class="barras__rotulo"><?= $mesesCurto[(int) substr($m, 5)] ?></span>
           </div>
         <?php endforeach; ?>

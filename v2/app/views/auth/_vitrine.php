@@ -1,7 +1,7 @@
 <?php /** Lado escuro das telas de acesso (Design System · 11 · Login). Ilustração decorativa da marca. */ ?>
 <section class="login-vitrine" aria-label="Mecanize">
-  <img class="login-vitrine__marca-dagua" src="./img/simbolo-branco.png" alt="" aria-hidden="true">
-  <img class="login-vitrine__logo" src="./img/logo-branco.png" alt="Mecanize">
+  <img class="login-vitrine__marca-dagua" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="simbolo" alt="" aria-hidden="true">
+  <img class="login-vitrine__logo" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
 
   <div class="login-vitrine__cena" aria-hidden="true">
     <div class="login-vitrine__os">

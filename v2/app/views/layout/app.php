@@ -55,6 +55,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
   <link rel="stylesheet" href="./css/mecanize.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/mecanize.css') ?>">
   <link rel="stylesheet" href="./css/identidade.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/identidade.css') ?>">
   <link rel="stylesheet" href="./css/responsivo.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/responsivo.css') ?>">
+  <link rel="stylesheet" href="./css/tecnico.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/tecnico.css') ?>">
   <script>
     // Tema antes de desenhar a tela (sem "piscar" claro → escuro).
     (function () {
@@ -63,28 +64,41 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
         if (salvo === 'dark' || (!salvo && window.matchMedia('(prefers-color-scheme: dark)').matches)) {
           document.documentElement.setAttribute('data-theme', 'dark');
         }
-        if (localStorage.getItem('sidebar-collapsed') === 'true') document.documentElement.classList.add('pre-collapsed');
       } catch (e) {}
+      // Barra lateral (computador): "aberta" (com a largura escolhida), "trilho" (só ícones) ou "oculta".
+      // Aplicada antes de desenhar, sem animação, para a tela já abrir como a pessoa deixou.
+      var h = document.documentElement, estado = 'aberta', largura = 248;
+      try {
+        var s = JSON.parse(localStorage.getItem('mecanize-lateral') || 'null');
+        if (s && /^(aberta|trilho|oculta)$/.test(s.estado)) estado = s.estado;
+        if (s && s.largura >= 208 && s.largura <= 248) largura = Math.round(s.largura);
+        if (!s && localStorage.getItem('sidebar-collapsed') === 'true') estado = 'trilho';
+      } catch (e) {}
+      h.setAttribute('data-lateral', estado);
+      h.style.setProperty('--lat-aberta', largura + 'px');
+      h.style.setProperty('--lat', (estado === 'aberta' ? largura : estado === 'trilho' ? 68 : 0) + 'px');
+      h.classList.add('lat-carregando');
     })();
   </script>
 </head>
 
-<body>
+<body<?= $perfil === 'TECNICO' ? ' class="perfil-tecnico"' : '' ?>>
   <a class="pular" href="#conteudo">Pular para o conteúdo</a>
   <div class="app">
     <aside class="sidebar" id="menu-principal" aria-label="Menu principal">
       <div class="sidebar__brand">
-        <a href="./<?= e(Permissao::inicio($perfil)) ?>" aria-label="Mecanize — início">
-          <img class="sidebar__logo-full logo-p-claro" src="./img/logo.png" alt="Mecanize">
-          <img class="sidebar__logo-full logo-p-escuro" src="./img/logo-branco.png" alt="" aria-hidden="true">
-          <img class="sidebar__logo-icon logo-p-claro" src="./img/simbolo.png" alt="Mecanize">
-          <img class="sidebar__logo-icon logo-p-escuro" src="./img/simbolo-branco-recorte.png" alt="" aria-hidden="true">
+        <a href="./<?= e(Permissao::inicio($perfil)) ?>" aria-label="Mecanize — início" title="Início">
+          <img class="sidebar__logo-full logo-p-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
+          <img class="sidebar__logo-full logo-p-escuro" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="" aria-hidden="true">
+          <img class="sidebar__logo-icon logo-p-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="simbolo" alt="Mecanize">
+          <img class="sidebar__logo-icon logo-p-escuro" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="simbolo" alt="" aria-hidden="true">
         </a>
-        <button type="button" class="sidebar__retrair" id="sidebarCollapseBtn" aria-label="Retrair barra lateral" title="Retrair barra lateral"><?= icone('sidebar-collapse', 20) ?></button>
+        <button type="button" class="sidebar__retrair" id="sidebarCollapseBtn" aria-controls="menu-principal" aria-expanded="true" aria-label="Recolher menu" title="Recolher menu (Ctrl+B)"><?= icone('sidebar-collapse', 20) ?></button>
+        <button type="button" class="sidebar__abrir" id="sidebarExpandBtn" aria-controls="menu-principal" aria-expanded="false" aria-label="Expandir menu" title="Expandir menu (Ctrl+B)"><?= icone('sidebar-expand', 20) ?></button>
       </div>
 
       <?php $grupoAtual = null; foreach ($menu as $item):
-        if (!isset($rotas[$item['rota']]) || !Permissao::permite($perfil, $rotas[$item['rota']][2])) continue;
+        if (!isset($rotas[$item['rota']]) || !Permissao::permite($perfil, $rotas[$item['rota']][2]) || in_array($perfil, $item['esconder'] ?? [], true)) continue;
         $ativo = $rotaAtual === $item['rota'] || in_array($rotaAtual, $item['rotas'] ?? [], true);
         if ($item['grupo'] !== $grupoAtual):
           if ($grupoAtual !== null) echo '</nav>';
@@ -97,7 +111,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
       <?php endforeach; if ($grupoAtual !== null) echo '</nav>'; ?>
 
       <div class="sidebar__rodape">
-        <button type="button" class="sidebar__tema" id="darkToggle" aria-label="Alternar tema escuro"><span class="interruptor" aria-hidden="true"></span><span>Tema escuro</span></button>
+        <button type="button" class="sidebar__tema" id="darkToggle" aria-label="Ativar tema escuro" title="Ativar tema escuro"><i class="tema-icone" aria-hidden="true"><?= icone('moon', 20, 1.5, 'tema-icone__lua') ?><?= icone('sun', 20, 1.5, 'tema-icone__sol') ?></i><span class="interruptor" aria-hidden="true"></span><span class="tema-rotulo"><span class="tema-rotulo__escuro">Tema escuro</span><span class="tema-rotulo__claro">Tema claro</span></span></button>
         <div class="sidebar__perfil">
           <a href="<?= $oficina ? './perfil' : './plataforma' ?>" title="Meu perfil<?= $oficina ? ' · ' . e($oficina['nome']) : '' ?>">
             <span class="sidebar__avatar"><?= e($iniciais) ?></span>
@@ -107,11 +121,14 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
         </div>
       </div>
     </aside>
+    <div class="lateral-alca" id="lateralAlca" role="separator" tabindex="0" aria-orientation="vertical" aria-controls="menu-principal"
+         aria-label="Largura da barra lateral" aria-valuemin="0" aria-valuemax="248" title="Arraste para ajustar · clique duplo restaura"></div>
     <div class="sidebar-backdrop" id="sidebarBackdrop"></div>
 
     <div class="main">
       <header class="topbar">
         <button type="button" class="topbar__hamburger" id="mobileNavToggle" aria-label="Abrir menu"><?= icone('menu', 20) ?></button>
+        <button type="button" class="topbar__lateral" id="lateralMostrar" aria-controls="menu-principal" aria-expanded="false" aria-label="Mostrar menu" title="Mostrar menu (Ctrl+B)"><?= icone('sidebar-expand', 20) ?></button>
         <?php if ($caminho): ?>
           <nav class="topbar__caminho" aria-label="Você está em">
             <?php foreach ($caminho as $k => [$rotulo, $link]): ?>
@@ -148,6 +165,15 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
       </main>
     </div>
   </div>
+  <?php if ($perfil === 'TECNICO'): ?>
+    <!-- Técnico no celular: as três telas dele numa barra embaixo, ao alcance do polegar (some no computador). -->
+    <nav class="tec-barra" aria-label="Navegação do técnico">
+      <?php foreach ([['servicos', ['servico'], 'mechanic', 'Serviços'], ['pedidos', [], 'box', 'Pedidos'], ['perfil', [], 'user', 'Perfil']] as [$r, $filhas, $ic, $rot]):
+        $na = $rotaAtual === $r || in_array($rotaAtual, $filhas, true); ?>
+        <a href="./<?= $r ?>"<?= $na ? ' class="ativa" aria-current="page"' : '' ?>><?= icone($ic, 22, $na ? 2 : 1.5) ?><span><?= $rot ?></span></a>
+      <?php endforeach; ?>
+    </nav>
+  <?php endif; ?>
   <?php if ($oficina) require __DIR__ . '/_avisos.php'; ?>
   <script>
     // Tabelas no celular: cada linha vira um cartão (ver responsivo.css, seção 7). Aqui cada célula recebe o nome
@@ -211,74 +237,142 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
     (function () {
       var html = document.documentElement;
       var tema = document.getElementById('darkToggle');
+      // O ícone mostra o destino do clique: lua no claro (vai para o escuro), sol no escuro (volta para o claro).
+      function rotuloTema() {
+        if (!tema) return;
+        var dica = html.getAttribute('data-theme') === 'dark' ? 'Ativar tema claro' : 'Ativar tema escuro';
+        tema.setAttribute('aria-label', dica); tema.title = dica;
+      }
+      rotuloTema();
       if (tema) tema.addEventListener('click', function () {
         var escuro = html.getAttribute('data-theme') !== 'dark';
         html.setAttribute('data-theme', escuro ? 'dark' : 'light');
         try { localStorage.setItem('mecanize-theme', escuro ? 'dark' : 'light'); } catch (e) {}
+        rotuloTema();
       });
 
-      if (html.classList.contains('pre-collapsed')) document.body.classList.add('sidebar-collapsed');
-      var recolher = document.getElementById('sidebarCollapseBtn');
-      if (recolher) (function () {
-        // Recolher/expandir com movimento contínuo: a coluna anima pelo CSS e os itens que mudam de lugar
-        // (ícones, títulos de grupo, logo, perfil) deslizam da posição antiga para a nova (técnica FLIP).
-        var corpo = document.body, barra = document.querySelector('.sidebar'), ocupado = false;
-        var ALVOS = '.sidebar__brand > a, .sidebar__retrair, .sidebar__rotulo, .sidebar__item, .sidebar__tema, .sidebar__perfil';
-        var TEXTOS = '.sidebar__item .label, .sidebar__rotulo, .sidebar__logo-full, .sidebar__tema > span:not(.interruptor), .sidebar__perfil > a:first-child > div, .sidebar__sair';
-        var CURVA = 'cubic-bezier(.32, .72, 0, 1)';
-        var semAnimacao = function () {
-          return !barra || !barra.animate || window.innerWidth <= 900 || window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+      // Barra lateral (computador): três estados — "aberta" (largura ajustável, de 208 a 248 px), "trilho" (68 px, só
+      // ícones) e "oculta". Tudo sai da variável --lat (registrada no CSS com @property): coluna, barra e alça se movem
+      // juntas numa única transição, sem saltos. Arrastar a alça (borda direita) ajusta a largura; ao soltar perto do
+      // trilho ou da borda, a barra se encaixa no estado mais próximo. Teclado: Ctrl+B alterna; na alça, setas, Home e End.
+      (function () {
+        var barra = document.getElementById('menu-principal'), alca = document.getElementById('lateralAlca');
+        var btRecolher = document.getElementById('sidebarCollapseBtn'), btExpandir = document.getElementById('sidebarExpandBtn');
+        var btMostrar = document.getElementById('lateralMostrar');
+        if (!barra || !alca) return;
+        var PADRAO = 248, MIN = 208, MAX = 248, TRILHO = 68, TEXTO = 150;
+        var computador = window.matchMedia('(min-width: 901px)');
+        var estado = html.getAttribute('data-lateral') || 'aberta';
+        var largura = parseFloat(html.style.getPropertyValue('--lat-aberta')) || PADRAO;
+        var limitar = function (v) { return Math.round(Math.min(MAX, Math.max(MIN, v))); };
+        var alvo = function () { return estado === 'aberta' ? largura : estado === 'trilho' ? TRILHO : 0; };
+        var atual = function () { var v = parseFloat(getComputedStyle(html).getPropertyValue('--lat')); return isNaN(v) ? alvo() : v; };
+        // Último estado visível ("aberta" ou "trilho"): é para ele que a barra volta quando estava oculta.
+        var ultimo = estado === 'oculta' ? 'aberta' : estado;
+        try { var salvo = JSON.parse(localStorage.getItem('mecanize-lateral') || 'null'); if (salvo && /^(aberta|trilho)$/.test(salvo.ultimo)) ultimo = salvo.ultimo; } catch (e) {}
+
+        var descrever = function () {
+          alca.setAttribute('aria-valuenow', alvo());
+          alca.setAttribute('aria-valuetext', estado === 'aberta' ? 'Aberta, ' + largura + ' pixels' : estado === 'trilho' ? 'Só ícones' : 'Oculta');
+          if (btRecolher) btRecolher.setAttribute('aria-expanded', estado === 'aberta' ? 'true' : 'false');
+          if (btExpandir) btExpandir.setAttribute('aria-expanded', estado === 'aberta' ? 'true' : 'false');
+          if (btMostrar) btMostrar.setAttribute('aria-expanded', estado === 'oculta' ? 'false' : 'true');
         };
-        var lista = function () { return [].slice.call(barra.querySelectorAll(ALVOS)); };
-        var medir = function (els) { return els.map(function (el) { return el.getBoundingClientRect(); }); };
-        var deslizar = function (els, antes, depois, dur, soVertical) {
-          els.forEach(function (el, i) {
-            var a = antes[i], b = depois[i];
-            if (!a.width || !b.width) return;
-            var dx = soVertical && soVertical(el) ? 0 : a.left - b.left, dy = a.top - b.top;
-            if (Math.abs(dx) < .5 && Math.abs(dy) < .5) return;
-            el.animate([{ transform: 'translate(' + dx + 'px,' + dy + 'px)' }, { transform: 'none' }], { duration: dur, easing: CURVA });
-          });
+        // O botão que fica visível no novo estado (para onde o foco vai quando o anterior some).
+        var botaoDe = function (e) { return e === 'aberta' ? btRecolher : e === 'trilho' ? btExpandir : btMostrar; };
+        var aplicar = function (novo, novaLargura, teclado) {
+          if (novaLargura != null) largura = limitar(novaLargura);
+          var ativo = document.activeElement;
+          var focoNoBotao = ativo && (ativo === btRecolher || ativo === btExpandir || ativo === btMostrar);
+          var focoDentro = barra.contains(ativo);
+          estado = novo;
+          if (estado !== 'oculta') ultimo = estado;
+          html.setAttribute('data-lateral', estado);
+          html.style.setProperty('--lat-aberta', largura + 'px');
+          html.style.setProperty('--lat', alvo() + 'px');
+          try { localStorage.setItem('mecanize-lateral', JSON.stringify({ estado: estado, largura: largura, ultimo: ultimo })); localStorage.removeItem('sidebar-collapsed'); } catch (e) {}
+          descrever();
+          // Pelo teclado, o foco segue para o botão que continua visível; com o mouse, o botão só perde o foco (sem anel).
+          var destino = botaoDe(estado);
+          if (focoNoBotao && ativo !== destino) { if (teclado && destino) destino.focus({ preventScroll: true }); else ativo.blur(); }
+          else if (estado === 'oculta' && focoDentro && btMostrar) btMostrar.focus({ preventScroll: true });
         };
-        var surgir = function (sel, atraso, dur) {
-          [].forEach.call(barra.querySelectorAll(sel), function (el) {
-            el.animate([{ opacity: 0 }, { opacity: 1 }], { duration: dur, delay: atraso, easing: 'ease-out', fill: 'backwards' });
-          });
-        };
-        var recolherBarra = function () {
-          corpo.classList.add('sidebar-fechando');               // a coluna encolhe e os textos esmaecem
-          setTimeout(function () {
-            var els = lista(), antes = medir(els);
-            corpo.classList.add('sidebar-collapsed');
-            corpo.classList.remove('sidebar-fechando');
-            deslizar(els, antes, medir(els), 280);                // os ícones se acomodam no centro
-            surgir('.sidebar__logo-icon, .sidebar__rotulo', 40, 240);
-            setTimeout(function () { ocupado = false; }, 290);
-          }, 330);
-        };
-        var expandirBarra = function () {
-          var els = lista(), antes = medir(els);
-          corpo.classList.add('sidebar-medindo');                 // mede a posição final sem transição
-          corpo.classList.remove('sidebar-collapsed');
-          var depois = medir(els);
-          corpo.classList.add('sidebar-collapsed');
-          void barra.offsetWidth;
-          corpo.classList.remove('sidebar-medindo');
-          void barra.offsetWidth;
-          corpo.classList.remove('sidebar-collapsed');            // agora a coluna cresce com transição
-          deslizar(els, antes, depois, 340, function (el) { return el.classList.contains('sidebar__retrair'); });
-          surgir(TEXTOS, 90, 280);
-          setTimeout(function () { ocupado = false; }, 350);
-        };
-        recolher.addEventListener('click', function () {
-          if (ocupado) return;
-          var r = !corpo.classList.contains('sidebar-collapsed');
-          recolher.setAttribute('aria-label', r ? 'Expandir barra lateral' : 'Retrair barra lateral');
-          try { localStorage.setItem('sidebar-collapsed', r); } catch (e) {}
-          if (semAnimacao()) { corpo.classList.toggle('sidebar-collapsed', r); return; }
-          ocupado = true;
-          if (r) recolherBarra(); else expandirBarra();
+        var mostrar = function (teclado) { aplicar(ultimo === 'trilho' ? 'trilho' : 'aberta', null, teclado); };
+        var alternar = function (teclado) { if (estado === 'oculta') mostrar(teclado); else aplicar(estado === 'aberta' ? 'trilho' : 'aberta', null, teclado); };
+
+        // detail 0 = clique vindo do teclado (Enter/Espaço).
+        if (btRecolher) btRecolher.addEventListener('click', function (e) { aplicar('trilho', null, e.detail === 0); });
+        if (btExpandir) btExpandir.addEventListener('click', function (e) { aplicar('aberta', null, e.detail === 0); });
+        if (btMostrar) btMostrar.addEventListener('click', function (e) { mostrar(e.detail === 0); });
+        document.addEventListener('keydown', function (e) {
+          if (!computador.matches || e.altKey || e.shiftKey || !(e.ctrlKey || e.metaKey) || String(e.key).toLowerCase() !== 'b') return;
+          var t = e.target;
+          if (t && (t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName))) return;
+          e.preventDefault();
+          alternar(true);
         });
+
+        // Arrastar: a barra segue o cursor sem transição; ao soltar, encaixa com transição.
+        var arraste = null, quadro = 0;
+        var desenhar = function () {
+          quadro = 0;
+          if (!arraste) return;
+          var x = arraste.x;
+          if (x > MAX) x = MAX + Math.min(32, (x - MAX) * .2);        // além do máximo, com resistência
+          x = Math.max(0, x);
+          html.style.setProperty('--lat', x + 'px');
+          html.setAttribute('data-lateral', x >= TEXTO ? 'aberta' : 'trilho');
+        };
+        alca.addEventListener('pointerdown', function (e) {
+          if (e.button !== 0 || !computador.matches) return;
+          e.preventDefault();
+          var lat = atual();                                           // onde estiver, mesmo no meio de uma transição
+          arraste = { id: e.pointerId, dx: e.clientX - lat, x0: e.clientX, x: lat, moveu: false };
+          try { alca.setPointerCapture(e.pointerId); } catch (er) {}
+          html.classList.add('lat-arrastando');
+          html.style.setProperty('--lat', lat + 'px');
+        });
+        alca.addEventListener('pointermove', function (e) {
+          if (!arraste || e.pointerId !== arraste.id) return;
+          if (!arraste.moveu && Math.abs(e.clientX - arraste.x0) < 3) return;
+          arraste.moveu = true;
+          arraste.x = e.clientX - arraste.dx;
+          if (!quadro) quadro = requestAnimationFrame(desenhar);
+        });
+        var soltar = function (e) {
+          if (!arraste || (e && e.pointerId !== arraste.id)) return;
+          var a = arraste;
+          if (quadro) { cancelAnimationFrame(quadro); desenhar(); }
+          arraste = null;
+          html.classList.remove('lat-arrastando');
+          void getComputedStyle(html).getPropertyValue('--lat');       // a transição parte de onde a barra está
+          if (!a.moveu) { aplicar(estado); return; }
+          if (a.x < TRILHO / 2) aplicar('oculta');
+          else if (a.x < (TRILHO + MIN) / 2) aplicar('trilho');
+          else aplicar('aberta', a.x);
+        };
+        alca.addEventListener('pointerup', soltar);
+        alca.addEventListener('pointercancel', soltar);
+        alca.addEventListener('lostpointercapture', soltar);
+        alca.addEventListener('dblclick', function () { aplicar('aberta', PADRAO); });
+        alca.addEventListener('keydown', function (e) {
+          var passo = e.shiftKey ? 48 : 16;
+          if (e.key === 'ArrowRight') {
+            if (estado === 'oculta') aplicar('trilho');
+            else if (estado === 'trilho') aplicar('aberta');
+            else aplicar('aberta', largura + passo);
+          } else if (e.key === 'ArrowLeft') {
+            if (estado === 'aberta') { if (largura - passo < MIN) aplicar('trilho'); else aplicar('aberta', largura - passo); }
+            else if (estado === 'trilho') aplicar('oculta');
+          } else if (e.key === 'Home') aplicar('trilho');
+          else if (e.key === 'End') aplicar('aberta', MAX);
+          else if (e.key === 'Enter' || e.key === ' ') alternar(true);
+          else return;
+          e.preventDefault();
+        });
+
+        descrever();
+        requestAnimationFrame(function () { requestAnimationFrame(function () { html.classList.remove('lat-carregando'); }); });
       })();
 
       var hamb = document.getElementById('mobileNavToggle');
@@ -326,36 +420,62 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
         });
       }
 
-      // Avisos: painel simples ancorado no sininho (não é janela modal: sem véu, sem travar a página).
-      // O sininho abre e fecha; também fecha com Esc, com o X ou clicando fora.
+      // Avisos. No computador: painel simples ancorado no sininho (não é janela modal: sem véu, sem travar a página);
+      // o sininho abre e fecha; também fecha com Esc, com o X ou clicando fora. No celular (até 900 px): folha modal
+      // que sobe de baixo (#dlg-avisos-celular), fecha com o X, com Esc ou tocando no fundo escurecido.
       var dlgAvisos = document.getElementById('dlg-avisos');
+      var dlgCelular = document.getElementById('dlg-avisos-celular');
       var sino = document.querySelector('[data-abrir-avisos]');
+      var celular = window.matchMedia('(max-width: 900px)');
       if (dlgAvisos && sino) {
         sino.setAttribute('aria-haspopup', 'true');
         sino.setAttribute('aria-expanded', 'false');
         var abrirAvisos = function () { if (!dlgAvisos.open) { dlgAvisos.show(); sino.setAttribute('aria-expanded', 'true'); } };
         var fecharAvisos = function () { if (dlgAvisos.open) dlgAvisos.close(); };
-        sino.addEventListener('click', function (e) { e.stopPropagation(); dlgAvisos.open ? fecharAvisos() : abrirAvisos(); });
+        var abrirCelular = function () { if (dlgCelular && !dlgCelular.open) { dlgCelular.showModal(); sino.setAttribute('aria-expanded', 'true'); } };
+        var fecharCelular = function () {
+          if (!dlgCelular || !dlgCelular.open || dlgCelular.classList.contains('is-saindo')) return;
+          dlgCelular.classList.add('is-saindo');
+          setTimeout(function () { dlgCelular.classList.remove('is-saindo'); dlgCelular.close(); }, 180);
+        };
+        sino.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (celular.matches && dlgCelular) { abrirCelular(); return; }
+          dlgAvisos.open ? fecharAvisos() : abrirAvisos();
+        });
         dlgAvisos.addEventListener('close', function () { sino.setAttribute('aria-expanded', 'false'); });
         document.addEventListener('click', function (e) { if (dlgAvisos.open && !dlgAvisos.contains(e.target)) fecharAvisos(); });
         document.addEventListener('keydown', function (e) { if (e.key === 'Escape' && dlgAvisos.open) { fecharAvisos(); sino.focus(); } });
         dlgAvisos.querySelector('[data-fechar-avisos]').addEventListener('click', fecharAvisos);
-        if (location.hash === '#avisos') { history.replaceState(null, '', location.pathname + location.search); abrirAvisos(); }
+        if (dlgCelular) {
+          dlgCelular.addEventListener('close', function () { sino.setAttribute('aria-expanded', 'false'); sino.focus({ preventScroll: true }); });
+          dlgCelular.addEventListener('cancel', function (e) { e.preventDefault(); fecharCelular(); });
+          dlgCelular.addEventListener('click', function (e) { if (e.target === dlgCelular) fecharCelular(); }); // toque no fundo
+          dlgCelular.querySelector('[data-fechar-avisos-celular]').addEventListener('click', fecharCelular);
+        }
+        if (location.hash === '#avisos') { history.replaceState(null, '', location.pathname + location.search); celular.matches && dlgCelular ? abrirCelular() : abrirAvisos(); }
 
-        // "Marcar todos como lidos" sem sair da página (sem JS, o formulário volta para cá).
-        var lerTodas = dlgAvisos.querySelector('[data-avisos-ler-todas]');
-        if (lerTodas && window.fetch) lerTodas.addEventListener('submit', function (e) {
-          e.preventDefault();
-          fetch(lerTodas.action, { method: 'POST', body: new FormData(lerTodas), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
-            .then(function (r) {
-              if (!r.ok) throw r;
-              dlgAvisos.querySelectorAll('.aviso--novo').forEach(function (a) { a.classList.remove('aviso--novo'); var p = a.querySelector('.ponto-novo'); if (p) p.remove(); });
-              dlgAvisos.querySelector('[data-avisos-resumo]').textContent = 'Tudo lido';
-              lerTodas.remove();
-              var n = sino.querySelector('.topbar-sino__n'); if (n) n.remove();
-              sino.setAttribute('aria-label', 'Avisos');
-            })
-            .catch(function () { lerTodas.submit(); });
+        // "Marcar todos como lidos" sem sair da página (sem JS, o formulário volta para cá). Vale para as duas janelas.
+        var marcarLidos = function () {
+          dlgAvisos.querySelectorAll('.aviso--novo').forEach(function (a) { a.classList.remove('aviso--novo'); var p = a.querySelector('.ponto-novo'); if (p) p.remove(); });
+          var r1 = dlgAvisos.querySelector('[data-avisos-resumo]'); if (r1) r1.textContent = 'Tudo lido';
+          var f1 = dlgAvisos.querySelector('[data-avisos-ler-todas]'); if (f1) f1.remove();
+          if (dlgCelular) {
+            dlgCelular.querySelectorAll('.aviso2--novo').forEach(function (a) { a.classList.remove('aviso2--novo'); var p = a.querySelector('.aviso2__ponto'); if (p) p.remove(); });
+            var g = dlgCelular.querySelector('[data-avisos-grupo="novos"] h4'); if (g) g.textContent = 'Recentes';
+            var r2 = dlgCelular.querySelector('[data-avisos-resumo-celular]'); if (r2) r2.textContent = 'Tudo em dia';
+            var f2 = dlgCelular.querySelector('[data-avisos-ler-todas-celular]'); if (f2) f2.remove();
+          }
+          var n = sino.querySelector('.topbar-sino__n'); if (n) n.remove();
+          sino.setAttribute('aria-label', 'Avisos');
+        };
+        [dlgAvisos.querySelector('[data-avisos-ler-todas]'), dlgCelular && dlgCelular.querySelector('[data-avisos-ler-todas-celular]')].forEach(function (form) {
+          if (form && window.fetch) form.addEventListener('submit', function (e) {
+            e.preventDefault();
+            fetch(form.action, { method: 'POST', body: new FormData(form), credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch' } })
+              .then(function (r) { if (!r.ok) throw r; marcarLidos(); })
+              .catch(function () { form.submit(); });
+          });
         });
       }
     })();
@@ -366,6 +486,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
     document.addEventListener('click', function (e) {
       var tr = e.target.closest('tr[data-href]');
       if (!tr || e.target.closest('a, button, input, select, form, details, label')) return;
+      if (window.Mecanize && window.Mecanize.abrirSeJanela && window.Mecanize.abrirSeJanela(tr.dataset.href)) return;
       window.location = tr.dataset.href;
     });
 
@@ -399,7 +520,8 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
 
     // Confirmação antes de ações destrutivas (<form data-confirmar="texto">): janela do sistema, em js/campos.js.
 
-    // Máscaras: data-mascara="telefone|cep|placa|documento|cpf|cnpj".
+    // Máscaras: data-mascara="telefone|cep|placa|documento|cpf|cnpj". aplicarMascaras(raiz) também vale para o
+    // conteúdo que chega depois (as janelas de criar e editar, js/modal.js).
     if (window.IMask) {
       var mascaras = {
         telefone: { mask: [{ mask: '(00) 0000-0000' }, { mask: '(00) 00000-0000' }] },
@@ -409,13 +531,17 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
         documento: { mask: [{ mask: '000.000.000-00' }, { mask: '00.000.000/0000-00' }] },
         placa: { mask: [{ mask: 'aaa-0000' }, { mask: 'aaa0a00' }], prepare: function (s) { return s.toUpperCase(); } }
       };
-      document.querySelectorAll('[data-mascara]').forEach(function (el) {
-        var m = mascaras[el.dataset.mascara];
-        if (m) el._mascara = IMask(el, m);
-      });
+      window.aplicarMascaras = function (raiz) {
+        (raiz || document).querySelectorAll('[data-mascara]').forEach(function (el) {
+          var m = mascaras[el.dataset.mascara];
+          if (m && !el._mascara) el._mascara = IMask(el, m);
+        });
+      };
+      window.aplicarMascaras(document);
     }
   </script>
   <script src="<?= e(asset('js/csrf.js')) ?>"></script>
+  <script src="./js/modal.js?v=<?= (int) @filemtime(V2_RAIZ . '/public/js/modal.js') ?>"></script>
 </body>
 
 </html>

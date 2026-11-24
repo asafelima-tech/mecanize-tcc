@@ -14,12 +14,21 @@ abstract class Controller
             throw new LogicException("View inexistente: {$view}");
         }
 
+        // Pedida pela janela (modal) do sistema: só o conteúdo da tela, sem menu nem topo.
+        if ($layout === 'app' && self::ehModal()) {
+            $layout = null;
+        }
+
         extract($dados, EXTR_SKIP);
         ob_start();
         require $arquivo;
         $conteudo = ob_get_clean();
 
         if ($layout === null) {
+            // Na janela, o aviso pendente (ex.: "Perfil atualizado.") vai num cabeçalho e o modal.js mostra no topo.
+            if (self::ehModal() && ($aviso = self::tirarAviso()) && !headers_sent()) {
+                header('X-Mecanize-Aviso: ' . rawurlencode((string) json_encode($aviso, JSON_UNESCAPED_UNICODE)));
+            }
             echo $conteudo;
             return;
         }
@@ -29,8 +38,19 @@ abstract class Controller
 
     protected function redirecionar(string $rota, array $params = []): never
     {
-        header('Location: ./' . $rota . ($params ? '?' . http_build_query($params) : ''));
+        $destino = './' . $rota . ($params ? '?' . http_build_query($params) : '');
+        // Na janela (modal), quem navega é o script: ele fecha a janela e abre o destino.
+        if (self::ehModal()) {
+            $this->json(['ir' => $destino]);
+        }
+        header('Location: ' . $destino);
         exit;
+    }
+
+    /** A requisição veio da janela (modal) de criar/editar (public/js/modal.js). */
+    public static function ehModal(): bool
+    {
+        return ($_SERVER['HTTP_X_MECANIZE_MODAL'] ?? '') === '1';
     }
 
     protected function json($dados, int $status = 200): never

@@ -25,50 +25,62 @@ return [
     'notificacao'     => ['NotificacoesController', 'abrir', Permissao::EQUIPE],
     'notificacoes-ler-todas' => ['NotificacoesController', 'lerTodas', Permissao::EQUIPE],
 
-    // Ordens de serviço (com orçamento) — equipe toda
-    'ordens'          => ['OrdensController', 'lista', Permissao::EQUIPE],
-    'os-nova'         => ['OrdensController', 'nova', Permissao::EQUIPE],
-    'os-criar'        => ['OrdensController', 'criar', Permissao::EQUIPE],
-    'os'              => ['OrdensController', 'ver', Permissao::EQUIPE],
-    'os-dados'        => ['OrdensController', 'dados', Permissao::EQUIPE],
-    'os-item'         => ['OrdensController', 'item', Permissao::EQUIPE],
-    'os-acao'         => ['OrdensController', 'acao', Permissao::EQUIPE],
-    'os-mover'        => ['OrdensController', 'mover', Permissao::EQUIPE],   // Kanban: arrastar o cartão
-    'os-imprimir'     => ['OrdensController', 'imprimir', Permissao::EQUIPE],
-    'os-veiculos'     => ['OrdensController', 'veiculosDoCliente', Permissao::EQUIPE],
+    // Área do técnico (celular): só as OS em que ele está, conferidas a cada requisição (ServicoTecnico)
+    'servicos'        => ['TecnicoController', 'painel', Permissao::TECNICO],
+    'servico'         => ['TecnicoController', 'ver', Permissao::TECNICO],
+    'servico-acao'    => ['TecnicoController', 'acao', Permissao::TECNICO],
+    'servico-material'=> ['TecnicoController', 'material', Permissao::TECNICO],
+    'pedidos'         => ['TecnicoController', 'pedidos', Permissao::TECNICO],
+    'pedido-criar'    => ['TecnicoController', 'criarPedido', Permissao::TECNICO],
 
-    // Anexos — fotos e documentos da OS: equipe; comprovante de conta: ADMIN (conferido também ao abrir)
+    // Solicitações de material dos técnicos — o ADMIN analisa e responde
+    'solicitacoes'         => ['SolicitacoesController', 'lista', Permissao::ADMIN],
+    'solicitacao-responder'=> ['SolicitacoesController', 'responder', Permissao::ADMIN],
+
+    // Ordens de serviço (com orçamento) — escritório (ADMIN e ATENDENTE); validar a execução do técnico: só ADMIN (conferido no controller)
+    'ordens'          => ['OrdensController', 'lista', Permissao::ATENDIMENTO],
+    'os-nova'         => ['OrdensController', 'nova', Permissao::ATENDIMENTO],
+    'os-criar'        => ['OrdensController', 'criar', Permissao::ATENDIMENTO],
+    'os'              => ['OrdensController', 'ver', Permissao::ATENDIMENTO],
+    'os-dados'        => ['OrdensController', 'dados', Permissao::ATENDIMENTO],
+    'os-item'         => ['OrdensController', 'item', Permissao::ATENDIMENTO],
+    'os-acao'         => ['OrdensController', 'acao', Permissao::ATENDIMENTO],
+    'os-mover'        => ['OrdensController', 'mover', Permissao::ATENDIMENTO],   // Kanban: arrastar o cartão
+    'os-imprimir'     => ['OrdensController', 'imprimir', Permissao::ATENDIMENTO],
+    'os-veiculos'     => ['OrdensController', 'veiculosDoCliente', Permissao::ATENDIMENTO],
+
+    // Anexos — fotos e documentos da OS: equipe (o técnico, só nas OS em que está); comprovante de conta: ADMIN (conferido também ao abrir)
     'os-anexar'       => ['AnexosController', 'enviarOs', Permissao::EQUIPE],
     'conta-anexar'    => ['AnexosController', 'enviarConta', Permissao::ADMIN],
     'anexo'           => ['AnexosController', 'abrir', Permissao::EQUIPE],
 
-    // Agenda — equipe toda; excluir só ADMIN
-    'agenda'          => ['AgendaController', 'lista', Permissao::EQUIPE],
-    'agenda-form'     => ['AgendaController', 'form', Permissao::EQUIPE],
-    'agenda-salvar'   => ['AgendaController', 'salvar', Permissao::EQUIPE],
-    'agenda-marcar'   => ['AgendaController', 'marcar', Permissao::EQUIPE],
-    'agenda-os'       => ['AgendaController', 'gerarOs', Permissao::EQUIPE],
+    // Agenda — escritório; excluir só ADMIN
+    'agenda'          => ['AgendaController', 'lista', Permissao::ATENDIMENTO],
+    'agenda-form'     => ['AgendaController', 'form', Permissao::ATENDIMENTO],
+    'agenda-salvar'   => ['AgendaController', 'salvar', Permissao::ATENDIMENTO],
+    'agenda-marcar'   => ['AgendaController', 'marcar', Permissao::ATENDIMENTO],
+    'agenda-os'       => ['AgendaController', 'gerarOs', Permissao::ATENDIMENTO],
     'agenda-excluir'  => ['AgendaController', 'excluir', Permissao::ADMIN],
 
-    // Cadastros — clientes e veículos: equipe toda; excluir só ADMIN
-    'clientes'        => ['ClientesController', 'lista', Permissao::EQUIPE],
-    'cliente'         => ['ClientesController', 'ver', Permissao::EQUIPE],
-    'cliente-form'    => ['ClientesController', 'form', Permissao::EQUIPE],
-    'cliente-salvar'  => ['ClientesController', 'salvar', Permissao::EQUIPE],
-    'cliente-ativo'   => ['ClientesController', 'ativo', Permissao::EQUIPE],
+    // Cadastros — clientes e veículos: escritório; excluir só ADMIN
+    'clientes'        => ['ClientesController', 'lista', Permissao::ATENDIMENTO],
+    'cliente'         => ['ClientesController', 'ver', Permissao::ATENDIMENTO],
+    'cliente-form'    => ['ClientesController', 'form', Permissao::ATENDIMENTO],
+    'cliente-salvar'  => ['ClientesController', 'salvar', Permissao::ATENDIMENTO],
+    'cliente-ativo'   => ['ClientesController', 'ativo', Permissao::ATENDIMENTO],
     'cliente-excluir' => ['ClientesController', 'excluir', Permissao::ADMIN],
 
-    'veiculos'        => ['VeiculosController', 'lista', Permissao::EQUIPE],
-    'veiculo'         => ['VeiculosController', 'ver', Permissao::EQUIPE],
-    'veiculo-form'    => ['VeiculosController', 'form', Permissao::EQUIPE],
-    'veiculo-salvar'  => ['VeiculosController', 'salvar', Permissao::EQUIPE],
-    'veiculo-ativo'   => ['VeiculosController', 'ativo', Permissao::EQUIPE],
+    'veiculos'        => ['VeiculosController', 'lista', Permissao::ATENDIMENTO],
+    'veiculo'         => ['VeiculosController', 'ver', Permissao::ATENDIMENTO],
+    'veiculo-form'    => ['VeiculosController', 'form', Permissao::ATENDIMENTO],
+    'veiculo-salvar'  => ['VeiculosController', 'salvar', Permissao::ATENDIMENTO],
+    'veiculo-ativo'   => ['VeiculosController', 'ativo', Permissao::ATENDIMENTO],
     'veiculo-excluir' => ['VeiculosController', 'excluir', Permissao::ADMIN],
-    'veiculo-modelos' => ['VeiculosController', 'modelos', Permissao::EQUIPE],
+    'veiculo-modelos' => ['VeiculosController', 'modelos', Permissao::ATENDIMENTO],
 
-    // Peças e serviços — consultar: equipe (sem custo); cadastrar/editar: ADMIN
-    'produtos'        => ['ProdutosController', 'lista', Permissao::EQUIPE],
-    'produto'         => ['ProdutosController', 'ver', Permissao::EQUIPE],
+    // Peças e serviços — consultar: escritório (sem custo); cadastrar/editar: ADMIN
+    'produtos'        => ['ProdutosController', 'lista', Permissao::ATENDIMENTO],
+    'produto'         => ['ProdutosController', 'ver', Permissao::ATENDIMENTO],
     'produto-form'    => ['ProdutosController', 'form', Permissao::ADMIN],
     'produto-salvar'  => ['ProdutosController', 'salvar', Permissao::ADMIN],
     'produto-ativo'   => ['ProdutosController', 'ativo', Permissao::ADMIN],

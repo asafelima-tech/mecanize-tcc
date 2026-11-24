@@ -4,6 +4,11 @@ final class InicioController extends Controller
 {
     public function inicio(): void
     {
+        // O início do técnico é a lista dos serviços dele (o painel da oficina tem números e dinheiro).
+        if (Contexto::perfil() === 'TECNICO') {
+            $this->redirecionar('servicos');
+        }
+
         $painel = new Painel();
         $admin = Contexto::perfil() === 'ADMIN';
 

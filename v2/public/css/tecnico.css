@@ -1,0 +1,471 @@
+/* =====================================================================================================
+   Mecanize v2 — área do TÉCNICO (24/11/2026) e as partes do ADMIN que conversam com ela.
+   Celular primeiro: uma coluna, cartões grandes, toques de 48 px ou mais, a ação principal presa
+   embaixo (ao alcance do polegar) e uma barra de navegação no rodapé. No tablet e no computador a tela
+   usa a largura toda: cartões em grade, a execução em duas colunas (trabalho à esquerda; ação, fotos e
+   andamento à direita) e os pedidos com o formulário ao lado da lista. Mesmos tokens da identidade (identidade.css): cores, cantos,
+   tipos e o azul de destaque só em ações.
+   ===================================================================================================== */
+
+/* ── 1. Base da área ───────────────────────────────────────────────────────────────────────────────── */
+.tec { --tec-r: 18px; --tec-toque: 48px; width: 100%; max-width: 1480px; display: flex; flex-direction: column; gap: 14px; }
+.tec-cabeca { display: flex; flex-direction: column; gap: 2px; padding: 2px 2px 4px; }
+.tec-cabeca__oi { margin: 0; font-size: 15px; color: var(--text-secondary); }
+.tec-cabeca__titulo { margin: 0; font-family: var(--font-titulo); font-size: 30px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; color: var(--text); }
+.tec-cabeca__sub { margin: 6px 0 0; font-size: 15px; line-height: 1.45; color: var(--text-secondary); }
+.tec-voltar { margin: 0; }
+.tec-voltar a { display: inline-flex; align-items: center; gap: 4px; min-height: 40px; font-size: 15px; font-weight: 500; color: var(--link, var(--acento)); text-decoration: none; }
+
+/* Faixa de atalho (pedidos em aberto) */
+.tec-faixa { display: flex; align-items: center; gap: 10px; min-height: 52px; padding: 0 16px; border-radius: 14px; background: var(--card);
+  color: var(--text); font-size: 15px; font-weight: 500; text-decoration: none; }
+.tec-faixa > span { flex: 1; }
+.tec-faixa .icone { color: var(--text-secondary); flex: none; }
+
+/* Abas: três cápsulas do mesmo tamanho, numa linha só, com o número ao lado do nome (nunca embaixo).
+   No computador ficam do tamanho do texto, alinhadas à esquerda. */
+.tec-abas { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.tec-abas a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 0; height: 40px; padding: 0 10px; border-radius: 20px;
+  background: var(--card); box-shadow: inset 0 0 0 1px var(--hairline); font-size: 14px; font-weight: 500; letter-spacing: -0.01em; color: var(--text-secondary);
+  text-decoration: none; white-space: nowrap; transition: background-color .15s ease, color .15s ease; }
+.tec-abas a span { font-weight: 600; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.tec-abas a:hover { color: var(--text); }
+.tec-abas a.ativa { background: var(--text); color: var(--card); box-shadow: none; font-weight: 600; }
+.tec-abas a.ativa span { color: color-mix(in srgb, var(--card) 65%, transparent); }
+.tec-abas a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+@media (max-width: 360px) { .tec-abas a { font-size: 13px; padding: 0 6px; gap: 4px; } }
+@media (min-width: 720px) { .tec-abas { display: flex; gap: 8px; } .tec-abas a { padding: 0 18px; font-size: 14.5px; } }
+
+/* ── 2. Cartões de serviço ─────────────────────────────────────────────────────────────────────────── */
+.tec-lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.tec-cartao, .tec-pedido { position: relative; display: flex; flex-direction: column; gap: 6px; padding: 16px 18px 15px; border-radius: var(--tec-r);
+  background: var(--card); color: var(--text); text-decoration: none; overflow: hidden; }
+a.tec-cartao:active { transform: scale(.99); }
+a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.tec-cartao::before, .tec-pedido::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 4px; border-radius: 0 3px 3px 0; background: transparent; }
+.tec-cartao--alerta::before { background: var(--atencao); }
+.tec-cartao__topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tec-cartao__os { font-size: 13px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.tec-cartao__carro { font-family: var(--font-titulo); font-size: 20px; font-weight: 600; letter-spacing: -0.02em; line-height: 1.2; }
+.tec-cartao__placa { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 14px; color: var(--text-secondary); }
+.tec-cartao__fazer { font-size: 15px; line-height: 1.4; color: var(--text); }
+.tec-cartao__nota { display: flex; gap: 8px; align-items: flex-start; padding: 9px 11px; border-radius: 11px; background: var(--fill); font-size: 14px; line-height: 1.4; color: var(--text-secondary); }
+.tec-cartao__nota .icone { flex: none; margin-top: 2px; }
+.tec-cartao__nota--alerta { background: var(--atencao-fundo); color: var(--atencao); }
+.tec-cartao__pe { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-top: 2px; font-size: 13.5px; color: var(--text-secondary); }
+.tec-cartao__pe > span:first-child { display: inline-flex; align-items: center; gap: 5px; }
+.tec-cartao__cliente { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: right; color: var(--text-tertiary); }
+.tec-atrasado { color: var(--perigo) !important; font-weight: 600; }
+
+.tec-placa { display: inline-flex; align-items: center; height: 24px; padding: 0 8px; border-radius: 6px; background: var(--text); color: var(--card);
+  font-size: 13px; font-weight: 600; letter-spacing: .06em; font-variant-numeric: tabular-nums; }
+.tec-placa--grande { height: 30px; padding: 0 11px; font-size: 15px; border-radius: 7px; }
+
+.tec-situacao { display: inline-flex; align-items: center; gap: 6px; height: 26px; padding: 0 10px; border-radius: 13px; background: var(--fill);
+  font-size: 13px; font-weight: 600; color: var(--text-secondary); white-space: nowrap; }
+.tec-situacao::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: currentColor; }
+.tec-situacao--novo { background: color-mix(in srgb, var(--acento) 12%, transparent); color: var(--acento); }
+.tec-situacao--andamento { background: var(--text); color: var(--card); }
+.tec-situacao--espera { background: var(--fill); color: var(--text-secondary); }
+.tec-situacao--alerta { background: var(--atencao-fundo); color: var(--atencao); }
+.tec-situacao--feito { background: var(--ok-fundo, var(--fill)); color: var(--ok, var(--text)); }
+
+.tec-vazio { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 44px 24px; border-radius: var(--tec-r); background: var(--card);
+  text-align: center; color: var(--text-secondary); }
+.tec-vazio strong { font-size: 16px; color: var(--text); }
+.tec-vazio span { font-size: 14px; line-height: 1.45; max-width: 300px; }
+.tec-vazio .icone { color: var(--text-tertiary); margin-bottom: 4px; }
+.tec-vazio-linha { margin: 0; font-size: 14.5px; color: var(--text-tertiary); }
+
+/* ── 3. Execução do serviço ────────────────────────────────────────────────────────────────────────── */
+.tec-carro { display: flex; flex-direction: column; gap: 8px; padding: 18px; border-radius: var(--tec-r); background: var(--card); }
+.tec-carro__topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.tec-carro__modelo { margin: 2px 0 0; font-family: var(--font-titulo); font-size: 26px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; }
+.tec-carro__dados { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 10px; margin: 0; font-size: 14.5px; color: var(--text-secondary); }
+.tec-carro__cliente { display: flex; align-items: center; flex-wrap: wrap; gap: 5px; margin: 2px 0 0; font-size: 14px; color: var(--text-secondary); }
+
+.tec-aviso { display: flex; gap: 12px; align-items: flex-start; padding: 14px 16px; border-radius: 16px; background: var(--info-fundo, var(--fill)); font-size: 14.5px; line-height: 1.45; color: var(--text); }
+.tec-aviso > .icone { flex: none; margin-top: 1px; color: var(--link, var(--acento)); }
+.tec-aviso strong { display: block; margin-bottom: 2px; font-size: 15px; }
+.tec-aviso small { display: block; margin-top: 4px; font-size: 12.5px; color: var(--text-tertiary); }
+.tec-aviso--alerta { background: var(--atencao-fundo); }
+.tec-aviso--alerta > .icone { color: var(--atencao); }
+.tec-aviso--ok { background: var(--ok-fundo, var(--fill)); }
+.tec-aviso--ok > .icone { color: var(--ok, var(--text)); }
+
+/* Atalhos para as partes da tela (rolam na horizontal se não couberem) */
+.tec-atalhos { position: sticky; top: calc(var(--topo-altura, 56px) + 4px); z-index: 5; display: flex; gap: 6px; overflow-x: auto; scrollbar-width: none;
+  padding: 6px; margin: 0 -6px; border-radius: 16px; background: color-mix(in srgb, var(--bg, var(--fundo-pagina, #fff)) 88%, transparent);
+  -webkit-backdrop-filter: saturate(1.6) blur(14px); backdrop-filter: saturate(1.6) blur(14px); }
+.tec-atalhos::-webkit-scrollbar { display: none; }
+.tec-atalhos a { flex: none; display: inline-flex; align-items: center; min-height: 38px; padding: 0 14px; border-radius: 19px; background: var(--card);
+  font-size: 14px; font-weight: 500; color: var(--text); text-decoration: none; white-space: nowrap; }
+
+.tec-bloco { display: flex; flex-direction: column; gap: 12px; padding: 18px; border-radius: var(--tec-r); background: var(--card); scroll-margin-top: 130px; }
+.tec-bloco__titulo { margin: 0; font-family: var(--font-titulo); font-size: 19px; font-weight: 600; letter-spacing: -0.02em; }
+.tec-bloco__titulo--solto { margin: 10px 2px 0; }
+.tec-bloco__sub { margin: 6px 0 0; font-size: 13px; font-weight: 600; letter-spacing: .02em; text-transform: uppercase; color: var(--text-tertiary); }
+.tec-bloco__dica { margin: -6px 0 0; font-size: 14px; line-height: 1.45; color: var(--text-secondary); }
+
+.tec-itens { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.tec-itens li { display: flex; align-items: flex-start; gap: 12px; padding: 12px 0; border-top: 1px solid var(--hairline); font-size: 16px; line-height: 1.35; }
+.tec-itens li:first-child { border-top: 0; padding-top: 2px; }
+.tec-itens li > .icone { flex: none; margin-top: 1px; color: var(--text-tertiary); }
+.tec-itens li > span { flex: 1; min-width: 0; }
+.tec-itens li small { display: block; margin-top: 2px; font-size: 13px; color: var(--text-tertiary); }
+.tec-itens li.is-meu > .icone { color: var(--acento); }
+.tec-itens li.is-meu small { color: var(--acento); font-weight: 600; }
+.tec-itens li em { flex: none; font-style: normal; font-size: 13px; color: var(--text-secondary); }
+.tec-itens li em.tec-falta { color: var(--atencao); font-weight: 600; }
+.tec-itens--pecas li { font-size: 15px; }
+
+.tec-texto { padding: 12px 14px; border-radius: 13px; background: var(--fill); }
+.tec-texto h3 { display: flex; align-items: center; gap: 7px; margin: 0 0 5px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.tec-texto p { margin: 0; font-size: 15.5px; line-height: 1.5; color: var(--text); overflow-wrap: anywhere; }
+.tec-texto--destaque { background: color-mix(in srgb, var(--acento) 8%, var(--card)); }
+.tec-texto--destaque h3 { color: var(--acento); }
+
+/* Materiais e pedidos registrados */
+.tec-materiais { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tec-material { display: flex; align-items: center; gap: 10px; padding: 12px 6px 12px 14px; border-radius: 13px; background: var(--fill); }
+.tec-material > div { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; }
+.tec-material strong { font-size: 15.5px; font-weight: 600; overflow-wrap: anywhere; }
+.tec-material__qtd { font-size: 14px; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.tec-material small { flex-basis: 100%; font-size: 13px; color: var(--text-secondary); line-height: 1.4; }
+.tec-material--feito small { color: var(--ok, var(--text-secondary)); }
+.tec-material--alerta small { color: var(--atencao); }
+.tec-material--apagado { opacity: .55; }
+.tec-material--apagado strong { text-decoration: line-through; }
+.tec-botao-icone { display: inline-flex; align-items: center; justify-content: center; width: var(--tec-toque); height: var(--tec-toque); border: 0; border-radius: 12px;
+  background: transparent; color: var(--text-secondary); cursor: pointer; }
+.tec-botao-icone:hover, .tec-botao-icone:focus-visible { background: color-mix(in srgb, var(--text) 7%, transparent); color: var(--perigo); }
+
+/* ── 4. Botões, campos e formulários ───────────────────────────────────────────────────────────────── */
+.tec-botao { display: inline-flex; align-items: center; justify-content: center; gap: 8px; width: 100%; min-height: 52px; padding: 0 20px; border: 0;
+  border-radius: 14px; background: var(--acento); color: #fff; font: inherit; font-size: 16.5px; font-weight: 600; letter-spacing: -0.01em;
+  cursor: pointer; text-decoration: none; -webkit-tap-highlight-color: transparent; transition: background-color .15s ease, transform .1s ease; }
+.tec-botao:hover { background: var(--acento-hover, var(--acento)); }
+.tec-botao:active { transform: scale(.985); }
+.tec-botao:focus-visible { outline: 2px solid var(--acento); outline-offset: 3px; }
+.tec-botao--secundario { background: var(--fill); color: var(--text); }
+.tec-botao--secundario:hover { background: var(--fill-forte); }
+.tec-botao--grande { min-height: 56px; font-size: 17px; border-radius: 16px; }
+.tec-link { border: 0; background: none; padding: 6px 4px; font: inherit; font-size: 14.5px; font-weight: 500; color: var(--link, var(--acento)); cursor: pointer; }
+
+.tec-form > summary { list-style: none; }
+.tec-form > summary::-webkit-details-marker { display: none; }
+.tec-form[open] > summary { display: none; }
+.tec-form__corpo { display: flex; flex-direction: column; gap: 14px; }
+.tec-form--destaque { padding: 18px; border-radius: var(--tec-r); background: var(--card); }
+.tec-form--destaque:not([open]) { padding: 0; background: none; }
+
+.tec-campo { display: flex; flex-direction: column; gap: 6px; }
+.tec-campo__rotulo { font-size: 14px; font-weight: 600; color: var(--text); padding: 0; }
+.tec-campo__dica { margin: 0; font-size: 12.5px; color: var(--text-tertiary); }
+.tec .tec-campo input, .tec .tec-campo select, .tec .tec-campo textarea, .tec-peca__busca input, .tec-folha textarea {
+  width: 100%; min-height: var(--tec-toque) !important; padding: 11px 14px !important; border: 0 !important; border-radius: 12px !important;
+  background: var(--fill) !important; color: var(--text); font: inherit; font-size: 16px !important; box-shadow: none !important; }
+.tec .tec-campo textarea, .tec-folha textarea { min-height: 96px !important; line-height: 1.45; resize: vertical; }
+.tec .tec-campo input:focus, .tec .tec-campo select:focus, .tec .tec-campo textarea:focus, .tec-peca__busca input:focus, .tec-folha textarea:focus {
+  outline: 2px solid var(--acento) !important; outline-offset: 0; background: var(--card) !important; }
+
+/* Escolha de peça: busca + lista de toques grandes */
+.tec-peca { display: flex; flex-direction: column; gap: 6px; }
+.tec-peca__busca { position: relative; }
+.tec-peca__busca > .icone { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-tertiary); pointer-events: none; }
+.tec-peca__busca input { padding-left: 42px !important; }
+.tec-peca__lista { list-style: none; margin: 0; padding: 4px; border-radius: 14px; background: var(--card); box-shadow: 0 0 0 1px var(--hairline), 0 10px 30px rgba(0, 0, 0, .1); }
+.tec-peca__lista button { display: flex; flex-direction: column; align-items: flex-start; gap: 1px; width: 100%; min-height: var(--tec-toque); padding: 9px 12px;
+  border: 0; border-radius: 10px; background: none; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.tec-peca__lista button:hover, .tec-peca__lista button:focus-visible { background: var(--fill); outline: none; }
+.tec-peca__lista strong { font-size: 15.5px; font-weight: 600; }
+.tec-peca__lista small { font-size: 12.5px; color: var(--text-tertiary); }
+.tec-peca__nada { padding: 12px; font-size: 14px; line-height: 1.45; color: var(--text-secondary); }
+.tec-peca__escolhida { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: var(--tec-toque); margin: 0; padding: 4px 6px 4px 14px;
+  border-radius: 12px; background: color-mix(in srgb, var(--acento) 10%, var(--card)); font-size: 15.5px; font-weight: 600; color: var(--text); }
+.tec-peca__escolhida[hidden], .tec-peca__busca[hidden] { display: none; }
+
+/* Quantidade com − e + */
+.tec-qtd { display: grid; grid-template-columns: var(--tec-toque) 1fr var(--tec-toque); gap: 6px; max-width: 220px; }
+.tec-qtd button { display: inline-flex; align-items: center; justify-content: center; height: var(--tec-toque); border: 0; border-radius: 12px; background: var(--fill);
+  color: var(--text); cursor: pointer; }
+.tec-qtd button:active { background: var(--fill-forte); }
+.tec .tec-qtd input { text-align: center; font-size: 18px !important; font-weight: 600; font-variant-numeric: tabular-nums; padding: 0 !important; }
+
+/* Tipos de pedido: opções em lista grande */
+.tec-tipos { display: flex; flex-direction: column; gap: 6px; margin: 0; padding: 0; border: 0; min-width: 0; }
+.tec-tipos legend { margin-bottom: 6px; }
+.tec-tipos label { display: block; cursor: pointer; }
+.tec-tipos input { position: absolute; opacity: 0; pointer-events: none; }
+.tec-tipos span { display: flex; flex-direction: column; justify-content: center; gap: 1px; min-height: var(--tec-toque); padding: 9px 14px 9px 42px; position: relative;
+  border-radius: 12px; background: var(--fill); font-size: 15.5px; font-weight: 500; color: var(--text); }
+.tec-tipos span::before { content: ""; position: absolute; left: 14px; top: 50%; width: 18px; height: 18px; margin-top: -9px; border-radius: 50%;
+  box-shadow: inset 0 0 0 1.5px var(--text-tertiary); background: var(--card); }
+.tec-tipos small { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); line-height: 1.35; }
+.tec-tipos input:checked + span { background: color-mix(in srgb, var(--acento) 10%, var(--card)); box-shadow: inset 0 0 0 1.5px var(--acento); }
+.tec-tipos input:checked + span::before { box-shadow: inset 0 0 0 5.5px var(--acento); }
+.tec-tipos input:focus-visible + span { outline: 2px solid var(--acento); outline-offset: 2px; }
+
+/* Segmento (tipo da foto) */
+.tec-segmento { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; padding: 4px; border-radius: 13px; background: var(--fill); }
+.tec-segmento label { cursor: pointer; }
+.tec-segmento input { position: absolute; opacity: 0; pointer-events: none; }
+.tec-segmento span { display: flex; align-items: center; justify-content: center; min-height: 40px; border-radius: 10px; font-size: 14px; font-weight: 500; color: var(--text-secondary); }
+.tec-segmento input:checked + span { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .08); }
+.tec-segmento input:focus-visible + span { outline: 2px solid var(--acento); }
+
+/* Fotos */
+.tec-fotos { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+.tec-fotos a { position: relative; display: block; aspect-ratio: 1; border-radius: 12px; overflow: hidden; background: var(--fill); }
+.tec-fotos img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.tec-fotos span { position: absolute; left: 6px; bottom: 6px; padding: 2px 7px; border-radius: 8px; background: rgba(0, 0, 0, .55); color: #fff; font-size: 11.5px; font-weight: 500; }
+.tec-foto-form { display: flex; flex-direction: column; gap: 10px; }
+.tec-foto-form__escolher { position: relative; overflow: hidden; }
+.tec-foto-form__escolher input { position: absolute; inset: 0; opacity: 0; cursor: pointer; font-size: 0; }
+.tec-foto-form__escolher.is-enviando { opacity: .6; pointer-events: none; }
+
+/* Andamento */
+.tec-linha { list-style: none; margin: 0; padding: 0 0 0 16px; display: flex; flex-direction: column; gap: 14px; border-left: 2px solid var(--hairline); }
+.tec-linha li { position: relative; display: flex; flex-direction: column; gap: 2px; font-size: 14.5px; }
+.tec-linha li::before { content: ""; position: absolute; left: -22px; top: 6px; width: 10px; height: 10px; border-radius: 50%; background: var(--card); box-shadow: inset 0 0 0 2px var(--text-tertiary); }
+.tec-linha li:first-child::before { box-shadow: inset 0 0 0 5px var(--text); }
+.tec-linha span { color: var(--text-secondary); line-height: 1.4; overflow-wrap: anywhere; }
+.tec-linha small { font-size: 12.5px; color: var(--text-tertiary); }
+
+/* Pedido (lista do técnico) */
+.tec-pedido__titulo { font-size: 16.5px; font-weight: 600; line-height: 1.3; }
+.tec-pedido__texto { font-size: 14.5px; line-height: 1.45; color: var(--text-secondary); overflow-wrap: anywhere; }
+.tec-pedido__os { display: inline-flex; align-items: center; gap: 5px; align-self: flex-start; min-height: 32px; font-size: 14px; font-weight: 500; color: var(--link, var(--acento)); text-decoration: none; }
+.tec-pedido__resposta { padding: 9px 11px; border-radius: 11px; background: var(--fill); font-size: 14px; line-height: 1.4; color: var(--text); }
+
+/* Ação principal: no celular uma barra fixa acima da navegação; no computador, o primeiro cartão da coluna da direita. */
+.tec-acao { padding: 12px; border-radius: var(--tec-r); background: var(--card); }
+.tec-acao form { margin: 0; }
+.tec-acao__info { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; margin: 0; font-size: 15.5px; font-weight: 600; color: var(--text-secondary); }
+@media (min-width: 901px) { .dlg.tec-folha { width: min(520px, calc(100vw - 24px)) !important; padding: 24px !important; } }
+.tec-folha h3 { font-size: 22px !important; }
+.tec-folha p { font-size: 15px; line-height: 1.45; color: var(--text-secondary); }
+.tec-resumo { list-style: none; margin: 14px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.tec-resumo li { display: flex; align-items: center; gap: 8px; font-size: 15px; color: var(--text); }
+.tec-folha__acoes { display: grid; grid-template-columns: 1fr 1.6fr; gap: 8px; margin-top: 18px; }
+
+/* ── 5. Barra de navegação do técnico (celular) ────────────────────────────────────────────────────── */
+.tec-barra { display: none; }
+@media (max-width: 900px) {
+  body.perfil-tecnico .tec-barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(3, 1fr);
+    padding: 6px 8px max(6px, env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--card) 86%, transparent);
+    -webkit-backdrop-filter: saturate(1.8) blur(20px); backdrop-filter: saturate(1.8) blur(20px); box-shadow: 0 -.5px 0 var(--hairline); }
+  .tec-barra a { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 52px; border-radius: 12px;
+    font-size: 11.5px; font-weight: 500; color: var(--text-tertiary); text-decoration: none; -webkit-tap-highlight-color: transparent; }
+  .tec-barra a.ativa { color: var(--acento); font-weight: 600; }
+  body.perfil-tecnico .content { padding-bottom: calc(84px + env(safe-area-inset-bottom)) !important; }
+  .tec-acao { position: fixed; left: 12px; right: 12px; bottom: calc(74px + env(safe-area-inset-bottom)); z-index: 35; padding: 8px; border-radius: 22px;
+    background: color-mix(in srgb, var(--card) 80%, transparent); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px);
+    box-shadow: 0 0 0 .5px var(--hairline), 0 12px 32px rgba(0, 0, 0, .16); }
+  body.perfil-tecnico .tec--servico:has(.tec-acao) { padding-bottom: 84px; }
+  .tec { gap: 16px; }
+  .tec-cabeca__titulo { font-size: 28px; }
+  .tec-carro__modelo { font-size: 24px; }
+  .tec-bloco, .tec-carro { padding: 16px; }
+  .tec-folha__acoes { grid-template-columns: 1fr; }
+  .tec-folha__acoes .tec-botao--secundario { order: 2; }
+  /* No celular, sem o caminho do topo: o título da tela já diz onde ele está. */
+  body.perfil-tecnico .topbar__caminho { display: none; }
+}
+@media (max-width: 420px) {
+  .tec-cartao, .tec-pedido { padding: 15px 16px 14px; }
+}
+
+/* ── 5b. Tablet e computador: a largura inteira, sem coluna estreita no meio ─────────────────────── */
+@media (min-width: 720px) {
+  .tec-lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 14px; align-items: stretch; }
+  .tec-lista > li { display: flex; }
+  .tec-lista > li > .tec-cartao, .tec-lista > .tec-pedido { flex: 1; }
+  .tec-cartao__pe { margin-top: auto; padding-top: 6px; }
+  .tec-faixa { align-self: flex-start; min-width: 340px; }
+}
+@media (min-width: 1100px) {
+  .tec { gap: 18px; }
+  .tec-cabeca { flex-direction: row; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; gap: 4px 24px; }
+  .tec-cabeca__titulo { font-size: 34px; }
+  .tec-cabeca__oi { flex-basis: 100%; }
+  /* Execução em duas colunas: o trabalho à esquerda, a ação, as fotos e o andamento à direita (fixos ao rolar). */
+  .tec-grade { display: grid; grid-template-columns: minmax(0, 1fr) minmax(320px, 400px); gap: 18px; align-items: start; }
+  .tec-grade__principal, .tec-grade__lado { display: flex; flex-direction: column; gap: 18px; min-width: 0; }
+  .tec-grade__lado { position: sticky; top: calc(var(--topo-altura, 64px) + 16px); max-height: calc(100vh - 96px); overflow-y: auto; scrollbar-width: thin; }
+  .tec-atalhos { display: none; }
+  .tec-carro { flex-direction: row; flex-wrap: wrap; align-items: center; column-gap: 24px; padding: 22px 24px; }
+  .tec-carro__topo { flex-basis: 100%; }
+  .tec-carro__modelo { font-size: 30px; }
+  .tec-bloco { padding: 22px 24px; }
+  .tec-itens--pecas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); column-gap: 24px; }
+  .tec-itens--pecas li:nth-child(2) { border-top: 0; padding-top: 2px; }
+  /* Pedidos: formulário à esquerda, a lista à direita. */
+  .tec-pedidos { display: grid; grid-template-columns: minmax(340px, 440px) minmax(0, 1fr); gap: 24px; align-items: start; }
+  .tec-pedidos__form { position: sticky; top: calc(var(--topo-altura, 64px) + 16px); }
+  .tec-pedidos__form .tec-form > summary { display: none; }
+  .tec-pedidos__lista { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+  .tec-pedidos__lista .tec-bloco__titulo--solto { margin-top: 0; }
+  .tec-pedidos__lista .tec-lista { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
+}
+@media (min-width: 720px) and (max-width: 1099px) {
+  .tec-pedidos__lista { margin-top: 6px; }
+}
+
+/* ── 6. ADMIN: execução do técnico na OS, validação e pedidos dos técnicos ─────────────────────────── */
+.exec-admin { display: flex; flex-direction: column; gap: 10px; padding: 4px 26px 22px; }
+.exec-admin__relato { padding: 12px 14px; border-radius: 12px; background: var(--fill); }
+.exec-admin__relato p { margin: 4px 0 0; }
+.exec-admin__lista { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.exec-admin__lista li { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 11px 0; border-top: 1px solid var(--hairline); font-size: 14.5px; }
+.exec-admin__lista li:first-child { border-top: 0; }
+.exec-admin__lista li > span:first-child { display: block; min-width: 0; line-height: 1.4; }
+.exec-admin__lista small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--text-tertiary); line-height: 1.4; }
+.exec-admin__lista a.badge { text-decoration: none; }
+.exec-admin__nota { font-size: 12.5px; font-weight: 600; color: var(--atencao); }
+.exec-validar { display: flex; flex-direction: column; gap: 8px; margin: 14px 0 6px; padding: 0; border: 0; }
+.exec-validar legend { margin-bottom: 8px; font-size: 13px; font-weight: 600; color: var(--text-secondary); }
+.exec-validar__linha { display: flex; align-items: flex-start; gap: 12px; padding: 11px 12px; border-radius: 12px; background: var(--fill); cursor: pointer; }
+.exec-validar__linha input { margin-top: 3px; width: 18px; height: 18px; flex: none; accent-color: var(--acento); }
+.exec-validar__linha span { display: flex; flex-direction: column; gap: 3px; }
+.exec-validar__linha small { font-size: 12.5px; color: var(--text-secondary); line-height: 1.4; }
+
+.pedidos-admin { list-style: none; margin: 0; padding: 0; }
+.pedidos-admin__item { display: flex; flex-direction: column; gap: 12px; padding: 18px 26px; border-top: 1px solid var(--hairline); }
+.pedidos-admin__item:first-child { border-top: 0; }
+.pedidos-admin__corpo { display: flex; flex-direction: column; gap: 5px; min-width: 0; }
+.pedidos-admin__titulo { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 10px; margin: 0; font-size: 15.5px; }
+.pedidos-admin__qtd { font-size: 14px; color: var(--text-secondary); }
+.pedidos-admin__texto { margin: 0; font-size: 14.5px; line-height: 1.45; color: var(--text); overflow-wrap: anywhere; }
+.pedidos-admin__meta { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-tertiary); }
+.pedidos-admin__meta .icone { vertical-align: -2px; }
+.pedidos-admin__resposta { margin: 2px 0 0; font-size: 13px; color: var(--text-secondary); }
+.pedidos-admin__acoes { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin: 0; }
+.pedidos-admin__acoes input { flex: 1 1 240px; min-width: 0; height: 34px; padding: 0 12px; border: 0 !important; border-radius: var(--r-controle, 8px);
+  background: var(--fill) !important; color: var(--text); font: inherit; font-size: 14px; box-shadow: none !important; }
+.pedidos-admin__acoes input:focus { outline: 2px solid var(--acento); outline-offset: 0; }
+.pedidos-admin__botoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.pedidos-admin__dica { margin: 12px 2px 0; }
+@media (max-width: 900px) {
+  .pedidos-admin__item { padding: 16px; }
+  .pedidos-admin__botoes { width: 100%; }
+  .pedidos-admin__botoes .btn { flex: 1; }
+  .exec-admin { padding: 4px 16px 18px; }
+}
+
+/* ── 7. Topo no celular e janela de avisos (todos os perfis) ───────────────────────────────────────────
+   No celular, o menu (três linhas) e o sino são só os ícones, sem círculo nem contorno — a área de toque
+   continua com 44 px. Os avisos abrem numa janela modal: folha que sobe de baixo no celular e painel
+   que entra pela direita no computador, com o fundo escurecido. */
+@media (max-width: 900px) {
+  .topbar .topbar__hamburger, .topbar .topbar-sino { width: 44px !important; height: 44px !important; min-width: 44px; min-height: 44px; padding: 0 !important;
+    border: 0 !important; border-radius: 12px !important; background: transparent !important; box-shadow: none !important; color: var(--text) !important; }
+  .topbar .topbar__hamburger { margin-left: -10px; }
+  .topbar .topbar-sino { margin-right: -10px; }
+  .topbar .topbar__hamburger .icone, .topbar .topbar-sino .icone { width: 24px; height: 24px; }
+  .topbar .topbar__hamburger:active, .topbar .topbar-sino:active { background: var(--fill) !important; }
+  .topbar .topbar-sino__n { top: 6px !important; right: 6px !important; min-width: 17px !important; height: 17px !important; line-height: 17px !important;
+    font-size: 10.5px !important; box-shadow: 0 0 0 2px var(--surface, var(--card)) !important; }
+}
+
+.dlg.dlg--avisos.avisos2 { position: fixed !important; display: none; flex-direction: column; margin: 0 !important; padding: 0 !important; border: 0 !important;
+  background: var(--card) !important; color: var(--text); overflow: hidden; z-index: 70;
+  inset: 12px 12px 12px auto !important; width: min(420px, calc(100vw - 24px)) !important; max-width: none !important; height: auto; max-height: none !important;
+  border-radius: 26px !important; box-shadow: 0 0 0 .5px var(--hairline), 0 30px 80px rgba(0, 0, 0, .28) !important; }
+.dlg.dlg--avisos.avisos2[open] { display: flex; animation: avisos2-lado .28s cubic-bezier(.32, .72, 0, 1); }
+.dlg.dlg--avisos.avisos2.is-saindo { animation: avisos2-lado-sai .18s ease-in forwards; }
+.dlg.dlg--avisos.avisos2::backdrop { background: rgba(0, 0, 0, .32) !important; -webkit-backdrop-filter: blur(6px) !important; backdrop-filter: blur(6px) !important; }
+@keyframes avisos2-lado { from { transform: translateX(24px); opacity: 0; } }
+@keyframes avisos2-lado-sai { to { transform: translateX(24px); opacity: 0; } }
+
+.avisos2__alca { display: none; }
+.avisos2__topo { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; padding: 22px 20px 6px 24px; }
+.avisos2__topo h3 { margin: 0 !important; font-family: var(--font-titulo); font-size: 26px !important; font-weight: 600 !important; letter-spacing: -0.03em !important; }
+.avisos2__resumo { margin: 2px 0 0; font-size: 14px; color: var(--text-secondary); }
+.avisos2__fechar { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 36px; height: 36px; border: 0; border-radius: 50%;
+  background: var(--fill); color: var(--text-secondary); cursor: pointer; }
+.avisos2__fechar:hover { color: var(--text); background: var(--fill-forte); }
+.avisos2__fechar:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.avisos2__ler { margin: 0; padding: 2px 24px 6px; }
+.avisos2__ler button { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0; border: 0; background: none; font: inherit;
+  font-size: 14px; font-weight: 600; color: var(--link, var(--acento)); cursor: pointer; }
+.avisos2__corpo { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; padding: 4px 12px 18px; }
+.avisos2__grupo h4 { margin: 0; padding: 14px 12px 6px; font-size: 12.5px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--text-tertiary); }
+.avisos2__grupo ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.aviso2 { position: relative; display: flex; align-items: flex-start; gap: 14px; padding: 12px; border-radius: 16px; color: var(--text); text-decoration: none;
+  transition: background-color .15s ease; }
+.aviso2:hover { background: var(--fill); }
+.aviso2:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.aviso2__icone { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 40px; height: 40px; border-radius: 50%;
+  background: var(--fill); color: var(--text-secondary); }
+.aviso2__icone--peca { background: var(--atencao-fundo); color: var(--atencao); }
+.aviso2__icone--ok { background: var(--ok-fundo, var(--fill)); color: var(--ok, var(--text)); }
+.aviso2__icone--alerta { background: var(--perigo-fundo, var(--atencao-fundo)); color: var(--perigo, var(--atencao)); }
+.aviso2__texto { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; padding-top: 1px; }
+.aviso2__linha { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.aviso2__linha strong { min-width: 0; font-size: 15px; font-weight: 500; line-height: 1.3; letter-spacing: -0.01em; }
+.aviso2--novo .aviso2__linha strong { font-weight: 650; }
+.aviso2__linha small { flex: none; font-size: 12.5px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.aviso2__msg { font-size: 14px; line-height: 1.45; color: var(--text-secondary); display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.aviso2__ponto { position: absolute; left: 3px; top: 29px; width: 6px; height: 6px; border-radius: 50%; background: var(--acento); }
+.aviso2:not(.aviso2--novo) .aviso2__icone { opacity: .75; }
+.avisos2__vazio { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 56px 32px 64px; text-align: center; }
+.avisos2__vazio-icone { display: inline-flex; align-items: center; justify-content: center; width: 64px; height: 64px; margin-bottom: 8px; border-radius: 50%;
+  background: var(--fill); color: var(--text-tertiary); }
+.avisos2__vazio strong { font-size: 16px; }
+.avisos2__vazio span { max-width: 280px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
+
+@media (max-width: 900px) {
+  .dlg.dlg--avisos.avisos2 { inset: auto 0 0 0 !important; width: 100% !important; max-height: 88vh !important; border-radius: 28px 28px 0 0 !important;
+    padding-bottom: env(safe-area-inset-bottom) !important; box-shadow: 0 -10px 40px rgba(0, 0, 0, .2) !important; }
+  .dlg.dlg--avisos.avisos2[open] { animation: avisos2-sobe .34s cubic-bezier(.32, .72, 0, 1); }
+  .dlg.dlg--avisos.avisos2.is-saindo { animation: avisos2-desce .2s ease-in forwards; }
+  .avisos2__alca { display: block; width: 40px; height: 5px; margin: 8px auto 0; border-radius: 3px; background: color-mix(in srgb, var(--text) 18%, transparent); }
+  .avisos2__topo { padding: 12px 16px 4px 20px; }
+  .avisos2__ler { padding: 2px 20px 4px; }
+  .avisos2__corpo { padding: 2px 8px 16px; }
+}
+@keyframes avisos2-sobe { from { transform: translateY(100%); } }
+@keyframes avisos2-desce { to { transform: translateY(100%); } }
+@media (prefers-reduced-motion: reduce) { .dlg.dlg--avisos.avisos2[open], .dlg.dlg--avisos.avisos2.is-saindo { animation: none; } }
+
+/* Legenda da ação principal: só no computador (no celular a barra fica só com o botão). */
+.tec-acao__dica { display: none; margin: 2px 4px 10px; font-size: 13px; color: var(--text-secondary); }
+@media (min-width: 1100px) { .tec-acao { padding: 16px; } .tec-acao__dica { display: block; } }
+/* Tablet deitado / notebook estreito (901–1099 px): uma coluna; a ação fica presa embaixo, ao lado do menu lateral. */
+@media (min-width: 901px) and (max-width: 1099px) {
+  .tec-acao { position: fixed; left: calc(var(--lat, 248px) + 24px); right: 24px; bottom: 16px; z-index: 35; padding: 8px; border-radius: 22px;
+    background: color-mix(in srgb, var(--card) 80%, transparent); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px);
+    box-shadow: 0 0 0 .5px var(--hairline), 0 12px 32px rgba(0, 0, 0, .16); }
+  .tec--servico:has(.tec-acao) { padding-bottom: 80px; }
+}
+.tec-pedidos__titulo { display: none; }
+@media (min-width: 1100px) { .tec-pedidos__titulo { display: block; margin: 0 2px 12px; } }
+/* Colunas da execução no celular: os blocos empilhados com o mesmo respiro. */
+.tec-grade, .tec-grade__principal, .tec-grade__lado { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+@media (min-width: 1100px) { .tec-grade { display: grid; gap: 18px; } .tec-grade__principal, .tec-grade__lado { gap: 18px; } }
+.tec-carro__cliente > span { display: inline-flex; align-items: center; gap: 5px; white-space: nowrap; }
+.tec-carro__cliente { column-gap: 14px; }
+
+/* ── 8. Atalhos da execução presos no topo ────────────────────────────────────────────────────────────
+   Faixa de borda a borda colada no topo (sem frestas por onde o conteúdo aparece), com o fundo da página
+   quase opaco e desfoque, como as barras da Apple; a divisória só aparece quando ela está presa (.is-presa,
+   ligada pelo script da tela). As cápsulas rolam de lado sem barra visível. Ao tocar num atalho, o título
+   do card para logo abaixo da faixa (scroll-margin-top). */
+.tec-atalhos { --atalhos-topo: 56px; --atalhos-borda: 16px;
+  position: sticky; top: var(--atalhos-topo); z-index: 20; display: flex; gap: 8px; margin: 0 calc(-1 * var(--atalhos-borda)) !important;
+  padding: 8px var(--atalhos-borda) !important; border-radius: 0 !important; overflow-x: auto; overscroll-behavior-x: contain;
+  scrollbar-width: none; -ms-overflow-style: none; scroll-padding-inline: var(--atalhos-borda);
+  background: color-mix(in srgb, var(--bg) 92%, transparent) !important;
+  -webkit-backdrop-filter: saturate(1.8) blur(20px); backdrop-filter: saturate(1.8) blur(20px);
+  box-shadow: 0 .5px 0 transparent; transition: box-shadow .2s ease; }
+.tec-atalhos::-webkit-scrollbar { display: none; }
+.tec-atalhos.is-presa { box-shadow: 0 .5px 0 var(--hairline), 0 6px 16px -12px rgba(0, 0, 0, .35); }
+.tec-atalhos a { flex: none; }
+.tec-atalhos a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
+.tec--servico .tec-bloco { scroll-margin-top: 124px; }
+@media (min-width: 901px) {
+  .tec-atalhos { --atalhos-topo: 64px; --atalhos-borda: 36px; }
+  .tec--servico .tec-bloco { scroll-margin-top: 140px; }
+}
+@media (min-width: 1100px) { .tec-atalhos { display: none !important; } .tec--servico .tec-bloco { scroll-margin-top: 88px; } }

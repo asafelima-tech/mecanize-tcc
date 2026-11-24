@@ -119,8 +119,8 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
           <div class="barras__area">
             <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
             <?php $rotular = max(1, (int) ceil(count($serie) / 12)); foreach ($serie as $i => $s): ?>
-              <div class="barras__coluna<?= $i === $picoIndice ? ' is-pico' : '' ?>" title="<?= e($s['rotulo'] . ' · ' . dinheiro($s['total']) . ' · ' . (int) $s['os'] . ' OS') ?>">
-                <span class="barras__barra" style="height:<?= round($s['total'] / $topo * 100, 1) ?>%"><?php if ($i === $picoIndice): ?><span class="rel-pico"><?= e(dinheiro($s['total'])) ?></span><?php endif; ?></span>
+              <div class="barras__coluna<?= $i === $picoIndice ? ' is-pico' : '' ?>">
+                <span class="barras__barra" style="height:<?= round($s['total'] / $topo * 100, 1) ?>%"><span class="rel-pico"><?= e(dinheiro($s['total'])) ?><small><?= e($s['rotulo'] . ' · ' . (int) $s['os'] . ' OS') ?></small></span></span>
                 <?php if ($i % $rotular === 0): ?><span class="barras__rotulo"><?= e($s['rotulo']) ?></span><?php endif; ?>
               </div>
             <?php endforeach; ?>

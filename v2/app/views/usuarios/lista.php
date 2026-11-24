@@ -110,8 +110,8 @@ $inativos = $resumo['total'] - $resumo['ativos'];
       <div><dt><span class="badge badge--plain badge--perfil-atendente">Atendente</span></dt>
         <dd>Balcão. Cadastra clientes e veículos, agenda, abre e conduz orçamentos e OS, recebe pela OS e opera o caixa.</dd></div>
       <div><dt><span class="badge badge--plain badge--perfil-tecnico">Técnico</span></dt>
-        <dd>Mecânico. Conduz as OS, é o responsável por elas e pode receber comissão. Não acessa caixa, financeiro nem recebimentos.</dd></div>
+        <dd>Mecânico. Pelo celular, vê só os serviços dele, registra os materiais usados, pede peças e informa quando termina; o administrador valida. Pode receber comissão. Não vê valores, cadastros, estoque nem financeiro.</dd></div>
     </dl>
-    <p class="nota"><?= icone('info') ?><span>Consultar, todos consultam (o custo das peças só o administrador vê). Excluir cadastros é sempre do administrador.</span></p>
+    <p class="nota"><?= icone('info') ?><span>Administrador e atendente consultam os cadastros (o custo das peças só o administrador vê). Excluir cadastros é sempre do administrador.</span></p>
   </aside>
 </div>

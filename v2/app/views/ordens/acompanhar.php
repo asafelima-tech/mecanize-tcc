@@ -2,7 +2,7 @@
 /** Página pública (sem login) que o cliente abre pelo link. Espera: $os */
 [$r, $cor] = os_status($os['status']);
 $etapas = ['ORCAMENTO' => 'Orçamento', 'APROVADA' => 'Aprovado', 'EM_EXECUCAO' => 'Em execução', 'PRONTA' => 'Pronto', 'ENTREGUE' => 'Entregue'];
-$posicao = ['ORCAMENTO' => 0, 'RECUSADA' => 0, 'APROVADA' => 1, 'EM_EXECUCAO' => 2, 'AGUARDANDO_PECA' => 2, 'PRONTA' => 3, 'ENTREGUE' => 4][$os['status']] ?? 0;
+$posicao = ['ORCAMENTO' => 0, 'RECUSADA' => 0, 'APROVADA' => 1, 'EM_EXECUCAO' => 2, 'AGUARDANDO_PECA' => 2, 'AGUARDANDO_VALIDACAO' => 2, 'PRONTA' => 3, 'ENTREGUE' => 4][$os['status']] ?? 0;
 $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
 ?>
 <!DOCTYPE html>

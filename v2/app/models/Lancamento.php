@@ -224,7 +224,7 @@ final class Lancamento extends Modelo
         return Transacao::executar($this->db, function () use ($osId, $d) {
             $os = $this->linha('SELECT id, numero, cliente_id, status, valor_total FROM ordens_servico WHERE id = :id AND oficina_id = :oficina FOR UPDATE', ['id' => $osId])
                 ?? throw new ErroHttp('registro-inexistente');
-            if (!in_array($os['status'], ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA', 'ENTREGUE'], true)) {
+            if (!in_array($os['status'], ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'AGUARDANDO_VALIDACAO', 'PRONTA', 'ENTREGUE'], true)) {
                 throw new DomainException('Só é possível cobrar uma OS aprovada.');
             }
             $falta = $this->faltaLancar($os);

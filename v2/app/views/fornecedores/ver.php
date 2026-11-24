@@ -15,7 +15,7 @@ $vazio = '<span class="secundario">Não informado</span>';
 ?>
 <header class="ver-topo">
   <div class="ver-topo__id">
-    <span class="ver-topo__avatar ver-topo__avatar--quadrado" aria-hidden="true"><?= e($iniciais) ?></span>
+    <span class="ver-topo__avatar" aria-hidden="true"><?= e($iniciais) ?></span>
     <div class="ver-topo__texto">
       <p class="ver-topo__voltar"><a href="./fornecedores"><?= icone('chevron-left', 14, 2) ?> Fornecedores</a></p>
       <h1><?= e($fo['nome']) ?></h1>

@@ -1,11 +1,18 @@
 <?php
 
-/** Envio e abertura de anexos. Fotos e documentos da OS: equipe; comprovantes de contas: ADMIN. */
+/**
+ * Envio e abertura de anexos. Fotos e documentos da OS: equipe; comprovantes de contas: ADMIN.
+ * O técnico só envia e abre arquivos das OS em que está (ServicoTecnico::exigir) e volta para a tela dele.
+ */
 final class AnexosController extends Controller
 {
     public function enviarOs(): void
     {
         $osId = $this->idDaUrl('os');
+        $tecnico = Contexto::perfil() === 'TECNICO';
+        if ($tecnico) {
+            (new ServicoTecnico())->exigir($osId);
+        }
         $arquivos = $this->arquivos('arquivos');
         try {
             if (!$arquivos) {
@@ -19,7 +26,7 @@ final class AnexosController extends Controller
         } catch (DomainException $e) {
             $this->avisar($e->getMessage(), 'erro');
         }
-        $this->redirecionar('os', ['id' => $osId, 'aba' => 'arquivos']);
+        $tecnico ? $this->redirecionar('servico', ['id' => $osId, 'aba' => 'fotos']) : $this->redirecionar('os', ['id' => $osId, 'aba' => 'arquivos']);
     }
 
     public function enviarConta(): void
@@ -40,6 +47,9 @@ final class AnexosController extends Controller
         $a = (new Anexo())->buscar($this->idDaUrl()) ?? throw new ErroHttp('registro-inexistente');
         if ($a['lancamento_id'] && Contexto::perfil() !== 'ADMIN') {
             throw new ErroHttp('sem-permissao');
+        }
+        if (Contexto::perfil() === 'TECNICO') {
+            (new ServicoTecnico())->exigir((int) $a['ordem_servico_id']); // arquivo de OS de outro técnico: "não existe"
         }
         $arquivo = Armazenamento::caminho($a['caminho']) ?? throw new ErroHttp('registro-inexistente');
         Arquivo::enviar($arquivo, $a['mime'], $a['nome_original'], ($_GET['baixar'] ?? '') === '1');

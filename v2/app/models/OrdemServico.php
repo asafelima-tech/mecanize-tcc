@@ -4,10 +4,15 @@
  * Ordem de serviço com o orçamento integrado.
  *
  *   ORCAMENTO ──aprovar──▶ APROVADA ──iniciar──▶ EM_EXECUCAO ⇄ AGUARDANDO_PECA ──concluir──▶ PRONTA ──entregar──▶ ENTREGUE
- *       │  ▲                                          ▲                                          │
- *    recusar│ reabrir                                 └──────────────── reabrir execução ────────┘
- *       ▼  │
+ *       │  ▲                                          ▲    │                                  ▲
+ *    recusar│ reabrir                                 │    └─enviar (técnico)─▶ AGUARDANDO_VALIDACAO ─validar (ADMIN)─┘
+ *       ▼  │                                          └──────── devolver (ADMIN) ─────────────┘
  *   RECUSADA                     cancelar: de qualquer situação antes de ENTREGUE (peças baixadas voltam ao estoque)
+ *
+ * Execução pelo técnico (24/11/2026): o técnico informa que começou, registra os materiais que usou
+ * (os_materiais, sem mexer no estoque) e informa que terminou → AGUARDANDO_VALIDACAO. Só o ADMIN valida:
+ * aprova ou recusa cada material (o aprovado vira item ADICIONAL e é baixado pela regra de sempre),
+ * calcula a comissão e deixa a OS PRONTA; ou devolve ao técnico com o motivo. Tudo fica no histórico.
  *
  * Valores: cada item guarda descrição, quantidade, preço e desconto da época (o catálogo pode mudar
  * depois sem afetar a OS). Na aprovação, o total fica congelado em `valor_aprovado` e uma cópia
@@ -22,18 +27,22 @@ final class OrdemServico extends Modelo
         'reabrir'   => [['RECUSADA'], 'ORCAMENTO'],
         'iniciar'   => [['APROVADA'], 'EM_EXECUCAO'],
         'concluir'  => [['EM_EXECUCAO'], 'PRONTA'],
+        'enviar'    => [['EM_EXECUCAO'], 'AGUARDANDO_VALIDACAO'],      // técnico: "terminei"
+        'validar'   => [['AGUARDANDO_VALIDACAO'], 'PRONTA'],           // ADMIN: aprova a execução
+        'devolver'  => [['AGUARDANDO_VALIDACAO'], 'EM_EXECUCAO'],      // ADMIN: volta ao técnico para corrigir
         'retomar'   => [['PRONTA'], 'EM_EXECUCAO'],
         'entregar'  => [['PRONTA'], 'ENTREGUE'],
-        'cancelar'  => [['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA'], 'CANCELADA'],
+        'cancelar'  => [['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'AGUARDANDO_VALIDACAO', 'PRONTA'], 'CANCELADA'],
     ];
 
-    /** Situações em que dá para incluir/remover itens. */
+    /** Situações em que dá para incluir/remover itens. (Aguardando validação fica congelada: o ADMIN valida ou devolve.) */
     public const EDITAVEL = ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA'];
 
     public const FILTROS = [
-        'abertas'    => ['Em aberto', ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA']],
+        'abertas'    => ['Em aberto', ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'AGUARDANDO_VALIDACAO', 'PRONTA']],
         'orcamento'  => ['Orçamentos', ['ORCAMENTO']],
         'execucao'   => ['Em andamento', ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA']],
+        'validacao'  => ['Para validar', ['AGUARDANDO_VALIDACAO']],
         'prontas'    => ['Prontas', ['PRONTA']],
         'entregues'  => ['Entregues', ['ENTREGUE']],
         'encerradas' => ['Recusadas e canceladas', ['RECUSADA', 'CANCELADA']],
@@ -41,7 +50,7 @@ final class OrdemServico extends Modelo
     ];
 
     /** Colunas do Kanban: as situações em aberto, na ordem do fluxo. */
-    public const KANBAN = ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA'];
+    public const KANBAN = ['ORCAMENTO', 'APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'AGUARDANDO_VALIDACAO', 'PRONTA'];
 
     /**
      * O que acontece ao arrastar uma OS no Kanban ("de>para" => operação). São as mesmas operações
@@ -75,7 +84,7 @@ final class OrdemServico extends Modelo
 
         return $this->lista(
             self::CAMPOS_LISTA . " {$from} WHERE {$where}
-             ORDER BY FIELD(os.status, 'PRONTA', 'AGUARDANDO_PECA', 'EM_EXECUCAO', 'APROVADA', 'ORCAMENTO') DESC, os.numero DESC" . $p->sql(),
+             ORDER BY FIELD(os.status, 'PRONTA', 'AGUARDANDO_VALIDACAO', 'AGUARDANDO_PECA', 'EM_EXECUCAO', 'APROVADA', 'ORCAMENTO') DESC, os.numero DESC" . $p->sql(),
             $params
         );
     }
@@ -481,6 +490,10 @@ final class OrdemServico extends Modelo
     {
         Transacao::executar($this->db, function () use ($id) {
             $os = $this->exigirTransicao($id, 'concluir');
+            // Material informado pelo técnico ainda sem decisão: quem decide é a validação (não some em silêncio).
+            if ($this->valor("SELECT COUNT(*) FROM os_materiais WHERE oficina_id = :oficina AND ordem_servico_id = :id AND status = 'PENDENTE'", ['id' => $id])) {
+                throw new DomainException('O técnico informou materiais que ainda não foram avaliados. Peça a ele para enviar a execução para validação, ou recuse os materiais na validação.');
+            }
             $pendentes = array_filter($this->itens($id), fn($i) => $i['estoque_status'] === 'PENDENTE');
             if ($pendentes) {
                 throw new DomainException('Ainda há peça sem baixa no estoque: ' . implode(', ', array_column($pendentes, 'descricao')) . '.');
@@ -526,9 +539,151 @@ final class OrdemServico extends Modelo
             foreach ($this->itens($id) as $item) {
                 $estoque->devolverItemOs($item, 'OS ' . os_numero($os['numero']) . ' cancelada');
             }
+            // Materiais informados e ainda sem decisão: recusados junto (nada foi baixado por eles).
+            $this->gravar("UPDATE os_materiais SET status = 'RECUSADO', decidido_por = :u, decidido_em = NOW(), motivo_decisao = 'OS cancelada'
+                           WHERE oficina_id = :oficina AND ordem_servico_id = :id AND status = 'PENDENTE'", ['id' => $id, 'u' => Contexto::usuarioId()]);
             $this->atualizar('ordens_servico', $id, ['status' => 'CANCELADA', 'cancelado_em' => date('Y-m-d H:i:s'), 'motivo_cancelamento' => mb_substr(trim($motivo), 0, 255)]);
             $this->hist->registrar(['ordem_servico_id' => $id], 'STATUS', $os['status'], 'CANCELADA', $motivo);
         });
+    }
+
+    /* ── Execução pelo técnico e validação pelo ADMIN ─────────────────── */
+
+    /**
+     * O técnico informa que começou. Com a OS só aprovada, é o mesmo "iniciar" de sempre (as peças
+     * previstas saem do estoque); com a OS já em execução, só registra o início dele.
+     * Devolve as peças que faltaram no estoque (a OS fica aguardando peça).
+     */
+    public function comecarExecucao(int $id): array
+    {
+        return Transacao::executar($this->db, function () use ($id) {
+            $os = $this->exigir($id, true);
+            if (!in_array($os['status'], ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA'], true)) {
+                throw new DomainException('Este serviço não pode ser iniciado na situação atual (' . os_status($os['status'])[0] . ').');
+            }
+            if ($os['execucao_iniciada_em'] && $os['status'] !== 'APROVADA') {
+                throw new DomainException('Você já informou o início deste serviço.');
+            }
+
+            $faltam = $os['status'] === 'APROVADA' ? $this->iniciar($id) : [];
+            $this->atualizar('ordens_servico', $id, ['execucao_iniciada_em' => $os['execucao_iniciada_em'] ?: date('Y-m-d H:i:s')]);
+            $this->hist->registrar(['ordem_servico_id' => $id], 'EXECUCAO_INICIADA');
+
+            return $faltam;
+        });
+    }
+
+    /** O técnico informa que terminou: a OS vai para validação do ADMIN, com o relato dele. */
+    public function enviarParaValidacao(int $id, string $relato): void
+    {
+        Transacao::executar($this->db, function () use ($id, $relato) {
+            $os = $this->exigir($id, true);
+            if ($os['status'] === 'AGUARDANDO_PECA') {
+                throw new DomainException('Ainda falta peça no estoque para esta OS. Quando a peça chegar e for baixada, você poderá concluir.');
+            }
+            $os = $this->exigirTransicao($id, 'enviar');
+            $relato = trim($relato);
+            $materiais = $this->lista("SELECT m.id, m.quantidade, p.nome FROM os_materiais m JOIN produtos p ON p.oficina_id = m.oficina_id AND p.id = m.produto_id
+                                       WHERE m.oficina_id = :oficina AND m.ordem_servico_id = :id AND m.status = 'PENDENTE'", ['id' => $id]);
+
+            $this->atualizar('ordens_servico', $id, [
+                'status' => 'AGUARDANDO_VALIDACAO', 'execucao_enviada_em' => date('Y-m-d H:i:s'), 'execucao_observacao' => $relato !== '' ? $relato : null,
+                'execucao_iniciada_em' => $os['execucao_iniciada_em'] ?: date('Y-m-d H:i:s'),
+            ]);
+            $this->hist->registrar(['ordem_servico_id' => $id], 'EXECUCAO_ENVIADA', $os['status'], 'AGUARDANDO_VALIDACAO', $relato !== '' ? $relato : null,
+                ['materiais' => $materiais]);
+            (new Notificacao($this->db))->paraAdmins('VALIDAR_OS', os_numero($os['numero']) . ' pronta para validar',
+                Contexto::usuario()['nome'] . ' informou que terminou' . ($materiais ? ' e registrou ' . count($materiais) . ' material(is)' : '') . '.',
+                './os?id=' . $id, 'VALIDAR:' . $id . ':' . time());
+        });
+    }
+
+    /**
+     * Validação do ADMIN. $aprovados = ids de os_materiais aprovados; os demais pendentes são recusados.
+     * Cada material aprovado vira um item ADICIONAL da OS e é baixado do estoque pela regra de sempre
+     * (sem saldo, nada é gravado e a tela avisa). Depois, o mesmo que "concluir": comissão e PRONTA.
+     */
+    public function validar(int $id, array $aprovados, string $motivoRecusa = ''): void
+    {
+        Transacao::executar($this->db, function () use ($id, $aprovados, $motivoRecusa) {
+            $os = $this->exigirTransicao($id, 'validar');
+            $aprovados = array_map('intval', $aprovados);
+            $estoque = new Estoque($this->db);
+            $decisoes = [];
+
+            // FOR UPDATE: duas validações ao mesmo tempo não aprovam o mesmo material duas vezes.
+            $materiais = $this->lista("SELECT m.*, p.nome, p.tipo AS produto_tipo, p.ativo, p.preco_venda, p.preco_custo, p.categoria
+                                       FROM os_materiais m JOIN produtos p ON p.oficina_id = m.oficina_id AND p.id = m.produto_id
+                                       WHERE m.oficina_id = :oficina AND m.ordem_servico_id = :id AND m.status = 'PENDENTE' FOR UPDATE", ['id' => $id]);
+            foreach ($materiais as $m) {
+                if (!in_array((int) $m['id'], $aprovados, true)) {
+                    $this->atualizar('os_materiais', (int) $m['id'], ['status' => 'RECUSADO', 'decidido_por' => Contexto::usuarioId(),
+                        'decidido_em' => date('Y-m-d H:i:s'), 'motivo_decisao' => mb_substr(trim($motivoRecusa), 0, 255) ?: null]);
+                    $decisoes[] = ['material' => $m['nome'], 'quantidade' => $m['quantidade'], 'decisao' => 'RECUSADO'];
+                    continue;
+                }
+                if ($m['produto_tipo'] !== 'PECA') {
+                    throw new DomainException('"' . $m['nome'] . '" não é uma peça do catálogo e não pode ser baixado do estoque. Recuse este material.');
+                }
+
+                $itemId = $this->inserir('ordem_servico_itens', [
+                    'ordem_servico_id' => $id, 'tipo' => 'PECA', 'origem' => 'ADICIONAL', 'produto_id' => (int) $m['produto_id'],
+                    'descricao' => mb_substr($m['nome'], 0, 200), 'categoria' => $m['categoria'], 'quantidade' => $m['quantidade'],
+                    'valor_unitario' => $m['preco_venda'], 'desconto' => 0, 'custo_unitario' => $m['preco_custo'], 'estoque_status' => 'PENDENTE',
+                ]);
+                $item = $this->item($id, $itemId);
+                if (!$estoque->baixarItemOs($item + ['os_numero' => $os['numero']])) {
+                    throw new DomainException('Sem estoque de "' . $m['nome'] . '" para baixar ' . rtrim(rtrim(number_format((float) $m['quantidade'], 3, ',', ''), '0'), ',')
+                        . '. Dê entrada da peça no estoque ou recuse este material.');
+                }
+                $this->atualizar('os_materiais', (int) $m['id'], ['status' => 'APROVADO', 'item_id' => $itemId,
+                    'decidido_por' => Contexto::usuarioId(), 'decidido_em' => date('Y-m-d H:i:s')]);
+                $decisoes[] = ['material' => $m['nome'], 'quantidade' => $m['quantidade'], 'decisao' => 'APROVADO', 'item_id' => $itemId];
+            }
+            if ($decisoes) {
+                $this->hist->registrar(['ordem_servico_id' => $id], 'MATERIAIS_VALIDADOS', null, null, mb_substr(trim($motivoRecusa), 0, 255) ?: null, ['materiais' => $decisoes]);
+            }
+            $this->recalcular($id);
+
+            $pendentes = array_filter($this->itens($id), fn($i) => $i['estoque_status'] === 'PENDENTE');
+            if ($pendentes) {
+                throw new DomainException('Ainda há peça sem baixa no estoque: ' . implode(', ', array_column($pendentes, 'descricao')) . '.');
+            }
+            $this->calcularComissoes($this->exigir($id));
+            $agora = date('Y-m-d H:i:s');
+            $this->atualizar('ordens_servico', $id, ['status' => 'PRONTA', 'concluido_em' => $agora, 'conferido_por' => Contexto::usuarioId(), 'conferido_em' => $agora]);
+            $this->hist->registrar(['ordem_servico_id' => $id], 'EXECUCAO_VALIDADA', 'AGUARDANDO_VALIDACAO', 'PRONTA');
+            $this->avisarTecnico($os, 'VALIDADA', os_numero($os['numero']) . ' validada', 'O administrador aprovou o serviço.');
+        });
+    }
+
+    /** O ADMIN devolve ao técnico para corrigir ou completar. Os materiais pendentes continuam pendentes. */
+    public function devolver(int $id, string $motivo): void
+    {
+        if (trim($motivo) === '') {
+            throw new DomainException('Explique ao técnico o que precisa ser corrigido ou completado.');
+        }
+        Transacao::executar($this->db, function () use ($id, $motivo) {
+            $os = $this->exigirTransicao($id, 'devolver');
+            $motivo = mb_substr(trim($motivo), 0, 255);
+            $this->atualizar('ordens_servico', $id, ['status' => 'EM_EXECUCAO', 'execucao_devolvida_em' => date('Y-m-d H:i:s'), 'execucao_devolucao_motivo' => $motivo]);
+            $this->hist->registrar(['ordem_servico_id' => $id], 'EXECUCAO_DEVOLVIDA', 'AGUARDANDO_VALIDACAO', 'EM_EXECUCAO', $motivo);
+            $this->avisarTecnico($os, 'DEVOLVIDA', os_numero($os['numero']) . ' voltou para você', $motivo);
+        });
+    }
+
+    /** Aviso para o técnico responsável e os técnicos dos serviços da OS (menos quem fez a ação). */
+    private function avisarTecnico(array $os, string $tipo, string $titulo, string $mensagem): void
+    {
+        $ids = array_column($this->lista('SELECT DISTINCT tecnico_id FROM ordem_servico_itens WHERE oficina_id = :oficina AND ordem_servico_id = :id AND tecnico_id IS NOT NULL',
+            ['id' => (int) $os['id']]), 'tecnico_id');
+        if ($os['tecnico_id']) {
+            $ids[] = $os['tecnico_id'];
+        }
+        $n = new Notificacao($this->db);
+        foreach (array_unique(array_map('intval', $ids)) as $uid) {
+            $n->paraUsuario($uid, 'EXECUCAO_' . $tipo, $titulo, $mensagem, './servico?id=' . (int) $os['id'], 'EXEC:' . $tipo . ':' . $os['id'] . ':' . time());
+        }
     }
 
     /* ── Apoio ───────────────────────────────────────────────────────── */

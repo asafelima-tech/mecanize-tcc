@@ -4,7 +4,10 @@
  * os números (total, aprovado, recebido, previsão), e o trabalho no centro (relato e diagnóstico, serviços e
  * peças com a inclusão logo abaixo, fotos e documentos, histórico). Ao lado: cliente e veículo, pagamento e dados.
  * Formulários, rotas, campos e diálogos são os mesmos de antes; só a apresentação mudou.
- * Espera: $os, $itens, $historico, $tecnicos, $catalogo, $contas, $faltaLancar, $caixa, $anexos, $linkAcompanhamento
+ * Execução do técnico: o que ele informou (início, materiais usados, pedidos, relato) e, aguardando validação, os
+ * botões do ADMIN para validar (aprovando ou recusando cada material) ou devolver ao técnico.
+ * Espera: $os, $itens, $historico, $tecnicos, $catalogo, $contas, $faltaLancar, $caixa, $anexos, $linkAcompanhamento,
+ *         $materiais, $pedidos
  */
 $titulo   = os_numero($os['numero']);
 [$rotuloStatus, $corStatus] = os_status($os['status']);
@@ -19,12 +22,23 @@ $acoesHistorico = [
     'CRIACAO' => 'Orçamento aberto', 'DADOS' => 'Dados alterados', 'ITEM_INCLUIDO' => 'Item incluído', 'ITEM_ADICIONAL' => 'Item adicional',
     'ITEM_ALTERADO' => 'Item alterado', 'ITEM_REMOVIDO' => 'Item removido', 'APROVACAO' => 'Orçamento aprovado', 'STATUS' => 'Situação',
     'MIGRACAO_V1' => 'Migrado da versão anterior', 'ORCAMENTO_VERSAO' => 'Orçamento original preservado', 'ANEXO' => 'Arquivo anexado',
+    'EXECUCAO_INICIADA' => 'Técnico começou o serviço', 'EXECUCAO_ENVIADA' => 'Técnico informou que terminou', 'EXECUCAO_VALIDADA' => 'Execução validada',
+    'EXECUCAO_DEVOLVIDA' => 'Devolvido ao técnico', 'MATERIAL_INFORMADO' => 'Material informado pelo técnico', 'MATERIAL_CANCELADO' => 'Material retirado pelo técnico',
+    'MATERIAIS_VALIDADOS' => 'Materiais avaliados', 'PEDIDO_MATERIAL' => 'Pedido de material',
 ];
+$ehAdmin = Contexto::perfil() === 'ADMIN';
+$pendentesTec = array_values(array_filter($materiais, fn($m) => $m['status'] === 'PENDENTE'));
+// Peças já previstas na OS (para avisar, na validação, quando o técnico informa a mesma peça: pode ser a mesma, já baixada).
+$previstas = [];
+foreach ($ativos as $i) { if ($i['tipo'] === 'PECA' && $i['produto_id']) { $previstas[(int) $i['produto_id']] = ($previstas[(int) $i['produto_id']] ?? 0) + (float) $i['quantidade']; } }
+$temExecucao = $os['execucao_iniciada_em'] || $os['execucao_enviada_em'] || $materiais || $pedidos;
+$rotMaterial = ['PENDENTE' => ['A avaliar', 'warning'], 'APROVADO' => ['Aprovado', 'success'], 'RECUSADO' => ['Recusado', 'muted'], 'CANCELADO' => ['Retirado pelo técnico', 'muted']];
+$rotPedido = ['RECEBIDA' => 'Recebida', 'APROVADA' => 'Aprovada', 'ATENDIDA' => 'Atendida', 'RECUSADA' => 'Recusada', 'PENDENTE' => 'A avaliar', 'CANCELADO' => 'Retirado'];
 $botao = fn(string $acao, string $rotulo, string $classe = 'btn--primary') =>
     '<form method="post" action="' . $acaoUrl . '">' . csrf_field() . '<input type="hidden" name="acao" value="' . $acao . '"><button class="btn ' . $classe . ' btn--sm">' . $rotulo . '</button></form>';
 
 // Pagamento (mesmas contas de antes, calculadas aqui em cima porque aparecem nos números e na entrega).
-$cobravel = in_array($st, ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'PRONTA', 'ENTREGUE'], true);
+$cobravel = in_array($st, ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'AGUARDANDO_VALIDACAO', 'PRONTA', 'ENTREGUE'], true);
 $recebido = array_sum(array_map(fn($c) => $c['status'] === 'CANCELADO' ? 0 : (float) $c['valor_pago'], $contas));
 $aReceber = round((float) $os['valor_total'] - $recebido, 2);
 $coresConta = ['ABERTO' => 'neutral', 'PARCIAL' => 'info', 'PAGO' => 'success', 'CANCELADO' => 'muted'];
@@ -32,7 +46,7 @@ $nomesConta = ['ABERTO' => 'Em aberto', 'PARCIAL' => 'Parcial', 'PAGO' => 'Receb
 
 // Andamento: só a leitura da situação atual, em etapas (a troca continua nos botões de sempre).
 $etapas = ['ORCAMENTO' => 'Orçamento', 'APROVADA' => 'Aprovada', 'EM_EXECUCAO' => 'Em execução', 'PRONTA' => 'Pronta', 'ENTREGUE' => 'Entregue'];
-$posicao = array_search($st === 'AGUARDANDO_PECA' ? 'EM_EXECUCAO' : $st, array_keys($etapas), true);
+$posicao = array_search(in_array($st, ['AGUARDANDO_PECA', 'AGUARDANDO_VALIDACAO'], true) ? 'EM_EXECUCAO' : $st, array_keys($etapas), true);
 $diferenca = $os['valor_aprovado'] !== null ? round((float) $os['valor_total'] - (float) $os['valor_aprovado'], 2) : 0.0;
 $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nome)); return mb_strtoupper(mb_substr($p[0], 0, 1) . (count($p) > 1 ? mb_substr(end($p), 0, 1) : '')); };
 ?>
@@ -63,6 +77,9 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       <?= $botao('baixar', icone('download') . ' Peças chegaram') ?>
     <?php elseif ($st === 'EM_EXECUCAO'): ?>
       <?= $botao('concluir', icone('success') . ' Concluir serviço') ?>
+    <?php elseif ($st === 'AGUARDANDO_VALIDACAO' && $ehAdmin): ?>
+      <button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-devolver">Devolver ao técnico</button>
+      <button type="button" class="btn btn--primary btn--sm" data-abrir="dlg-validar"><?= icone('checklist') ?> Validar execução</button>
     <?php elseif ($st === 'PRONTA'): ?>
       <button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-retomar">Voltar para execução</button>
       <button type="button" class="btn btn--primary btn--sm" data-abrir="dlg-entregar"><?= icone('key') ?> Entregar veículo</button>
@@ -84,12 +101,21 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
   <?php $alertaTipo = 'erro'; $alertaTitulo = 'OS cancelada em ' . data_br($os['cancelado_em'], true); $alertaMensagem = $os['motivo_cancelamento'] ?? ''; require V2_RAIZ . '/app/views/layout/_alerta.php'; ?>
 <?php endif; ?>
 
+<?php if ($st === 'AGUARDANDO_VALIDACAO'): ?>
+  <?php $alertaTipo = 'info'; $alertaTitulo = ($os['tecnico'] ?: 'O técnico') . ' informou que terminou em ' . data_br($os['execucao_enviada_em'], true);
+        $alertaMensagem = $ehAdmin ? 'Confira o relato e os materiais em "Execução do técnico" e valide ou devolva.' : 'Aguardando a validação do administrador.';
+        require V2_RAIZ . '/app/views/layout/_alerta.php'; ?>
+<?php elseif (in_array($st, ['EM_EXECUCAO', 'AGUARDANDO_PECA'], true) && $os['execucao_devolvida_em'] && $os['execucao_devolvida_em'] > ($os['execucao_enviada_em'] ?? '')): ?>
+  <?php $alertaTipo = 'aviso'; $alertaTitulo = 'Devolvida ao técnico em ' . data_br($os['execucao_devolvida_em'], true); $alertaMensagem = (string) $os['execucao_devolucao_motivo'];
+        require V2_RAIZ . '/app/views/layout/_alerta.php'; ?>
+<?php endif; ?>
+
 <?php if ($posicao !== false): ?>
   <ol class="os-etapas" aria-label="Andamento da OS">
     <?php $n = 0; foreach ($etapas as $chave => $rotulo): $estado = $n < $posicao ? 'is-feita' : ($n === $posicao ? 'is-atual' : ''); ?>
       <li class="os-etapas__item <?= $estado ?>" <?= $n === $posicao ? 'aria-current="step"' : '' ?>>
         <span class="os-etapas__marca" aria-hidden="true"><?= $n < $posicao ? icone('check', 12, 2.5) : '' ?></span>
-        <span class="os-etapas__rotulo"><?= $n === $posicao && $st === 'AGUARDANDO_PECA' ? 'Aguardando peça' : $rotulo ?></span>
+        <span class="os-etapas__rotulo"><?= $n === $posicao && $st === 'AGUARDANDO_PECA' ? 'Aguardando peça' : ($n === $posicao && $st === 'AGUARDANDO_VALIDACAO' ? 'Em validação' : $rotulo) ?></span>
       </li>
     <?php $n++; endforeach; ?>
   </ol>
@@ -253,6 +279,48 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       <?php endif; ?>
     </section>
 
+    <?php if ($temExecucao): ?>
+    <!-- Execução do técnico -->
+    <section class="card card--tabela ver-historico" id="execucao" aria-labelledby="os-exec-titulo">
+      <header class="ver-historico__cabeca">
+        <div><h2 id="os-exec-titulo">Execução do técnico</h2>
+          <p><?= e($os['tecnico'] ?: 'Técnico') ?><?= $os['execucao_iniciada_em'] ? ' · começou em ' . data_br($os['execucao_iniciada_em'], true) : '' ?><?= $os['execucao_enviada_em'] ? ' · informou que terminou em ' . data_br($os['execucao_enviada_em'], true) : '' ?><?= $os['conferido_em'] ? ' · validada em ' . data_br($os['conferido_em'], true) : '' ?></p></div>
+      </header>
+      <div class="exec-admin">
+        <?php if ($os['execucao_observacao']): ?>
+          <div class="exec-admin__relato"><h3 class="ver-grupo__titulo"><?= icone('message', 15) ?> Relato do técnico</h3><p class="ver-texto"><?= e($os['execucao_observacao']) ?></p></div>
+        <?php endif; ?>
+        <h3 class="ver-grupo__titulo"><?= icone('part', 15) ?> Materiais que o técnico informou</h3>
+        <?php if ($materiais): ?>
+          <ul class="exec-admin__lista">
+            <?php foreach ($materiais as $m): [$rm, $cm] = $rotMaterial[$m['status']]; ?>
+              <li>
+                <span><strong><?= e($m['nome']) ?></strong> · <?= $qtd($m['quantidade']) ?> un.<?= isset($previstas[(int) $m['produto_id']]) && $m['status'] === 'PENDENTE' ? ' <span class="exec-admin__nota">já prevista na OS (' . $qtd($previstas[(int) $m['produto_id']]) . ')</span>' : '' ?>
+                  <small><?= e($m['tecnico_nome']) ?> · <?= data_br($m['criado_em'], true) ?><?= $m['observacao'] ? ' · “' . e($m['observacao']) . '”' : '' ?><?= $m['motivo_decisao'] && $m['status'] === 'RECUSADO' ? ' · recusado: ' . e($m['motivo_decisao']) : '' ?></small></span>
+                <span class="badge badge--<?= $cm ?>"><?= $rm ?></span>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+          <?php if ($pendentesTec): ?><p class="form-dica">Os materiais a avaliar ainda não saíram do estoque. Os aprovados na validação entram na OS como adicionais e são baixados uma única vez.</p><?php endif; ?>
+        <?php else: ?>
+          <p class="secundario ver-vazio">Nenhum material informado.</p>
+        <?php endif; ?>
+        <?php if ($pedidos): ?>
+          <h3 class="ver-grupo__titulo"><?= icone('box', 15) ?> Pedidos do técnico ligados a esta OS</h3>
+          <ul class="exec-admin__lista">
+            <?php foreach ($pedidos as $pd): ?>
+              <li>
+                <span><strong><?= e(Solicitacao::TIPOS[$pd['tipo']][0]) ?><?= ($pd['produto'] ?? $pd['item_descricao']) ? ': ' . e($pd['produto'] ?? $pd['item_descricao']) : '' ?><?= $pd['quantidade'] ? ' · ' . $qtd($pd['quantidade']) . ' un.' : '' ?></strong>
+                  <small><?= e($pd['tecnico']) ?> · <?= data_br($pd['criado_em'], true) ?> · “<?= e($pd['justificativa']) ?>”<?= $pd['resposta'] ? ' · resposta: ' . e($pd['resposta']) : '' ?></small></span>
+                <a class="badge badge--<?= Solicitacao::SITUACOES[$pd['status']][1] ?>" href="./solicitacoes?situacao=todas"><?= $rotPedido[$pd['status']] ?></a>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+      </div>
+    </section>
+    <?php endif; ?>
+
     <!-- Fotos e documentos -->
     <section class="card card--tabela ver-historico" id="arquivos" aria-labelledby="os-arquivos-titulo">
       <header class="ver-historico__cabeca">
@@ -293,9 +361,18 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       <ol class="conta-linha-tempo os-linha-tempo">
         <?php foreach ($historico as $h): ?>
           <li>
-            <strong><?= e($acoesHistorico[$h['acao']] ?? $h['acao']) ?><?php if ($h['estado_novo']): ?> · <?= $h['estado_anterior'] ? e(os_status($h['estado_anterior'])[0]) . ' → ' : '' ?><?= e(os_status($h['estado_novo'])[0]) ?><?php endif; ?></strong>
+            <strong><?= e($acoesHistorico[$h['acao']] ?? $h['acao']) ?><?php if ($h['acao'] === 'PEDIDO_MATERIAL' || str_starts_with($h['acao'], 'MATERIAL')): ?><?= $h['estado_novo'] && isset($rotPedido[$h['estado_novo']]) ? ' · ' . $rotPedido[$h['estado_novo']] : '' ?><?php elseif ($h['estado_novo']): ?> · <?= $h['estado_anterior'] ? e(os_status($h['estado_anterior'])[0]) . ' → ' : '' ?><?= e(os_status($h['estado_novo'])[0]) ?><?php endif; ?></strong>
             <?php if (in_array($h['acao'], ['ITEM_INCLUIDO', 'ITEM_ADICIONAL', 'ITEM_REMOVIDO'], true) && $h['dados']): $d = json_decode($h['dados'], true); ?>
               <span class="os-linha-tempo__texto"><?= e($d['descricao'] ?? '') ?> · <?= dinheiro($d['valor_total'] ?? 0) ?></span>
+            <?php endif; ?>
+            <?php if (in_array($h['acao'], ['MATERIAL_INFORMADO', 'MATERIAL_CANCELADO'], true) && $h['dados']): $d = json_decode($h['dados'], true); ?>
+              <span class="os-linha-tempo__texto"><?= e($d['produto'] ?? '') ?> · <?= $qtd($d['quantidade'] ?? 0) ?> un.</span>
+            <?php endif; ?>
+            <?php if ($h['acao'] === 'MATERIAIS_VALIDADOS' && $h['dados']): $d = json_decode($h['dados'], true); ?>
+              <span class="os-linha-tempo__texto"><?= e(implode(' · ', array_map(fn($x) => $x['material'] . ' (' . $qtd($x['quantidade']) . '): ' . ($x['decisao'] === 'APROVADO' ? 'aprovado' : 'recusado'), $d['materiais'] ?? []))) ?></span>
+            <?php endif; ?>
+            <?php if ($h['acao'] === 'PEDIDO_MATERIAL' && $h['dados'] && !$h['estado_anterior']): $d = json_decode($h['dados'], true); ?>
+              <span class="os-linha-tempo__texto"><?= e(Solicitacao::TIPOS[$d['tipo'] ?? '']['0'] ?? '') ?><?= !empty($d['item']) ? ': ' . e($d['item']) : '' ?></span>
             <?php endif; ?>
             <?php if ($h['motivo']): ?><span class="os-linha-tempo__texto">“<?= e($h['motivo']) ?>”</span><?php endif; ?>
             <small><?= data_br($h['criado_em'], true) ?><?= $h['autor'] ? ' · ' . e($h['autor']) : '' ?></small>
@@ -439,7 +516,8 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
 
 <?php foreach (['recusar' => ['Orçamento recusado', 'Motivo (opcional)', false, 'Registrar recusa'],
                 'cancelar' => ['Cancelar OS', 'Motivo do cancelamento', true, 'Cancelar OS'],
-                'retomar' => ['Voltar para execução', 'O que precisa ser refeito?', false, 'Voltar para execução']] as $acao => [$tit, $rot, $obrig, $btn]): ?>
+                'retomar' => ['Voltar para execução', 'O que precisa ser refeito?', false, 'Voltar para execução'],
+                'devolver' => ['Devolver ao técnico', 'O que o técnico precisa corrigir ou completar?', true, 'Devolver ao técnico']] as $acao => [$tit, $rot, $obrig, $btn]): ?>
   <dialog id="dlg-<?= $acao ?>" class="dlg">
     <form method="post" action="<?= $acaoUrl ?>">
       <?= csrf_field() ?><input type="hidden" name="acao" value="<?= $acao ?>">
@@ -450,6 +528,34 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
     </form>
   </dialog>
 <?php endforeach; ?>
+
+<?php if ($st === 'AGUARDANDO_VALIDACAO' && $ehAdmin): ?>
+<dialog id="dlg-validar" class="dlg dlg--largo">
+  <form method="post" action="<?= $acaoUrl ?>">
+    <?= csrf_field() ?><input type="hidden" name="acao" value="validar">
+    <h3>Validar a execução</h3>
+    <p><?= e($os['tecnico'] ?: 'O técnico') ?> informou que terminou em <?= data_br($os['execucao_enviada_em'], true) ?>.<?= $os['execucao_observacao'] ? ' Relato: “' . e($os['execucao_observacao']) . '”' : '' ?></p>
+    <?php if ($pendentesTec): ?>
+      <fieldset class="exec-validar">
+        <legend>Materiais informados — marque os que foram mesmo usados</legend>
+        <?php foreach ($pendentesTec as $m): $prev = $previstas[(int) $m['produto_id']] ?? null; ?>
+          <label class="exec-validar__linha">
+            <input type="checkbox" name="aprovar[]" value="<?= (int) $m['id'] ?>" <?= $prev ? '' : 'checked' ?>>
+            <span><strong><?= e($m['nome']) ?> · <?= $qtd($m['quantidade']) ?> un.</strong>
+              <small><?= $prev ? 'Esta peça já está prevista na OS (' . $qtd($prev) . ' un., já separada do estoque na execução). Marque só se foi usada além disso. ' : '' ?><?= $m['observacao'] ? '“' . e($m['observacao']) . '”' : '' ?></small></span>
+          </label>
+        <?php endforeach; ?>
+      </fieldset>
+      <p class="form-dica">Os marcados entram na OS como adicionais (preço de venda do catálogo) e saem do estoque agora, uma única vez. Os desmarcados ficam recusados.</p>
+      <div class="form-field"><label for="motivo-recusa">Motivo, se recusar algum material (o técnico vê)</label><input id="motivo-recusa" name="motivo_recusa" maxlength="255"></div>
+    <?php else: ?>
+      <p class="form-dica">Nenhum material a avaliar.</p>
+    <?php endif; ?>
+    <p>Ao validar, a comissão é calculada e a OS fica <strong>pronta para entrega</strong>.</p>
+    <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Voltar</button><button class="btn btn--primary">Validar e concluir</button></div>
+  </form>
+</dialog>
+<?php endif; ?>
 
 <dialog id="dlg-entregar" class="dlg">
   <form method="post" action="<?= $acaoUrl ?>">

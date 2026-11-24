@@ -22,7 +22,7 @@ final class Painel extends Modelo
 
         return [
             'orcamentos'   => $porStatus['ORCAMENTO'] ?? 0,
-            'em_andamento' => ($porStatus['APROVADA'] ?? 0) + ($porStatus['EM_EXECUCAO'] ?? 0) + ($porStatus['AGUARDANDO_PECA'] ?? 0),
+            'em_andamento' => ($porStatus['APROVADA'] ?? 0) + ($porStatus['EM_EXECUCAO'] ?? 0) + ($porStatus['AGUARDANDO_PECA'] ?? 0) + ($porStatus['AGUARDANDO_VALIDACAO'] ?? 0),
             'aprovadas'    => $porStatus['APROVADA'] ?? 0,
             'em_execucao'  => $porStatus['EM_EXECUCAO'] ?? 0,
             'aguardando'   => $porStatus['AGUARDANDO_PECA'] ?? 0,
@@ -61,6 +61,11 @@ final class Painel extends Modelo
             'agenda_hoje'  => (int) $this->valor("SELECT COUNT(*) FROM agendamentos WHERE oficina_id = :oficina AND status IN ('AGENDADO','CONFIRMADO') AND DATE(data_hora) = CURDATE()"),
         ];
         if ($admin) {
+            // O que os técnicos mandaram e espera o ADMIN: execuções para validar e pedidos de material.
+            $a['validar'] = (int) $this->valor("SELECT COUNT(*) FROM ordens_servico WHERE oficina_id = :oficina AND status = 'AGUARDANDO_VALIDACAO'");
+            $a['pedidos'] = (int) $this->valor("SELECT COUNT(*) FROM solicitacoes_material WHERE oficina_id = :oficina AND status IN ('RECEBIDA','APROVADA')");
+        }
+        if ($admin) {
             $a += $this->linha(
                 "SELECT SUM(tipo = 'RECEBER') AS receber_vencidas, COALESCE(SUM(CASE WHEN tipo = 'RECEBER' THEN valor - desconto + acrescimo - valor_pago END), 0) AS receber_valor,
                         SUM(tipo = 'PAGAR') AS pagar_vencidas, COALESCE(SUM(CASE WHEN tipo = 'PAGAR' THEN valor - desconto + acrescimo - valor_pago END), 0) AS pagar_valor
@@ -84,8 +89,8 @@ final class Painel extends Modelo
              FROM ordens_servico os
              JOIN clientes c ON c.oficina_id = os.oficina_id AND c.id = os.cliente_id
              JOIN veiculos v ON v.oficina_id = os.oficina_id AND v.id = os.veiculo_id
-             WHERE os.oficina_id = :oficina AND os.status IN ('APROVADA','EM_EXECUCAO','AGUARDANDO_PECA','PRONTA')
-             ORDER BY FIELD(os.status, 'PRONTA', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'APROVADA'), os.numero
+             WHERE os.oficina_id = :oficina AND os.status IN ('APROVADA','EM_EXECUCAO','AGUARDANDO_PECA','AGUARDANDO_VALIDACAO','PRONTA')
+             ORDER BY FIELD(os.status, 'PRONTA', 'AGUARDANDO_VALIDACAO', 'EM_EXECUCAO', 'AGUARDANDO_PECA', 'APROVADA'), os.numero
              LIMIT {$limite}"
         );
     }
@@ -137,7 +142,7 @@ final class Painel extends Modelo
         }
 
         // Situação das OS abertas neste mês.
-        $grupos = ['concluidas' => ['PRONTA', 'ENTREGUE'], 'andamento' => ['APROVADA', 'EM_EXECUCAO'], 'peca' => ['AGUARDANDO_PECA'],
+        $grupos = ['concluidas' => ['PRONTA', 'ENTREGUE'], 'andamento' => ['APROVADA', 'EM_EXECUCAO', 'AGUARDANDO_VALIDACAO'], 'peca' => ['AGUARDANDO_PECA'],
                    'abertas' => ['ORCAMENTO'], 'canceladas' => ['RECUSADA', 'CANCELADA']];
         $porStatus = [];
         foreach ($this->lista("SELECT status, COUNT(*) AS n FROM ordens_servico

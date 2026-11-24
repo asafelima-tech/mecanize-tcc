@@ -151,7 +151,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .mini-numeros { grid-template-columns: minmax(0, 1fr) !important; }
   .barras__escala span { font-size: 10px; }
   /* Kanban: uma coluna por vez (84% da tela), rolando de lado. As trilhas têm a largura da coluna, senão elas se sobrepõem. */
-  .kanban { grid-template-columns: repeat(5, 84vw); scroll-snap-type: x mandatory; scroll-padding: 0 16px; }
+  .kanban { grid-template-columns: repeat(6, 84vw); scroll-snap-type: x mandatory; scroll-padding: 0 16px; }
   .kanban > * { scroll-snap-align: start; min-width: 0; }
 }
 
@@ -304,7 +304,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 
 /* Avisos do painel: uma linha só; no celular desliza de lado, com a borda direita esmaecida indicando que há mais. */
 @media (max-width: 899.98px) {
-  .avisos-painel { margin-right: -16px !important; padding-right: 16px; }
+  .avisos-painel { margin-right: -16px !important; padding-right: 16px !important; }
 }
 
 /* Relatórios: telas médias com 2 números por linha; celular com tudo empilhado e o seletor de período rolando de lado. */

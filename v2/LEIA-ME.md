@@ -171,6 +171,19 @@ A camada final do `public/css/mecanize.css` (seção 30) segue os aplicativos e 
 - **Barra de ferramentas** fina e translúcida no topo do conteúdo (Criar, situação do caixa e avisos).
 - **Tipografia oficial: Arial Nova**, definida em `--font-family` e herdada por todos os componentes, em escala de aplicativo (26 / 17 / 15 / 13 / 12 / 11). Ela não vem instalada no Windows: baixe-a gratuitamente em Configurações › Personalização › Fontes (pesquise "Arial Nova"). Enquanto não estiver instalada, o navegador usa Arial. Os arquivos da fonte não foram incluídos no projeto porque a licença da Monotype não permite redistribuí-los na web.
 
+## Área do técnico (24/11/2026)
+
+O técnico não usa mais as telas do escritório. Ele entra direto em **Meus serviços** (pensado para o celular, com uma barra de navegação embaixo):
+
+- **Só as OS em que ele está** (responsável pela OS ou técnico de um serviço dela). Toda consulta da área dele leva o id do técnico logado (`ServicoTecnico`); uma OS de outro técnico responde como inexistente, mesmo trocando o id na URL. Anexos também conferem isso. Ele não vê valores, estoque, cadastros, financeiro nem relatórios (as rotas do escritório são do nível `ATENDIMENTO`).
+- **Execução:** "Começar serviço" (com a OS aprovada é o mesmo "iniciar" de sempre: as peças previstas saem do estoque), registrar os **materiais usados** além do previsto, pedir material ou avisar problema, tirar fotos e "Terminei o serviço" com um relato.
+- **Três estados:** em execução → **aguardando validação** (o técnico terminou) → pronta (o ADMIN validou). O técnico não conclui a OS.
+- **Materiais usados** (`os_materiais`) não mexem no estoque. Na validação o ADMIN aprova ou recusa cada um; o aprovado vira item adicional da OS e é baixado pela regra de sempre, uma única vez (`item_id` único). Sem saldo, a validação não grava nada e avisa. Se o técnico informa uma peça que já estava prevista, a tela avisa o ADMIN.
+- **Validação (ADMIN):** na tela da OS, "Validar execução" (calcula a comissão e deixa a OS pronta) ou "Devolver ao técnico" com o motivo. A aba "Para validar" das ordens e o Início mostram o que está esperando.
+- **Pedidos de material** (`solicitacoes_material`): acabou, repor, peça indisponível, comprar, material sem cadastro e problema. Chegam em **Pedidos dos técnicos** (ADMIN), que aprova, marca como atendido ou recusa com resposta. O técnico acompanha a situação e recebe aviso no sino.
+- **Histórico:** início, envio, validação, devolução, cada material informado/retirado/avaliado e cada mudança de pedido ficam no histórico da OS, com quem e quando.
+- Migração: `database/v2/migracao_2026_11_24_tecnico.php` (idempotente). O `schema.sql` já nasce com as duas tabelas novas (19 no total).
+
 ## Licença
 
 | Situação | Efeito |
@@ -186,7 +199,8 @@ O aviso aparece no topo da tela a partir de 7 dias antes do vencimento.
 | Perfil | Acesso |
 |---|---|
 | ADMIN | tudo da própria oficina (financeiro, estoque, relatórios, configurações e usuários são só dele) |
-| ATENDENTE / TECNICO | a operação do dia a dia (as mesmas permissões entre si) |
+| ATENDENTE | o escritório: OS, agenda, clientes, veículos, catálogo e caixa |
+| TECNICO | só a área dele (celular primeiro): as OS em que está, materiais usados, pedidos de material e fotos |
 | PLATAFORMA | a equipe do Mecanize: cadastra oficinas e cuida das licenças, nunca vê os dados de dentro delas |
 
 Para criar um usuário da plataforma:

@@ -8,7 +8,7 @@ $titulo = 'Ordens de serviço';
 $kanban = $f['modo'] === 'kanban';
 $rotulos = [
     'abertas' => 'ordens em aberto', 'orcamento' => 'orçamentos', 'execucao' => 'ordens em andamento', 'prontas' => 'ordens prontas',
-    'entregues' => 'ordens entregues', 'encerradas' => 'ordens recusadas ou canceladas', 'todas' => 'ordens',
+    'validacao' => 'ordens para validar', 'entregues' => 'ordens entregues', 'encerradas' => 'ordens recusadas ou canceladas', 'todas' => 'ordens',
 ];
 $totalTela = $kanban ? array_sum(array_map('count', $colunas)) : (int) $p->total;
 ?>

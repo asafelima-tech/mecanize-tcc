@@ -46,6 +46,24 @@ final class Notificacao extends Modelo
             ['u' => Contexto::usuarioId()])->rowCount();
     }
 
+    /** Avisa uma pessoa da oficina (o técnico de uma OS, por exemplo). Não avisa quem causou o aviso nem conta inativa. */
+    public function paraUsuario(int $usuarioId, string $tipo, string $titulo, ?string $mensagem, ?string $link, string $chave): bool
+    {
+        if ($usuarioId === (int) Contexto::usuarioId()
+            || !$this->valor('SELECT COUNT(*) FROM usuarios WHERE oficina_id = :oficina AND id = :u AND ativo = 1', ['u' => $usuarioId])) {
+            return false;
+        }
+        $this->consultar(
+            'INSERT INTO notificacoes (oficina_id, usuario_id, tipo, titulo, mensagem, link, chave_idempotencia)
+             VALUES (:oficina, :u, :tipo, :titulo, :msg, :link, :chave)
+             ON DUPLICATE KEY UPDATE id = id',
+            ['u' => $usuarioId, 'tipo' => $tipo, 'titulo' => mb_substr($titulo, 0, 150),
+             'msg' => $mensagem !== null ? mb_substr($mensagem, 0, 500) : null, 'link' => $link, 'chave' => mb_substr($chave, 0, 100)]
+        );
+
+        return true;
+    }
+
     /** Avisa todos os administradores ativos da oficina (menos quem causou o aviso). */
     public function paraAdmins(string $tipo, string $titulo, ?string $mensagem, ?string $link, string $chave): int
     {

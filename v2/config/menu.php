@@ -7,11 +7,16 @@
  * 'grupo' = título da seção na barra lateral, na ordem do Design System (vazio = item solto no topo, como o Início).
  * 'icone' = nome de um ícone do Design System (app/core/Icones.php).
  * 'rotas' = telas "filhas" que mantêm o item marcado (cadastro, edição, detalhe).
+ * 'esconder' = perfis para os quais o item não aparece mesmo podendo abrir a rota (o Início do técnico
+ *              é a lista de serviços dele: a rota inicio só o redireciona para lá).
  */
 return [
-    ['grupo' => '',           'rota' => 'inicio',       'rotulo' => 'Início',           'icone' => 'home'],
+    ['grupo' => '',           'rota' => 'inicio',       'rotulo' => 'Início',           'icone' => 'home', 'esconder' => ['TECNICO']],
+    ['grupo' => '',           'rota' => 'servicos',     'rotulo' => 'Meus serviços',    'icone' => 'mechanic',   'rotas' => ['servico']],
+    ['grupo' => '',           'rota' => 'pedidos',      'rotulo' => 'Pedidos de material', 'icone' => 'box'],
     ['grupo' => 'Operação',   'rota' => 'agenda',       'rotulo' => 'Agenda',           'icone' => 'calendar',   'rotas' => ['agenda-form', 'agenda-salvar']],
     ['grupo' => 'Operação',   'rota' => 'ordens',       'rotulo' => 'Ordens de serviço','icone' => 'work-order', 'rotas' => ['os', 'os-nova', 'os-criar']],
+    ['grupo' => 'Operação',   'rota' => 'solicitacoes', 'rotulo' => 'Pedidos dos técnicos', 'icone' => 'checklist'],
     ['grupo' => 'Financeiro', 'rota' => 'caixa',        'rotulo' => 'Caixa',            'icone' => 'cash',       'rotas' => ['caixas', 'caixa-ver']],
     ['grupo' => 'Financeiro', 'rota' => 'financeiro',   'rotulo' => 'Financeiro',       'icone' => 'wallet',     'rotas' => ['conta', 'conta-form', 'conta-salvar', 'comissoes']],
     ['grupo' => 'Cadastros',  'rota' => 'clientes',     'rotulo' => 'Clientes',         'icone' => 'users',      'rotas' => ['cliente', 'cliente-form', 'cliente-salvar']],

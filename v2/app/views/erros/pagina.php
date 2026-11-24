@@ -15,7 +15,7 @@ $inicio = Contexto::logado() ? './' . Permissao::inicio(Contexto::perfil()) : '.
 </head>
 
 <body class="erro-pagina">
-    <img class="erro-logo logo-claro" src="./img/logo.png" alt="Mecanize">
+    <img class="erro-logo logo-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
 
     <main class="erro-centro">
         <p class="erro-codigo"><?= (int) $http ?></p>

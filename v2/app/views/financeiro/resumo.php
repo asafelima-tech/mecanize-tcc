@@ -28,11 +28,28 @@ foreach ([1, 2, 2.5, 5, 10] as $m) {
 }
 $topo = max($passo * 4, 1);
 $escala = fn (float $v): string => $v >= 1000 ? number_format($v / 1000, fmod($v, 1000) ? 1 : 0, ',', '.') . ' mil' : number_format($v, 0, ',', '.');
-$iconeForma = ['DINHEIRO' => 'cash', 'PIX' => 'qr-code', 'CARTAO_DEBITO' => 'credit-card', 'CARTAO_CREDITO' => 'credit-card',
-               'BOLETO' => 'barcode', 'TRANSFERENCIA' => 'bank', 'OUTRO' => 'more-h'];
-$iconeCategoria = ['PECAS' => 'part', 'COMISSAO' => 'percent', 'SALARIO' => 'users', 'ALUGUEL' => 'home', 'CONTAS_CONSUMO' => 'receipt',
-                   'IMPOSTOS' => 'file', 'FERRAMENTAS' => 'key', 'OUTRAS_DESPESAS' => 'more-h'];
 $pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $total * 100, 0) . '%' : '—';
+
+// Composição (entradas por forma, saídas por categoria): uma barra única dividida em partes, como a barra de
+// armazenamento do iPhone, e a lista logo abaixo. Do maior para o menor; cada parte num tom da cor dos gráficos.
+$composicao = function (array $itens, float $total, callable $nome) use ($pct): string {
+    $itens = array_filter(array_map(fn ($v) => max(0.0, (float) $v), $itens), fn ($v) => $v > 0);
+    arsort($itens);
+    $n = count($itens);
+    $tom = fn (int $i): int => (int) round(100 - $i * (82 / max(1, $n - 1)));
+    $barra = '';
+    $lista = '';
+    $i = 0;
+    foreach ($itens as $chave => $v) {
+        $rotulo = e($nome($chave));
+        $barra .= '<i style="flex-grow:' . round($v, 2) . ';--tom:' . $tom($i) . '%" title="' . $rotulo . ' · ' . e(dinheiro($v)) . '"></i>';
+        $lista .= '<li><span class="fin-comp__ponto" style="--tom:' . $tom($i) . '%"></span><span class="fin-comp__nome">' . $rotulo . '</span>'
+            . '<b>' . dinheiro($v) . '</b><span class="fin-comp__pct">' . $pct($v, $total) . '</span></li>';
+        $i++;
+    }
+
+    return '<div class="fin-comp__barra" aria-hidden="true">' . $barra . '</div><ul class="fin-comp__lista">' . $lista . '</ul>';
+};
 ?>
 <div class="page-header">
   <div>
@@ -87,7 +104,7 @@ $pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $t
     <span class="stat-card__value"><?= dinheiro($caixa['pago']) ?></span>
     <span class="stat-card__pe">contas pagas no período</span>
   </div>
-  <div class="stat-card stat-card--destaque">
+  <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Resultado do período</span><?php if ($v = $variacao($resultado, $resultadoAntes)): ?><span class="stat-card__chip" title="Comparado ao período anterior de mesmo tamanho"><?= $v ?></span><?php endif; ?></div>
     <span class="stat-card__value"><?= $resultado < 0 ? '−' : '' ?><?= dinheiro(abs($resultado)) ?></span>
     <span class="stat-card__pe">entradas − taxas − saídas</span>
@@ -99,7 +116,7 @@ $pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $t
   </div>
 </div>
 
-<section class="card quadro card--espaco">
+<section class="card quadro card--espaco fin-evolucao">
   <div class="quadro__topo">
     <h2 class="card__title">Evolução</h2>
     <div class="quadro__legenda"><span><span class="legenda-cor"></span>Entradas</span><span><span class="legenda-cor legenda-cor--clara"></span>Saídas</span></div>
@@ -108,11 +125,16 @@ $pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $t
     <div class="barras__escala"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topo / 4 * $i) ?></span><?php endfor; ?></div>
     <div class="barras__area">
       <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
-      <?php $rotular = max(1, (int) ceil(count($fluxo) / 14)); $i = 0; foreach ($fluxo as $b): ?>
-        <div class="barras__coluna" title="<?= e($b['rotulo'] . ' · entradas ' . dinheiro($b['entradas']) . ' · saídas ' . dinheiro($b['saidas'])) ?>">
+      <?php $rotular = max(1, (int) ceil(count($fluxo) / 14)); $i = 0; foreach ($fluxo as $b): $alto = max($b['entradas'], $b['saidas']) / $topo * 100; ?>
+        <div class="barras__coluna">
           <span class="barras__par">
             <span class="barras__barra" style="height:<?= round($b['entradas'] / $topo * 100, 1) ?>%"></span>
             <span class="barras__barra barras__barra--clara" style="height:<?= round($b['saidas'] / $topo * 100, 1) ?>%"></span>
+          </span>
+          <span class="barras__dica" style="bottom:calc(<?= round($alto, 1) ?>% + 8px)">
+            <small><?= e($b['rotulo']) ?></small>
+            <span><i></i><?= dinheiro($b['entradas']) ?></span>
+            <span><i class="is-saida"></i><?= dinheiro($b['saidas']) ?></span>
           </span>
           <?php if ($i++ % $rotular === 0): ?><span class="barras__rotulo"><?= e($b['rotulo']) ?></span><?php endif; ?>
         </div>
@@ -121,30 +143,31 @@ $pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $t
   </div>
 </section>
 
-<div class="grade-2 grade-2--espaco">
-  <section class="card quadro">
-    <div class="quadro__topo"><h2 class="card__title">Entradas por forma</h2><span class="etiqueta"><?= dinheiro($caixa['recebido']) ?></span></div>
-    <?php if (!$caixa['por_forma']): ?><p class="form-dica">Nenhum recebimento no período.</p><?php endif; ?>
-    <ul class="barras-lista">
-      <?php foreach ($caixa['por_forma'] as $forma => $v): ?>
-        <li><span class="barras-lista__nome"><?= icone($iconeForma[$forma] ?? 'coins') ?><?= e(Lancamento::FORMAS[$forma] ?? $forma) ?></span>
-          <span class="ranking__trilho"><span style="width:<?= $caixa['recebido'] > 0 ? round(max(0, $v) / $caixa['recebido'] * 100, 1) : 0 ?>%"></span></span>
-          <b><?= dinheiro($v) ?></b><span class="secundario"><?= $pct($v, $caixa['recebido']) ?></span></li>
-      <?php endforeach; ?>
-    </ul>
+<div class="grade-2 grade-2--espaco grade-2--igual">
+  <section class="card fin-comp">
+    <header class="fin-comp__cabeca"><h2 class="card__title">Entradas por forma</h2><b><?= dinheiro($caixa['recebido']) ?></b></header>
+    <?php if ($caixa['recebido'] <= 0): ?>
+      <p class="fin-comp__vazio">Nenhum recebimento no período.</p>
+    <?php else: ?>
+      <?= $composicao($caixa['por_forma'], (float) $caixa['recebido'], fn ($k) => Lancamento::FORMAS[$k] ?? $k) ?>
+      <dl class="fin-comp__rodape">
+        <dt>Líquido após taxas<?php if ($caixa['taxas'] > 0): ?><small><?= dinheiro($caixa['taxas']) ?> em taxas</small><?php endif; ?></dt>
+        <dd><?= dinheiro($caixa['recebido'] - $caixa['taxas']) ?></dd>
+      </dl>
+    <?php endif; ?>
   </section>
-  <section class="card quadro">
-    <div class="quadro__topo"><h2 class="card__title">Saídas por categoria</h2><span class="etiqueta"><?= dinheiro($caixa['pago']) ?></span></div>
-    <?php if (!$caixa['despesas']): ?><p class="form-dica">Nenhum pagamento no período.</p><?php endif; ?>
-    <ul class="barras-lista">
-      <?php foreach ($caixa['despesas'] as $cat => $v): ?>
-        <li><span class="barras-lista__nome"><?= icone($iconeCategoria[$cat] ?? 'receipt') ?><?= e(Lancamento::categoria('PAGAR', $cat)) ?></span>
-          <span class="ranking__trilho"><span style="width:<?= $caixa['pago'] > 0 ? round(max(0, $v) / $caixa['pago'] * 100, 1) : 0 ?>%"></span></span>
-          <b><?= dinheiro($v) ?></b><span class="secundario"><?= $pct($v, $caixa['pago']) ?></span></li>
-      <?php endforeach; ?>
-    </ul>
-    <?php if ($maiorSaida): ?>
-      <div class="linha-total"><span>Maior saída</span><b><?= e($maiorSaida['pessoa'] ?: $maiorSaida['descricao']) ?> · <?= dinheiro($maiorSaida['valor']) ?></b></div>
+  <section class="card fin-comp">
+    <header class="fin-comp__cabeca"><h2 class="card__title">Saídas por categoria</h2><b><?= dinheiro($caixa['pago']) ?></b></header>
+    <?php if ($caixa['pago'] <= 0): ?>
+      <p class="fin-comp__vazio">Nenhum pagamento no período.</p>
+    <?php else: ?>
+      <?= $composicao($caixa['despesas'], (float) $caixa['pago'], fn ($k) => Lancamento::categoria('PAGAR', $k)) ?>
+      <?php if ($maiorSaida): ?>
+        <dl class="fin-comp__rodape">
+          <dt>Maior saída<small><?= e($maiorSaida['pessoa'] ?: $maiorSaida['descricao']) ?></small></dt>
+          <dd><?= dinheiro($maiorSaida['valor']) ?></dd>
+        </dl>
+      <?php endif; ?>
     <?php endif; ?>
   </section>
 </div>

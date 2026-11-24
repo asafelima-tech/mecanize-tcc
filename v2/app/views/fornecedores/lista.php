@@ -56,7 +56,7 @@ $variacao = $resumo['compras_anterior'] > 0 ? ($resumo['compras_mes'] - $resumo[
         <tbody>
           <?php foreach ($fornecedores as $fo): $link = './fornecedor?id=' . (int) $fo['id']; $fone = so_digitos($fo['telefone'] ?? ''); ?>
             <tr data-href="<?= e($link) ?>" class="<?= $fo['ativo'] ? '' : 'inativo' ?>">
-              <td><span class="celula-pessoa"><span class="avatar avatar--quadrado"><?= e($iniciais($fo['nome'])) ?></span><a href="<?= e($link) ?>"><?= e($fo['nome']) ?></a></span></td>
+              <td><span class="celula-pessoa"><span class="avatar avatar--g"><?= e($iniciais($fo['nome'])) ?></span><a href="<?= e($link) ?>"><?= e($fo['nome']) ?></a></span></td>
               <td class="secundario tabular"><?= $fo['documento'] ? e(documento_fmt($fo['documento'])) : '—' ?></td>
               <td><?= e($fo['contato'] ?: '—') ?><?php if ($fone): ?><span class="sub"><?= e(telefone_fmt($fo['telefone'])) ?></span><?php endif; ?></td>
               <td><?= $fo['email'] ? '<a class="link-discreto" href="mailto:' . e($fo['email']) . '">' . e($fo['email']) . '</a>' : '—' ?></td>

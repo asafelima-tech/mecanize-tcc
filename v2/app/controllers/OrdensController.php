@@ -96,6 +96,8 @@ final class OrdensController extends Controller
             'faltaLancar' => (new Lancamento())->faltaLancar($os),
             'caixa'     => (new Caixa())->aberto(),
             'anexos'    => (new Anexo())->daOs($id),
+            'materiais' => (new ServicoTecnico())->materiais($id),     // o que o técnico informou ter usado
+            'pedidos'   => (new Solicitacao())->daOs($id),
             'linkAcompanhamento' => $this->urlAbsoluta('acompanhar?t=' . $os['token_rastreio']),
         ]);
     }
@@ -134,6 +136,10 @@ final class OrdensController extends Controller
         if (in_array($acao, ['cobrar', 'receber'], true) && !Permissao::permite(Contexto::perfil(), Permissao::BALCAO)) {
             throw new ErroHttp('sem-permissao');
         }
+        // Validar (ou devolver) a execução do técnico é do administrador.
+        if (in_array($acao, ['validar', 'devolver'], true) && Contexto::perfil() !== 'ADMIN') {
+            throw new ErroHttp('sem-permissao');
+        }
 
         switch ($acao) {
             case 'aprovar':
@@ -161,6 +167,11 @@ final class OrdensController extends Controller
                 }, 'Peças baixadas. A OS voltou para execução.', $id);
             case 'concluir':
                 $this->executar(fn() => $m->concluir($id), 'Serviço concluído. O veículo está pronto para entrega.', $id);
+            case 'validar':
+                $aprovados = array_map('intval', array_filter((array) ($_POST['aprovar'] ?? []), 'is_scalar'));
+                $this->executar(fn() => $m->validar($id, $aprovados, $this->post('motivo_recusa')), 'Execução validada. O veículo está pronto para entrega.', $id);
+            case 'devolver':
+                $this->executar(fn() => $m->devolver($id, $this->post('motivo')), 'Serviço devolvido ao técnico.', $id);
             case 'retomar':
                 $this->executar(fn() => $m->retomar($id, $this->post('motivo')), 'A OS voltou para execução.', $id);
             case 'entregar':

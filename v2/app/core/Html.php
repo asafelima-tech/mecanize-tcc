@@ -88,7 +88,7 @@ function os_status(string $status): array
 {
     return [
         'ORCAMENTO' => ['Orçamento', 'neutral'], 'APROVADA' => ['Aprovada', 'neutral'], 'EM_EXECUCAO' => ['Em execução', 'info'],
-        'AGUARDANDO_PECA' => ['Aguardando peça', 'warning'], 'PRONTA' => ['Pronta', 'success'], 'ENTREGUE' => ['Entregue', 'success'],
+        'AGUARDANDO_PECA' => ['Aguardando peça', 'warning'], 'AGUARDANDO_VALIDACAO' => ['Aguardando validação', 'info'], 'PRONTA' => ['Pronta', 'success'], 'ENTREGUE' => ['Entregue', 'success'],
         'RECUSADA' => ['Recusada', 'muted'], 'CANCELADA' => ['Cancelada', 'muted'],
     ][$status] ?? [$status, 'neutral'];
 }
