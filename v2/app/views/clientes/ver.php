@@ -61,9 +61,23 @@ $admin = Permissao::permite(Contexto::perfil(), Permissao::ADMIN);
   <div><span>Veículos</span><strong><?= count($veiculos) ?></strong><small><?= count(array_filter($veiculos, fn($v) => $v['ativo'])) ?> ativo(s)</small></div>
 </div>
 
-<div class="ver-grade">
-  <div class="ver-principal">
-    <section class="card ver-dados" aria-label="Dados do cliente">
+<!-- Coluna única: veículos numa faixa de cartões, os dados em três colunas e o histórico, tudo em largura cheia. -->
+<section class="ver-secao" aria-labelledby="ver-veiculos">
+  <header class="ver-secao__cabeca"><h2 id="ver-veiculos">Veículos</h2><?php if ($veiculos): ?><span><?= count($veiculos) ?></span><?php endif; ?></header>
+  <div class="ver-cartoes">
+    <?php foreach ($veiculos as $v): $det = array_filter([$v['ano'] ?? '', $v['cor'] ?? '', $v['combustivel'] ?? ''], fn($x) => (string) $x !== ''); ?>
+      <a class="card ver-cartao<?= $v['ativo'] ? '' : ' is-inativo' ?>" href="./veiculo?id=<?= (int) $v['id'] ?>">
+        <?= placa_caixa($v['placa'], false) ?>
+        <?= icone('chevron-right', 14, 2) ?>
+        <span class="ver-cartao__texto"><strong><?= e($v['modelo'] ?: 'Modelo não informado') ?></strong><small><?= e(implode(' · ', $det)) ?><?= $v['ativo'] ? '' : ($det ? ' · ' : '') . 'Inativo' ?></small></span>
+      </a>
+    <?php endforeach; ?>
+    <a class="ver-cartao ver-cartao--novo" href="./veiculo-form?cliente=<?= $id ?>"><?= icone('plus', 18, 2) ?><span><?= $veiculos ? 'Adicionar veículo' : 'Cadastrar o primeiro veículo' ?></span></a>
+  </div>
+</section>
+
+<div class="ver-principal ver-principal--cheia">
+    <section class="card ver-dados ver-dados--3" aria-label="Dados do cliente">
       <div class="ver-grupo">
         <h2 class="ver-grupo__titulo"><?= icone('phone', 15) ?> Contato</h2>
         <dl class="ver-lista">
@@ -120,21 +134,4 @@ $admin = Permissao::permite(Contexto::perfil(), Permissao::ADMIN);
         </div>
       <?php endif; ?>
     </section>
-  </div>
-
-  <aside class="card ver-lado" aria-labelledby="ver-veiculos">
-    <header class="ver-lado__cabeca"><h2 id="ver-veiculos">Veículos</h2><a class="link-forte" href="./veiculo-form?cliente=<?= $id ?>"><?= icone('plus', 14, 2) ?> Adicionar</a></header>
-    <?php if (!$veiculos): ?>
-      <div class="ver-lado__vazio"><?= icone('car', 24, 1.4) ?><span>Nenhum veículo cadastrado.</span></div>
-    <?php endif; ?>
-    <ul class="ver-veiculos">
-      <?php foreach ($veiculos as $v): $det = array_filter([$v['ano'] ?? '', $v['cor'] ?? '', $v['combustivel'] ?? ''], fn($x) => (string) $x !== ''); ?>
-        <li><a href="./veiculo?id=<?= (int) $v['id'] ?>" class="ver-veiculo<?= $v['ativo'] ? '' : ' is-inativo' ?>">
-          <?= placa_caixa($v['placa']) ?>
-          <span class="ver-veiculo__texto"><strong><?= e($v['modelo'] ?: 'Modelo não informado') ?></strong><small><?= e(implode(' · ', $det)) ?><?= $v['ativo'] ? '' : ($det ? ' · ' : '') . 'Inativo' ?></small></span>
-          <?= icone('chevron-right', 14, 2) ?>
-        </a></li>
-      <?php endforeach; ?>
-    </ul>
-  </aside>
 </div>

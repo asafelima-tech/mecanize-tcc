@@ -2,7 +2,7 @@
 /**
  * Ficha de consulta do veículo, no mesmo formato da ficha do cliente: identificação no topo (placa, ano,
  * cor, combustível), os números do histórico (OS, total das entregues, última visita e último km),
- * o histórico de OS e, ao lado, o proprietário e as observações.
+ * o proprietário e as observações num card de largura cheia e o histórico de OS embaixo (coluna única).
  * Ações: editar e novo orçamento; desativar e excluir no menu (as mesmas rotas de antes).
  * Espera: $v, $historico
  */
@@ -58,8 +58,23 @@ $qtd = fn($q) => rtrim(rtrim((string) $q, '0'), '.');
   <div><span>Maior quilometragem</span><strong><?= $ultimoKm ? number_format($ultimoKm, 0, ',', '.') . ' km' : '—' ?></strong><small><?= $ultimoKm ? 'registrada nas OS' : 'não registrada' ?></small></div>
 </div>
 
-<div class="ver-grade">
-  <div class="ver-principal">
+<!-- Coluna única: proprietário e observações lado a lado num card de largura cheia; o histórico embaixo. -->
+<div class="ver-principal ver-principal--cheia">
+    <section class="card ver-dados" aria-label="Proprietário e observações">
+      <div class="ver-grupo">
+        <h2 class="ver-grupo__titulo">Proprietário</h2>
+        <a class="ver-pessoa" href="./cliente?id=<?= (int) $v['cliente_id'] ?>">
+          <span class="avatar avatar--g" aria-hidden="true"><?php $pc = preg_split('/\s+/', trim($v['cliente'])); echo e(mb_strtoupper(mb_substr($pc[0], 0, 1) . (count($pc) > 1 ? mb_substr(end($pc), 0, 1) : ''))); ?></span>
+          <span class="ver-pessoa__texto"><strong><?= e($v['cliente']) ?></strong><small>Ver ficha do cliente</small></span>
+          <?= icone('chevron-right', 14, 2) ?>
+        </a>
+      </div>
+      <div class="ver-grupo">
+        <h2 class="ver-grupo__titulo">Observações</h2>
+        <?php if ($v['observacoes']): ?><p class="ver-lado__texto"><?= e($v['observacoes']) ?></p><?php else: ?><p class="secundario ver-vazio">Nenhuma observação.</p><?php endif; ?>
+      </div>
+    </section>
+
     <section class="card card--tabela ver-historico" aria-labelledby="ver-hist">
       <header class="ver-historico__cabeca">
         <div><h2 id="ver-hist">Histórico do veículo</h2><p><?= $historico ? count($historico) . ' ordem(ns) de serviço, da mais recente para a mais antiga.' : 'As OS deste veículo aparecem aqui.' ?></p></div>
@@ -91,18 +106,4 @@ $qtd = fn($q) => rtrim(rtrim((string) $q, '0'), '.');
         </div>
       <?php endif; ?>
     </section>
-  </div>
-
-  <aside class="card ver-lado" aria-label="Proprietário e observações">
-    <header class="ver-lado__cabeca"><h2>Proprietário</h2></header>
-    <a class="ver-veiculo" href="./cliente?id=<?= (int) $v['cliente_id'] ?>">
-      <span class="avatar avatar--g" aria-hidden="true"><?php $pc = preg_split('/\s+/', trim($v['cliente'])); echo e(mb_strtoupper(mb_substr($pc[0], 0, 1) . (count($pc) > 1 ? mb_substr(end($pc), 0, 1) : ''))); ?></span>
-      <span class="ver-veiculo__texto"><strong><?= e($v['cliente']) ?></strong><small>Ver ficha do cliente</small></span>
-      <?= icone('chevron-right', 14, 2) ?>
-    </a>
-    <div class="ver-lado__bloco">
-      <h3 class="ver-grupo__titulo"><?= icone('file', 15) ?> Observações</h3>
-      <?php if ($v['observacoes']): ?><p class="ver-lado__texto"><?= e($v['observacoes']) ?></p><?php else: ?><p class="secundario ver-vazio">Nenhuma observação.</p><?php endif; ?>
-    </div>
-  </aside>
 </div>

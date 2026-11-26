@@ -1,7 +1,7 @@
 <?php
 /**
  * Agenda (Design System, tela 13): navegação por dia, semana ou mês, números do período, os
- * horários agrupados por dia e o calendário do mês ao lado.
+ * horários agrupados por dia e o calendário do mês numa tira horizontal acima (coluna única).
  * Espera: $periodo, $ini, $fim, $ref, $mes, $f, $p (Paginacao), $agendamentos, $resumo, $diasMarcados, $tecnicos
  */
 $titulo = 'Agenda';
@@ -121,6 +121,47 @@ $filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
   })();
 </script>
 
+<?php
+// Calendário do mês numa tira horizontal de largura cheia, logo abaixo da barra do período (no lugar do calendário lateral).
+// As setas trocam o mês da tira (?mes=); cada dia abre a visão do dia; o ponto marca os dias com agendamento.
+$antes = $mes->modify('-1 month');
+$depois = $mes->modify('+1 month');
+$letrasSemana = ['D', 'S', 'T', 'Q', 'Q', 'S', 'S'];
+$diasComAgenda = count($diasMarcados);
+$refDia = $ref->format('Y-m-d');
+$mesIni = $mes->format('Y-m-d');
+$mesFim = $depois->format('Y-m-d');
+$foco = $refDia >= $mesIni && $refDia < $mesFim ? $refDia : ($hoje >= $mesIni && $hoje < $mesFim ? $hoje : '');
+?>
+<nav class="card cu-tira" aria-label="Calendário do mês">
+  <div class="cu-tira__topo">
+    <strong class="cu-tira__mes"><?= e(ucfirst($mesesNome[(int) $mes->format('n')])) ?> de <?= $mes->format('Y') ?></strong>
+    <span class="cu-tira__legenda"><i aria-hidden="true"></i><?= $diasComAgenda ? $diasComAgenda . ' dia' . ($diasComAgenda === 1 ? '' : 's') . ' com agendamento' : 'Nenhum dia com agendamento' ?></span>
+    <span class="cu-tira__setas">
+      <a class="agenda-barra__seta" href="<?= e($link(['mes' => $antes->format('Y-m')])) ?>" aria-label="Mês anterior" title="Mês anterior"><?= icone('chevron-left', 18, 2) ?></a>
+      <a class="agenda-barra__seta" href="<?= e($link(['mes' => $depois->format('Y-m')])) ?>" aria-label="Próximo mês" title="Próximo mês"><?= icone('chevron-right', 18, 2) ?></a>
+    </span>
+  </div>
+  <div class="cu-tira__dias" data-tira>
+    <?php for ($d = $mes; $d < $depois; $d = $d->modify('+1 day')): $ds = $d->format('Y-m-d'); $sem = (int) $d->format('w');
+          $classes = ($ds === $hoje ? ' is-hoje' : '') . ($ds >= $ini && $ds < $fim ? ' is-periodo' : '') . (isset($diasMarcados[$ds]) ? ' tem-agenda' : '') . ($sem === 0 || $sem === 6 ? ' is-fds' : ''); ?>
+      <a class="cu-tira__dia<?= $classes ?>" href="<?= e($link(['periodo' => 'dia', 'data' => $ds, 'mes' => null])) ?>"<?= $ds === $foco ? ' data-foco' : '' ?><?= $ds === $hoje ? ' aria-current="date"' : '' ?>
+         aria-label="<?= e($diasNome[(int) $d->format('N')] . ', ' . $dataLonga($d)) ?><?= isset($diasMarcados[$ds]) ? ', ' . $diasMarcados[$ds] . ' agendamento(s)' : '' ?>">
+        <span class="cu-tira__sem" aria-hidden="true"><?= $letrasSemana[$sem] ?></span><b><?= (int) $d->format('j') ?></b><i aria-hidden="true"></i>
+      </a>
+    <?php endfor; ?>
+  </div>
+</nav>
+<script>
+  // A tira abre centralizada no dia escolhido (ou em hoje), sem rolar a página.
+  (function () {
+    var t = document.querySelector('[data-tira]');
+    var f = t && t.querySelector('[data-foco]');
+    if (!f || t.scrollWidth <= t.clientWidth) return;
+    t.scrollLeft = f.offsetLeft - (t.clientWidth - f.offsetWidth) / 2;
+  })();
+</script>
+
 <div class="stat-grid stat-grid--icone">
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Total no período</span><?= icone('calendar') ?></div>
@@ -144,8 +185,7 @@ $filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
   </div>
 </div>
 
-<div class="agenda-grade">
-  <div class="agenda-dias">
+<div class="agenda-dias cu-agenda-lista">
     <?php if (!$agendamentos): ?>
       <div class="card"><div class="vazio"><?= icone('calendar', 32, 1.25) ?>Nada marcado <?= ['dia' => 'neste dia', 'semana' => 'nesta semana', 'mes' => 'neste mês'][$periodo] ?><?= $f['status'] || $f['tecnico'] ? ' com esses filtros' : '' ?>.</div></div>
     <?php endif; ?>
@@ -197,25 +237,4 @@ $filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
     <?php if ($p->paginas() > 1): ?>
       <div class="card agenda-paginas"><?php $rotuloItens = 'agendamentos'; require V2_RAIZ . '/app/views/layout/_rodape.php'; ?></div>
     <?php endif; ?>
-  </div>
-
-  <aside class="card mini-cal" aria-label="Calendário">
-    <?php $antes = $mes->modify('-1 month'); $depois = $mes->modify('+1 month'); ?>
-    <div class="mini-cal__topo">
-      <strong><?= e(ucfirst($mesesNome[(int) $mes->format('n')])) ?> <?= $mes->format('Y') ?></strong>
-      <span>
-        <a class="btn btn--fantasma btn--icone" href="<?= e($link(['mes' => $antes->format('Y-m')])) ?>" aria-label="Mês anterior"><?= icone('chevron-left') ?></a>
-        <a class="btn btn--fantasma btn--icone" href="<?= e($link(['mes' => $depois->format('Y-m')])) ?>" aria-label="Próximo mês"><?= icone('chevron-right') ?></a>
-      </span>
-    </div>
-    <div class="mini-cal__grade" role="grid">
-      <?php foreach (['D', 'S', 'T', 'Q', 'Q', 'S', 'S'] as $sem): ?><span class="mini-cal__sem" aria-hidden="true"><?= $sem ?></span><?php endforeach; ?>
-      <?php for ($i = 0; $i < (int) $mes->format('w'); $i++): ?><span></span><?php endfor; ?>
-      <?php for ($d = $mes; $d < $depois; $d = $d->modify('+1 day')): $ds = $d->format('Y-m-d');
-            $classes = ($ds === $hoje ? ' is-hoje' : '') . ($ds >= $ini && $ds < $fim ? ' is-periodo' : '') . (isset($diasMarcados[$ds]) ? ' tem-agenda' : ''); ?>
-        <a class="mini-cal__dia<?= $classes ?>" href="<?= e($link(['periodo' => 'dia', 'data' => $ds, 'mes' => null])) ?>"
-           aria-label="<?= e($dataLonga($d)) ?><?= isset($diasMarcados[$ds]) ? ', ' . $diasMarcados[$ds] . ' agendamento(s)' : '' ?>"><?= (int) $d->format('j') ?></a>
-      <?php endfor; ?>
-    </div>
-  </aside>
 </div>

@@ -2,7 +2,8 @@
 /**
  * Ficha da conta, no formato das outras fichas de consulta: topo com a identificação e as ações
  * (Receber/Pagar, Editar e, no menu, Cancelar), os números da conta (saldo, valor, pago, vencimento),
- * os dados em blocos, os pagamentos com estorno e, ao lado, parcelas, comprovantes e histórico.
+ * os dados em três colunas, os pagamentos com estorno, as parcelas, os comprovantes (faixa de cartões com o
+ * cartão de anexar no fim) e o histórico, tudo em largura cheia (coluna única).
  * Os diálogos e os destinos dos formulários são os mesmos de antes.
  * Espera: $l, $parcelas, $movimentos, $historico, $caixa, $anexos
  */
@@ -70,9 +71,9 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
   <div class="<?= $atrasada ? 'ver-numeros__alerta' : '' ?>"><span>Vencimento</span><strong><?= data_br($l['vencimento']) ?></strong><small><?= $prazo ?: 'competência ' . date('m/Y', strtotime($l['competencia'])) ?></small></div>
 </div>
 
-<div class="ver-grade">
-  <div class="ver-principal">
-    <section class="card ver-dados" aria-label="Dados da conta">
+<!-- Coluna única: dados em três colunas, pagamentos, parcelas, comprovantes (faixa de cartões) e histórico, tudo em largura cheia. -->
+<div class="ver-principal ver-principal--cheia">
+    <section class="card ver-dados ver-dados--3" aria-label="Dados da conta">
       <div class="ver-grupo">
         <h2 class="ver-grupo__titulo"><?= icone($receber ? 'user' : 'transfer', 15) ?> <?= $receber ? 'Cliente' : 'Favorecido' ?></h2>
         <dl class="ver-lista">
@@ -119,52 +120,52 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
         </table></div>
       <?php endif; ?>
     </section>
-  </div>
 
-  <div class="ver-coluna">
     <?php if (count($parcelas) > 1): ?>
-      <aside class="card ver-lado" aria-labelledby="ver-parcelas">
-        <header class="ver-lado__cabeca"><h2 id="ver-parcelas">Parcelas</h2><span class="secundario"><?= count($parcelas) ?>×</span></header>
-        <ul class="conta-lista">
+      <section class="card card--tabela ver-historico" aria-labelledby="ver-parcelas">
+        <header class="ver-historico__cabeca">
+          <div><h2 id="ver-parcelas">Parcelas</h2><p><?= count($parcelas) ?> parcelas. A desta conta aparece destacada.</p></div>
+        </header>
+        <ul class="cu-linhas">
           <?php foreach ($parcelas as $pc): $atual = (int) $pc['id'] === (int) $l['id']; ?>
-            <li><a href="./conta?id=<?= (int) $pc['id'] ?>" class="conta-lista__item<?= $atual ? ' is-atual' : '' ?>">
-              <span class="conta-lista__n"><?= (int) $pc['parcela_numero'] ?></span>
-              <span class="conta-lista__texto"><strong><?= data_br($pc['vencimento']) ?></strong><small><?= $nomes[$pc['status']] ?><?= $atual ? ' · esta' : '' ?></small></span>
-              <b><?= dinheiro($pc['devido']) ?></b>
+            <li><a href="./conta?id=<?= (int) $pc['id'] ?>" class="cu-linha<?= $atual ? ' is-atual' : '' ?>"<?= $atual ? ' aria-current="page"' : '' ?>>
+              <span class="cu-linha__n"><?= (int) $pc['parcela_numero'] ?></span>
+              <span class="cu-linha__texto"><strong><?= data_br($pc['vencimento']) ?></strong><small><?= $nomes[$pc['status']] ?><?= $atual ? ' · esta' : '' ?></small></span>
+              <b class="cu-linha__valor"><?= dinheiro($pc['devido']) ?></b>
             </a></li>
           <?php endforeach; ?>
         </ul>
-      </aside>
+      </section>
     <?php endif; ?>
 
-    <aside class="card ver-lado" aria-labelledby="ver-comprovantes">
-      <header class="ver-lado__cabeca"><h2 id="ver-comprovantes">Comprovantes</h2><?php if ($anexos): ?><span class="secundario"><?= count($anexos) ?></span><?php endif; ?></header>
-      <?php if (!$anexos): ?><div class="ver-lado__vazio"><?= icone('attach', 22, 1.4) ?><span>Nenhum comprovante anexado.</span></div><?php endif; ?>
-      <?php if ($anexos): ?>
-        <ul class="conta-lista">
-          <?php foreach ($anexos as $a): ?>
-            <li><a href="./anexo?id=<?= (int) $a['id'] ?>" target="_blank" rel="noopener" class="conta-lista__item">
-              <span class="conta-lista__n"><?= icone(Anexo::ehImagem($a) ? 'image' : 'file', 15) ?></span>
-              <span class="conta-lista__texto"><strong><?= e($a['descricao'] ?: $a['nome_original']) ?></strong><small><?= data_br($a['enviado_em']) ?></small></span>
-              <?= icone('external', 14) ?>
-            </a></li>
-          <?php endforeach; ?>
-        </ul>
-      <?php endif; ?>
-      <?php if (count($anexos) < Anexo::MAX_POR_DONO): ?>
-        <form class="conta-anexar" method="post" action="./conta-anexar?conta=<?= (int) $l['id'] ?>" enctype="multipart/form-data">
-          <?= csrf_field() ?>
-          <div class="form-field"><input type="file" name="arquivo" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Comprovante"></div>
-          <div class="form-field"><input name="descricao" maxlength="200" placeholder="Descrição (opcional)" aria-label="Descrição"></div>
-          <button class="btn btn--ghost btn--sm"><?= icone('attach') ?> Anexar comprovante</button>
-          <span class="form-dica">PDF ou imagem, até 5 MB.</span>
-        </form>
-      <?php endif; ?>
-    </aside>
+    <section class="ver-secao" aria-labelledby="ver-comprovantes">
+      <header class="ver-secao__cabeca"><h2 id="ver-comprovantes">Comprovantes</h2><?php if ($anexos): ?><span><?= count($anexos) ?></span><?php endif; ?></header>
+      <div class="ver-cartoes">
+        <?php foreach ($anexos as $a): ?>
+          <a href="./anexo?id=<?= (int) $a['id'] ?>" target="_blank" rel="noopener" class="card ver-cartao cu-cartao">
+            <span class="cu-cartao__icone" aria-hidden="true"><?= icone(Anexo::ehImagem($a) ? 'image' : 'file', 17) ?></span>
+            <?= icone('external', 14) ?>
+            <span class="ver-cartao__texto"><strong><?= e($a['descricao'] ?: $a['nome_original']) ?></strong><small><?= data_br($a['enviado_em']) ?></small></span>
+          </a>
+        <?php endforeach; ?>
+        <?php if (count($anexos) < Anexo::MAX_POR_DONO): ?>
+          <form class="cu-anexar" method="post" action="./conta-anexar?conta=<?= (int) $l['id'] ?>" enctype="multipart/form-data">
+            <?= csrf_field() ?>
+            <p class="cu-anexar__titulo"><?= $anexos ? 'Anexar outro comprovante' : 'Nenhum comprovante anexado.' ?></p>
+            <div class="form-field"><input type="file" name="arquivo" required accept="image/jpeg,image/png,image/webp,application/pdf" aria-label="Comprovante"></div>
+            <div class="form-field"><input name="descricao" maxlength="200" placeholder="Descrição (opcional)" aria-label="Descrição"></div>
+            <button class="btn btn--ghost btn--sm"><?= icone('attach') ?> Anexar comprovante</button>
+            <span class="form-dica">PDF ou imagem, até 5 MB.</span>
+          </form>
+        <?php endif; ?>
+      </div>
+    </section>
 
-    <aside class="card ver-lado" aria-labelledby="ver-hist">
-      <header class="ver-lado__cabeca"><h2 id="ver-hist">Histórico</h2></header>
-      <ol class="conta-linha-tempo">
+    <section class="card card--tabela ver-historico" aria-labelledby="ver-hist">
+      <header class="ver-historico__cabeca">
+        <div><h2 id="ver-hist">Histórico</h2><p>Cada mudança na conta, com data e autor.</p></div>
+      </header>
+      <ol class="conta-linha-tempo os-linha-tempo">
         <?php foreach ($historico as $h): ?>
           <li>
             <strong><?= e($acoesHist[$h['acao']] ?? $h['acao']) ?><?php if ($h['dados'] && ($d = json_decode($h['dados'], true)) && isset($d['valor'])): ?> · <?= dinheiro($d['valor']) ?><?php endif; ?></strong>
@@ -173,8 +174,7 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
           </li>
         <?php endforeach; ?>
       </ol>
-    </aside>
-  </div>
+    </section>
 </div>
 
 <?php $dlgId = 'dlg-baixa'; $acao = './conta-baixar?id=' . (int) $l['id']; $extras = []; $tipo = $l['tipo']; require __DIR__ . '/_baixa.php'; ?>

@@ -1749,6 +1749,241 @@ a.placa-caixa:hover { opacity: .75; }
 .rl-cartao .fin-comp__lista { margin-top: 0; }
 @media (max-width: 599.98px) { .rl-cartao .fat__quadro { min-height: 200px; } }
 
+/* ── 47. Financeiro · Evolução em linhas ─────────────────────────────────────────────────────────────
+   O mesmo desenho de linha do sistema: entradas na linha azul com degradê; saídas numa linha cinza escura, mais
+   fina e sem área. A legenda mostra um traço de cada linha; o balão traz o período e os dois valores. */
+.fin-evolucao .fat__quadro { min-height: 240px; }
+.fat__linha--saida { stroke: color-mix(in srgb, var(--grafico-1) 55%, transparent); stroke-width: 1.25; }
+.fat__ponto--saida { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: color-mix(in srgb, var(--grafico-1) 70%, var(--card)); }
+.legenda-linha { flex: none; width: 14px; height: 2px; border-radius: 1px; background: var(--acento); }
+.legenda-linha--saida { background: color-mix(in srgb, var(--grafico-1) 55%, transparent); }
+.fin-linha__dica { align-items: stretch !important; gap: 2px !important; }
+.fin-linha__dica small { text-align: center; }
+.fin-linha__dica > span { display: flex; align-items: center; gap: 6px; }
+.fin-linha__dica i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: var(--acento); }
+.fin-linha__dica i.is-saida { background: color-mix(in srgb, currentColor 55%, transparent); }
+@media (max-width: 599.98px) { .fin-evolucao .fat__quadro { min-height: 200px; } }
+
+/* ── 48. Clientes: os que mais voltam ────────────────────────────────────────────────────────────────
+   Uma faixa de cartões logo abaixo dos números, no lugar do card lateral que apertava a tabela: avatar, nome,
+   visitas e quanto gastaram. Quatro lado a lado no computador, dois no tablet, deslizando no celular. */
+.cl-recorrentes { margin: 28px 0 4px; }
+.cl-recorrentes__topo { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.cl-recorrentes__topo h2 { margin: 0; font-family: var(--font-titulo); font-size: 17px; font-weight: 600; letter-spacing: -0.016em; color: var(--text); }
+.cl-recorrentes__topo span { font-size: 13px; color: var(--text-tertiary); }
+.cl-recorrentes__lista { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.card.cl-recorrente { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px 12px; margin: 0 !important; padding: 18px 20px !important;
+  color: var(--text); text-decoration: none; }
+.cl-recorrente:hover { opacity: 1; }
+.cl-recorrente:hover .cl-recorrente__texto strong { color: var(--link); }
+.cl-recorrente:focus-visible { outline: none; box-shadow: var(--focus-ring), var(--sombra-card) !important; }
+.cl-recorrente__texto { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cl-recorrente__texto strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; transition: color .2s var(--ease); }
+.cl-recorrente__texto small { font-size: 12.5px; color: var(--text-secondary); }
+.cl-recorrente__valor { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 1px; padding-top: 12px; border-top: 1px solid var(--hairline); }
+.cl-recorrente__valor b { font-family: var(--font-titulo); font-size: 22px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.15; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cl-recorrente__valor small { font-size: 12px; color: var(--text-tertiary); }
+@media (max-width: 1099.98px) { .cl-recorrentes__lista { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 599.98px) {
+  .cl-recorrentes__lista { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 78%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+    margin: -6px -16px; padding: 6px 16px 10px; scrollbar-width: none; }
+  .cl-recorrentes__lista::-webkit-scrollbar { display: none; }
+  .cl-recorrente { scroll-snap-align: start; }
+}
+
+/* ── 49. Fichas em coluna única ──────────────────────────────────────────────────────────────────────
+   Sem conteúdo à esquerda e card à direita: tudo em largura cheia, em seções na ordem de importância. O que ficava
+   ao lado vira uma faixa de cartões (.ver-secao + .ver-cartoes), com um cartão tracejado para adicionar no fim. */
+.ver-secao { margin: 8px 0 0; }   /* a faixa de números acima já tem 20 px embaixo */
+.ver-secao__cabeca { display: flex; align-items: baseline; gap: 8px; margin-bottom: 12px; }
+.ver-secao__cabeca h2 { margin: 0; font-family: var(--font-titulo); font-size: 17px; font-weight: 600; letter-spacing: -0.016em; color: var(--text); }
+.ver-secao__cabeca > span { font-size: 13px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.ver-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.ver-cartao { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 14px 10px; min-height: 112px; margin: 0 !important; padding: 18px 20px !important;
+  color: var(--text); text-decoration: none; }
+.ver-cartao > .placa-caixa { justify-self: start; }
+.ver-cartao > .icone { justify-self: end; color: var(--text-tertiary); transition: color .2s var(--ease), transform .2s var(--ease); }
+.ver-cartao:hover { opacity: 1; }
+.ver-cartao:hover > .icone { color: var(--text); transform: translateX(2px); }
+.ver-cartao:focus-visible { outline: none; box-shadow: var(--focus-ring), var(--sombra-card) !important; }
+.ver-cartao__texto { grid-column: 1 / -1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ver-cartao__texto strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.ver-cartao__texto small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13px; color: var(--text-secondary); }
+.ver-cartao.is-inativo { opacity: .6; }
+.ver-cartao--novo { grid-template-columns: 1fr; place-items: center; align-content: center; gap: 6px; border-radius: var(--r-card);
+  box-shadow: inset 0 0 0 1.5px var(--border) !important; background: transparent; color: var(--link); font-size: 14px; font-weight: 500;
+  transition: background-color .2s var(--ease), box-shadow .2s var(--ease); }
+.ver-cartao--novo:hover { background: color-mix(in srgb, var(--acento) 6%, transparent); box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--acento) 45%, transparent) !important; }
+.ver-cartao--novo .icone { color: var(--link); }
+.ver-principal--cheia { margin-top: 28px; }
+.ver-numeros + .ver-principal--cheia { margin-top: 0; }
+/* Pessoa ligada à ficha (proprietário do veículo, cliente da OS): linha clicável, sem cartão dentro de cartão. */
+.ver-pessoa { display: flex; align-items: center; gap: 12px; margin: -8px -12px; padding: 8px 12px; border-radius: 12px; color: var(--text); text-decoration: none;
+  transition: background-color .2s var(--ease); }
+.ver-pessoa:hover { background: var(--recuo); opacity: 1; }
+.ver-pessoa:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.ver-pessoa__texto { flex: 1; display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.ver-pessoa__texto strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; }
+.ver-pessoa__texto small { font-size: 13px; color: var(--link); }
+.ver-pessoa > .icone { flex: none; color: var(--text-tertiary); transition: transform .2s var(--ease); }
+.ver-pessoa:hover > .icone { transform: translateX(2px); color: var(--text); }
+.ver-dados--3 { grid-template-columns: repeat(3, minmax(0, 1fr)) !important; }
+.ver-dados--3 .ver-obs { grid-column: auto; padding: 22px 24px; box-shadow: inset 1px 0 0 var(--border-subtle); gap: 14px; }
+@media (max-width: 899.98px) {
+  .ver-dados--3 { grid-template-columns: minmax(0, 1fr) !important; }
+  .ver-dados--3 .ver-obs,
+  .ver-dados--3 .ver-grupo + .ver-grupo { box-shadow: inset 0 1px 0 var(--border-subtle); }   /* empilhadas: o fio entre grupos vira horizontal */
+}
+@media (max-width: 599.98px) {
+  .ver-cartoes { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 80%; gap: 12px; overflow-x: auto; scroll-snap-type: x mandatory;
+    margin: -6px -16px; padding: 6px 16px 10px; scrollbar-width: none; }
+  .ver-cartoes::-webkit-scrollbar { display: none; }
+  .ver-cartao { scroll-snap-align: start; }
+}
+
+/* ── 50. Coluna única nas demais telas (prefixo cu-) ─────────────────────────────────────────────────
+   Complementa a 49: ficha da OS, peça, conta, caixa e oficina; listas de Estoque, Usuários e Agenda.
+   O que ficava no card ao lado virou seção de largura cheia. Só tokens; vale no modo escuro. */
+
+/* 50.1 Ficha da OS */
+.cu-os-pessoa > .placa-caixa { flex: none; }
+.cu-os-pessoa .ver-pessoa__texto small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.cu-os-grupo-cabeca { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: -8px 0; min-width: 0; }
+.cu-os-grupo-cabeca .btn { flex: none; }
+.cu-os-assinatura { display: flex; flex-direction: column; gap: 10px; padding-top: 14px; border-top: 1px solid var(--hairline); }
+.cu-os-pagamento { display: flex; flex-direction: column; gap: 14px; padding: 0 22px 22px; }
+.cu-os-pagamento > .os-cobrar:first-child { padding-top: 0; border-top: 0; }
+.os-cobrar.cu-os-cobrar { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)) auto; align-items: end; gap: 12px 16px; }
+.os-cobrar.cu-os-cobrar > .os-cobrar__titulo { grid-column: 1 / -1; }
+.os-cobrar.cu-os-cobrar > .os-cobrar__linha { display: contents; }
+.os-cobrar.cu-os-cobrar > .btn { align-self: end; justify-self: start; white-space: nowrap; }
+
+/* 50.2 Fichas: ações no topo da seção, lista em linhas, cartões de objeto, anexar, fechamento do caixa */
+.cu-acoes { flex: none; display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.cu-acoes .link-forte { margin-right: 6px; font-size: 13px; white-space: nowrap; }
+.cu-acoes a.btn--ghost { color: var(--text) !important; text-decoration: none; }   /* o cabeçalho pinta todo link de azul */
+.cu-linhas { list-style: none; margin: 0; padding: 0 28px 12px; }
+.cu-linhas > li + li { border-top: 1px solid var(--hairline); }
+.cu-linha { display: flex; align-items: center; gap: 14px; min-height: 56px; padding: 12px 0; color: var(--text); text-decoration: none; }
+a.cu-linha { margin: 0 -12px; padding: 12px; border-radius: 12px; transition: background-color .2s var(--ease); }
+a.cu-linha:hover { background: var(--recuo); opacity: 1; }
+a.cu-linha:focus-visible { outline: 2px solid var(--acento); outline-offset: -2px; }
+.cu-linha__n { flex: none; width: 30px; height: 30px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px;
+  background: var(--fill); color: var(--text); font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.cu-linha.is-atual .cu-linha__n { background: var(--text); color: var(--card); }
+.cu-linha__texto { flex: 1; display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.cu-linha__texto strong { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 15px; font-weight: 500; letter-spacing: -0.01em;
+  color: var(--text); font-variant-numeric: tabular-nums; }
+.cu-linha__texto small { font-size: 13px; line-height: 1.4; color: var(--text-secondary); }
+.cu-linha__valor { flex: none; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; white-space: nowrap; color: var(--text); }
+.cu-linha__valor.is-saida { color: var(--text-secondary); }
+.cu-linha > .icone { flex: none; color: var(--text-tertiary); }
+.cu-cartao > .avatar, .cu-cartao > .cu-cartao__icone { justify-self: start; }
+.cu-cartao > .badge { justify-self: end; }
+div.cu-cartao { cursor: default; }
+.cu-cartao__icone { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 10px;
+  background: var(--fill); color: var(--text); }
+.cu-anexar { display: flex; flex-direction: column; gap: 10px; min-width: 0; min-height: 112px; margin: 0; padding: 18px 20px; border-radius: var(--r-card);
+  box-shadow: inset 0 0 0 1.5px var(--fill-forte); background: transparent; transition: box-shadow .2s var(--ease); }
+.cu-anexar:focus-within { box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--acento) 45%, transparent); }
+.cu-anexar__titulo { margin: 0; font-size: 14px; font-weight: 500; color: var(--link); }
+.cu-anexar .form-field { margin: 0; min-width: 0; }
+.cu-anexar input[type=file] { width: 100%; max-width: 100%; font-size: 13px; color: var(--text-secondary); }
+.cu-anexar .btn { align-self: flex-start; }
+.cu-anexar .form-dica { margin: 0; font-size: 12.5px; color: var(--text-tertiary); }
+.ver-secao > .vazio.cu-vazio { margin: 0; }
+.cu-fechamento .fechamento__titulo { margin-top: 0; }
+.cu-fechamento .caixa-conferencia { margin: 0; }
+
+/* 50.3 Listas: faixa de cartões (Estoque, Usuários) e a tira de dias da Agenda */
+.cu-faixa { margin: 28px 0 4px; }
+.cu-faixa--depois { margin: 32px 0 0; }
+.cu-faixa__topo { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 12px; margin-bottom: 12px; }
+.cu-faixa__topo h2 { margin: 0; font-family: var(--font-titulo); font-size: 17px; font-weight: 600; letter-spacing: -0.016em; color: var(--text); }
+.cu-faixa__info { font-size: 13px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.cu-faixa__acoes { margin-left: auto; display: inline-flex; align-items: center; gap: 18px; }
+.cu-faixa__link { display: inline-flex; align-items: center; gap: 6px; border-radius: 6px; font-size: 14px; font-weight: 500; color: var(--link); text-decoration: none; }
+.cu-faixa__link:hover { opacity: 1; text-decoration: underline; }
+.cu-faixa__link:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.cu-faixa__link .icone { flex: none; }
+.cu-faixa__lista { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 16px; }
+.cu-faixa__lista--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.cu-faixa__nota { margin: 16px 0 0 !important; }
+.card.cu-nivel { display: flex; flex-direction: column; gap: 12px; min-width: 0; margin: 0 !important; padding: 18px 20px !important; color: var(--text); text-decoration: none; }
+.cu-nivel:hover { opacity: 1; }
+.cu-nivel:hover .cu-nivel__nome { color: var(--link); }
+.cu-nivel:focus-visible { outline: none; box-shadow: var(--focus-ring), var(--sombra-card) !important; }
+.cu-nivel__nome { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14.5px; font-weight: 600; letter-spacing: -0.01em; transition: color .2s var(--ease); }
+.cu-nivel__qtd { display: flex; align-items: baseline; gap: 6px; min-width: 0; }
+.cu-nivel__qtd b { font-family: var(--font-titulo); font-size: 24px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.cu-nivel__qtd b.is-zerado { color: var(--perigo); }
+.cu-nivel__qtd small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12.5px; color: var(--text-secondary); }
+.cu-nivel__barra { margin-top: auto; }
+.card.cu-perfil { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; margin: 0 !important; padding: 20px 22px !important; }
+.card.cu-perfil.is-ativo { box-shadow: inset 0 0 0 1.5px var(--acento), var(--sombra-card) !important; }
+.cu-perfil__papel { margin-top: 6px; font-size: 15px; font-weight: 600; letter-spacing: -0.01em; color: var(--text); }
+.cu-perfil__texto { margin: 0; font-size: 13px; line-height: 1.5; color: var(--text-secondary); }
+.cu-perfil__pe { width: 100%; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--hairline); display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.cu-perfil__pe .cu-faixa__link { font-size: 13px; }
+.card.cu-tira { margin: 0 0 20px !important; padding: 16px 20px 12px !important; }
+.cu-tira__topo { display: flex; align-items: center; flex-wrap: wrap; gap: 4px 14px; margin-bottom: 8px; }
+.cu-tira__mes { font-family: var(--font-titulo); font-size: 17px; font-weight: 600; letter-spacing: -0.016em; color: var(--text); }
+.cu-tira__legenda { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.cu-tira__legenda i { flex: none; width: 5px; height: 5px; border-radius: 50%; background: var(--acento); }
+.cu-tira__setas { margin-left: auto; display: inline-flex; gap: 2px; }
+.cu-tira__dias { position: relative; display: grid; grid-auto-flow: column; grid-auto-columns: minmax(28px, 1fr); gap: 2px; margin: 0 -8px; padding: 2px 8px 6px;
+  overflow-x: auto; overscroll-behavior-x: contain; scroll-snap-type: x proximity; scrollbar-width: thin; scrollbar-color: var(--fill-forte) transparent; }
+.cu-tira__dia { min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; padding: 7px 0 6px; border-radius: 12px; scroll-snap-align: center;
+  color: var(--text); text-decoration: none; transition: background-color .2s var(--ease); }
+.cu-tira__dia:hover { background: var(--fill); opacity: 1; }
+.cu-tira__dia:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.cu-tira__sem { font-size: 11px; font-weight: 500; line-height: 1; color: var(--text-secondary); }
+.cu-tira__dia.is-fds .cu-tira__sem { color: var(--text-tertiary); }
+.cu-tira__dia b { width: 28px; height: 28px; display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  font-size: 15px; font-weight: 500; letter-spacing: -0.01em; font-variant-numeric: tabular-nums; }
+.cu-tira__dia i { width: 4px; height: 4px; border-radius: 50%; background: transparent; }
+.cu-tira__dia.tem-agenda i { background: var(--acento); }
+.cu-tira__dia.is-periodo { background: color-mix(in srgb, var(--acento) 10%, transparent); }
+.cu-tira__dia.is-periodo:hover { background: color-mix(in srgb, var(--acento) 16%, transparent); }
+.cu-tira__dia.is-periodo b { font-weight: 600; }
+.cu-tira__dia.is-hoje .cu-tira__sem { color: var(--link); }
+.cu-tira__dia.is-hoje b { background: var(--acento); color: #fff; font-weight: 600; }
+.cu-agenda-lista { margin-top: 20px; }
+
+@media (max-width: 899.98px) {
+  .os-cobrar.cu-os-cobrar { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .cu-faixa__lista--3 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+}
+@media (max-width: 599.98px) {
+  .cu-os-pagamento { padding: 0 16px 18px; }
+  .os-cobrar.cu-os-cobrar { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  .os-cobrar.cu-os-cobrar > .btn { justify-self: stretch; justify-content: center; }
+
+  .ver-historico__cabeca:has(> .cu-acoes) { flex-direction: column; align-items: stretch; }
+  .cu-acoes { justify-content: flex-start; }
+  .cu-acoes .btn { flex: 1 1 auto; justify-content: center; }
+  .cu-anexar { scroll-snap-align: start; }
+  .cu-linha { gap: 12px; }
+  .cu-linha__texto strong { white-space: normal; }
+
+  .cu-faixa { margin-top: 24px; }
+  .cu-faixa__acoes { width: 100%; margin-left: 0; }
+  .cu-faixa__lista:not(.cu-faixa__lista--3) { grid-auto-flow: column; grid-template-columns: none; grid-auto-columns: 78%; gap: 12px; overflow-x: auto;
+    scroll-snap-type: x mandatory; margin: -6px -16px; padding: 6px 16px 10px; scrollbar-width: none; }
+  .cu-faixa__lista:not(.cu-faixa__lista--3)::-webkit-scrollbar { display: none; }
+  .cu-nivel { scroll-snap-align: start; }
+  .card.cu-perfil { padding: 18px 20px !important; }
+  .card.cu-tira { margin-bottom: 16px !important; padding: 14px 12px 8px !important; }
+  .cu-tira__mes { order: 1; }
+  .cu-tira__setas { order: 2; }
+  .cu-tira__legenda { order: 3; width: 100%; }
+  .cu-tira__dias { grid-auto-columns: 44px; margin: 0 -12px; padding: 2px 12px 4px; scroll-padding: 0 12px; scrollbar-width: none; }
+  .cu-tira__dias::-webkit-scrollbar { display: none; }
+  .cu-tira__dia { padding: 8px 0 7px; }
+  .cu-tira__dia b { width: 32px; height: 32px; }
+  .cu-agenda-lista { margin-top: 16px; }
+}
+
 /* ── 40. Janelas: peças de cada tela ────────────────────────────────────────────────────────────────
    Complementos da seção 39 usados por telas específicas. Tudo com escopo .mf e só com tokens. */
 

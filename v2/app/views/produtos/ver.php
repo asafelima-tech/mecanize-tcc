@@ -1,8 +1,8 @@
 <?php
 /**
  * Ficha de consulta da peça ou do serviço, no formato das outras fichas: identificação no topo, os números
- * (preço, custo e margem só para o administrador, como antes; estoque e mínimo nas peças), os dados agrupados
- * e, ao lado, as últimas movimentações de estoque com os atalhos de entrada e ajuste.
+ * (preço, custo e margem só para o administrador, como antes; estoque e mínimo nas peças), os dados em três colunas
+ * e, embaixo, em largura cheia, as últimas movimentações de estoque com os atalhos de entrada e ajuste (coluna única).
  * Ações (só ADMIN, como antes): editar; desativar e excluir no menu.
  * Espera: $pr, $movimentos
  */
@@ -66,9 +66,9 @@ $vazio = '<span class="secundario">Não informado</span>';
   <?php endif; ?>
 </div>
 
-<div class="ver-grade<?= $peca ? '' : ' ver-grade--uma' ?>">
-  <div class="ver-principal">
-    <section class="card ver-dados" aria-label="Dados do item">
+<!-- Coluna única: os dados em três colunas e, nas peças, as movimentações de estoque em largura cheia. -->
+<div class="ver-principal ver-principal--cheia">
+    <section class="card ver-dados ver-dados--3" aria-label="Dados do item">
       <div class="ver-grupo">
         <h2 class="ver-grupo__titulo"><?= icone('file', 15) ?> Identificação</h2>
         <dl class="ver-lista">
@@ -100,35 +100,36 @@ $vazio = '<span class="secundario">Não informado</span>';
         <?php if ($pr['descricao']): ?><p><?= e($pr['descricao']) ?></p><?php else: ?><p class="secundario">Nenhuma descrição.</p><?php endif; ?>
       </div>
     </section>
-  </div>
 
   <?php if ($peca): ?>
-    <aside class="card ver-lado" aria-labelledby="ver-movs">
-      <header class="ver-lado__cabeca">
-        <h2 id="ver-movs">Últimas movimentações</h2>
-        <?php if ($admin): ?><a class="link-forte" href="./estoque?produto=<?= $id ?>">Ver todas</a><?php endif; ?>
+    <section class="card card--tabela ver-historico" aria-labelledby="ver-movs">
+      <header class="ver-historico__cabeca">
+        <div><h2 id="ver-movs">Últimas movimentações</h2><p><?= $movimentos ? 'Entradas, saídas por OS e ajustes, da mais recente para a mais antiga.' : 'Cada entrada, saída ou ajuste de estoque aparece aqui.' ?></p></div>
+        <?php if ($admin): ?>
+          <div class="cu-acoes">
+            <a class="link-forte" href="./estoque?produto=<?= $id ?>">Ver todas</a>
+            <?php if ($pr['ativo']): ?>
+              <a class="btn btn--ghost btn--sm" href="./estoque-entrada?produto=<?= $id ?>"><?= icone('download') ?> Entrada</a>
+              <a class="btn btn--ghost btn--sm" href="./estoque-ajuste?produto=<?= $id ?>"><?= icone('settings') ?> Ajustar</a>
+            <?php endif; ?>
+          </div>
+        <?php endif; ?>
       </header>
-      <?php if ($admin && $pr['ativo']): ?>
-        <div class="ver-lado__acoes">
-          <a class="btn btn--ghost btn--sm" href="./estoque-entrada?produto=<?= $id ?>"><?= icone('download') ?> Entrada</a>
-          <a class="btn btn--ghost btn--sm" href="./estoque-ajuste?produto=<?= $id ?>"><?= icone('settings') ?> Ajustar</a>
-        </div>
-      <?php endif; ?>
       <?php if (!$movimentos): ?>
-        <div class="ver-lado__vazio"><?= icone('history', 24, 1.4) ?><span>Nenhuma movimentação.</span></div>
+        <div class="vazio"><?= icone('history', 28, 1.25) ?>Nenhuma movimentação.</div>
       <?php else: ?>
-        <ul class="ver-movs">
+        <ul class="cu-linhas">
           <?php foreach ($movimentos as $m): $d = (float) $m['delta']; ?>
-            <li>
-              <span class="ver-movs__texto">
+            <li class="cu-linha">
+              <span class="cu-linha__texto">
                 <strong><?= $motivos[$m['motivo']] ?? e($m['motivo']) ?></strong>
                 <small><?= data_br($m['criado_em'], true) ?><?= $m['usuario'] ? ' · ' . e($m['usuario']) : '' ?><?= $m['observacao'] ? ' · ' . e($m['observacao']) : '' ?></small>
               </span>
-              <b class="ver-movs__delta<?= $d < 0 ? ' is-saida' : '' ?>"><?= $d > 0 ? '+' : '' ?><?= $qtd($d) ?></b>
+              <b class="cu-linha__valor<?= $d < 0 ? ' is-saida' : '' ?>"><?= $d > 0 ? '+' : '' ?><?= $qtd($d) ?></b>
             </li>
           <?php endforeach; ?>
         </ul>
       <?php endif; ?>
-    </aside>
+    </section>
   <?php endif; ?>
 </div>

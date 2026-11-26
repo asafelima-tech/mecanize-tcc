@@ -2,7 +2,7 @@
 /**
  * Ficha de consulta do fornecedor, no formato das outras fichas: identificação no topo, os números da relação
  * (compras pelo custo da nota, notas, última compra e contas a pagar em aberto), os dados de contato
- * e observações, as entradas de mercadoria dele e, ao lado, os atalhos.
+ * e observações lado a lado e as entradas de mercadoria dele embaixo, em largura cheia (coluna única).
  * Ações: editar e registrar entrada; desativar e excluir no menu (as mesmas rotas de antes).
  * Espera: $fo, $resumo, $entradas
  */
@@ -52,8 +52,8 @@ $vazio = '<span class="secundario">Não informado</span>';
   <div><span>A pagar</span><strong><?= dinheiro($resumo['pagar_saldo']) ?></strong><small><?= $resumo['pagar_n'] ? $resumo['pagar_n'] . ' conta' . ($resumo['pagar_n'] === 1 ? '' : 's') . ' em aberto' : 'nada em aberto' ?></small></div>
 </div>
 
-<div class="ver-grade ver-grade--uma">
-  <div class="ver-principal">
+<!-- Coluna única: contato e observações lado a lado num card de largura cheia; as entradas de mercadoria embaixo. -->
+<div class="ver-principal ver-principal--cheia">
     <section class="card ver-dados" aria-label="Dados do fornecedor">
       <div class="ver-grupo">
         <h2 class="ver-grupo__titulo"><?= icone('phone', 15) ?> Contato</h2>
@@ -95,5 +95,4 @@ $vazio = '<span class="secundario">Não informado</span>';
         </div>
       <?php endif; ?>
     </section>
-  </div>
 </div>

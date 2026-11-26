@@ -49,7 +49,23 @@ $acoes = function (array $c): string {
   </div>
 </div>
 
-<div class="lista-lateral card--espaco">
+<?php if ($recorrentes): ?>
+  <!-- Clientes que mais voltam: uma faixa de cartões logo abaixo dos números (a tabela fica com a largura toda). -->
+  <section class="cl-recorrentes" aria-labelledby="cl-h-recorrentes">
+    <div class="cl-recorrentes__topo"><h2 id="cl-h-recorrentes">Clientes que mais voltam</h2><span>Últimos 12 meses</span></div>
+    <div class="cl-recorrentes__lista">
+      <?php foreach ($recorrentes as $r): ?>
+        <a class="card cl-recorrente" href="./cliente?id=<?= (int) $r['id'] ?>">
+          <span class="avatar avatar--g"><?= e($iniciais($r['nome'])) ?></span>
+          <span class="cl-recorrente__texto"><strong><?= e($r['nome']) ?></strong><small><?= (int) $r['visitas'] ?> visitas</small></span>
+          <span class="cl-recorrente__valor"><b><?= $moeda((float) $r['total']) ?></b><small>em OS entregues</small></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+<?php endif; ?>
+
+<div class="card--espaco">
   <div>
     <nav class="abas abas--contagem" aria-label="Situação">
       <a href="<?= e(url_com(['status' => null, 'pagina' => null])) ?>"<?= $f['status'] === 'ativos' ? ' class="ativa" aria-current="page"' : '' ?>>Clientes ativos<span class="abas__n"><?= $numero($resumo['ativos']) ?></span></a>
@@ -96,20 +112,4 @@ $acoes = function (array $c): string {
       <?php $rotuloItens = 'clientes'; require V2_RAIZ . '/app/views/layout/_rodape.php'; ?>
     </div>
   </div>
-
-  <aside class="card painel-lateral" aria-label="Clientes recorrentes">
-    <h2 class="card__titulo">Clientes recorrentes</h2>
-    <?php if (!$recorrentes): ?>
-      <p class="form-dica">Quem voltar duas vezes ou mais em 12 meses aparece aqui.</p>
-    <?php endif; ?>
-    <ul class="lista-links">
-      <?php foreach ($recorrentes as $r): ?>
-        <li><a href="./cliente?id=<?= (int) $r['id'] ?>">
-          <span class="avatar avatar--g"><?= e($iniciais($r['nome'])) ?></span>
-          <span class="lista-links__texto"><strong><?= e($r['nome']) ?></strong><small><?= (int) $r['visitas'] ?> visitas · <?= $moeda((float) $r['total']) ?></small></span>
-          <?= icone('chevron-right') ?>
-        </a></li>
-      <?php endforeach; ?>
-    </ul>
-  </aside>
 </div>

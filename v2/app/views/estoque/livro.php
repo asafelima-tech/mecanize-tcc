@@ -43,7 +43,30 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
   </a>
 </div>
 
-<div class="lista-lateral card--espaco">
+<?php if ($minimo): $nMinimo = (int) $resumo['abaixo_minimo']; ?>
+  <!-- Peças abaixo do mínimo: uma faixa de cartões logo abaixo dos números (o livro fica com a largura toda). -->
+  <section class="cu-faixa" aria-labelledby="es-h-minimo">
+    <div class="cu-faixa__topo">
+      <h2 id="es-h-minimo">Abaixo do mínimo</h2>
+      <span class="cu-faixa__info"><?= $numero($nMinimo) ?> ite<?= $nMinimo === 1 ? 'm' : 'ns' ?> para repor</span>
+      <span class="cu-faixa__acoes">
+        <?php if ($nMinimo > count($minimo)): ?><a class="cu-faixa__link" href="./produtos?situacao=baixo">Ver todas</a><?php endif; ?>
+        <a class="cu-faixa__link" href="./estoque-entrada?produto=<?= (int) $minimo[0]['id'] ?>"><?= icone('download', 16) ?>Registrar entrada</a>
+      </span>
+    </div>
+    <div class="cu-faixa__lista">
+      <?php foreach ($minimo as $pc): $atual = max(0, (float) $pc['estoque_atual']); $min = (float) $pc['estoque_minimo']; $cheios = $min > 0 ? (int) round(min(1, $atual / $min) * 5) : 0; ?>
+        <a class="card cu-nivel" href="./produto?id=<?= (int) $pc['id'] ?>">
+          <strong class="cu-nivel__nome"><?= e($pc['nome']) ?></strong>
+          <span class="cu-nivel__qtd"><b<?= $atual <= 0 ? ' class="is-zerado"' : '' ?>><?= $qtd($atual) ?></b><small>de <?= $qtd($min) ?> no mínimo</small></span>
+          <span class="niveis__barra cu-nivel__barra" aria-hidden="true"><?php for ($i = 0; $i < 5; $i++): ?><span<?= $i < $cheios ? ' class="cheio"' : '' ?>></span><?php endfor; ?></span>
+        </a>
+      <?php endforeach; ?>
+    </div>
+  </section>
+<?php endif; ?>
+
+<div class="card--espaco">
   <div>
     <form class="filtros filtros--solto" method="get" action="./estoque">
       <?php foreach ($ocultos as $k => $v): ?><input type="hidden" name="<?= $k ?>" value="<?= e($v) ?>"><?php endforeach; ?>
@@ -97,20 +120,6 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
       <?php $rotuloItens = 'movimentações'; require V2_RAIZ . '/app/views/layout/_rodape.php'; ?>
     </div>
   </div>
-
-  <aside class="card painel-lateral" aria-label="Abaixo do mínimo">
-    <h2 class="card__titulo">Abaixo do mínimo <?php if ((int) $resumo['abaixo_minimo']): ?><span class="etiqueta"><?= $numero((int) $resumo['abaixo_minimo']) ?> ite<?= (int) $resumo['abaixo_minimo'] === 1 ? 'm' : 'ns' ?></span><?php endif; ?></h2>
-    <?php if (!$minimo): ?><p class="form-dica">Nenhuma peça no estoque mínimo.</p><?php endif; ?>
-    <ul class="niveis">
-      <?php foreach ($minimo as $pc): $atual = max(0, (float) $pc['estoque_atual']); $min = (float) $pc['estoque_minimo']; $cheios = $min > 0 ? (int) round(min(1, $atual / $min) * 5) : 0; ?>
-        <li><a href="./produto?id=<?= (int) $pc['id'] ?>">
-          <span class="niveis__topo"><strong><?= e($pc['nome']) ?></strong><span><?= $qtd($atual) ?> de <?= $qtd($min) ?></span></span>
-          <span class="niveis__barra" aria-hidden="true"><?php for ($i = 0; $i < 5; $i++): ?><span<?= $i < $cheios ? ' class="cheio"' : '' ?>></span><?php endfor; ?></span>
-        </a></li>
-      <?php endforeach; ?>
-    </ul>
-    <?php if ($minimo): ?><a class="btn btn--primary btn--bloco" href="./estoque-entrada?produto=<?= (int) $minimo[0]['id'] ?>"><?= icone('download') ?> Registrar entrada</a><?php endif; ?>
-  </aside>
 </div>
 
 <dialog id="dlg-estornar" class="dlg">

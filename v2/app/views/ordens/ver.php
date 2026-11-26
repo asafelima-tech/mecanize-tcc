@@ -1,8 +1,9 @@
 <?php
 /**
  * Ficha da OS no padrão das fichas de consulta (.ver-*): identidade e ações no topo, o andamento em etapas,
- * os números (total, aprovado, recebido, previsão), e o trabalho no centro (relato e diagnóstico, serviços e
- * peças com a inclusão logo abaixo, fotos e documentos, histórico). Ao lado: cliente e veículo, pagamento e dados.
+ * os números (total, aprovado, recebido, previsão) e, em coluna única de largura cheia: cliente, veículo e dados
+ * da OS num card de três colunas, relato e diagnóstico, serviços e peças com a inclusão logo abaixo, execução do
+ * técnico, pagamento, fotos e documentos e o histórico.
  * Formulários, rotas, campos e diálogos são os mesmos de antes; só a apresentação mudou.
  * Execução do técnico: o que ele informou (início, materiais usados, pedidos, relato) e, aguardando validação, os
  * botões do ADMIN para validar (aprovando ou recusando cada material) ou devolver ao técnico.
@@ -43,6 +44,8 @@ $recebido = array_sum(array_map(fn($c) => $c['status'] === 'CANCELADO' ? 0 : (fl
 $aReceber = round((float) $os['valor_total'] - $recebido, 2);
 $coresConta = ['ABERTO' => 'neutral', 'PARCIAL' => 'info', 'PAGO' => 'success', 'CANCELADO' => 'muted'];
 $nomesConta = ['ABERTO' => 'Em aberto', 'PARCIAL' => 'Parcial', 'PAGO' => 'Recebido', 'CANCELADO' => 'Cancelado'];
+// Pagamento só para o balcão: o técnico não mexe em dinheiro.
+$veDinheiro = Permissao::permite(Contexto::perfil(), Permissao::BALCAO);
 
 // Andamento: só a leitura da situação atual, em etapas (a troca continua nos botões de sempre).
 $etapas = ['ORCAMENTO' => 'Orçamento', 'APROVADA' => 'Aprovada', 'EM_EXECUCAO' => 'Em execução', 'PRONTA' => 'Pronta', 'ENTREGUE' => 'Entregue'];
@@ -140,8 +143,53 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
   </div>
 </div>
 
-<div class="ver-grade">
-  <div class="ver-principal">
+<!-- Coluna única: tudo em largura cheia, na ordem de importância. -->
+<div class="ver-principal ver-principal--cheia">
+    <!-- Cliente, veículo e dados da OS -->
+    <section class="card ver-dados ver-dados--3 cu-os-dados" aria-label="Cliente, veículo e dados da OS">
+      <div class="ver-grupo">
+        <h2 class="ver-grupo__titulo"><?= icone('user', 15) ?> Cliente</h2>
+        <a class="ver-pessoa cu-os-pessoa" href="./cliente?id=<?= (int) $os['cliente_id'] ?>">
+          <span class="avatar avatar--g" aria-hidden="true"><?= e($iniciais($os['cliente'])) ?></span>
+          <span class="ver-pessoa__texto"><strong><?= e($os['cliente']) ?></strong><small><?= $os['cliente_telefone'] ? e(telefone_fmt($os['cliente_telefone'])) : 'Ver ficha do cliente' ?></small></span>
+          <?= icone('chevron-right', 14, 2) ?>
+        </a>
+        <?php if ($os['cliente_telefone'] && $os['aceita_contato']): ?>
+          <a class="btn btn--ghost btn--sm os-whats ver-whats" href="https://wa.me/55<?= e(so_digitos($os['cliente_telefone'])) ?>?text=<?= rawurlencode('Olá! Acompanhe o serviço do seu veículo ' . $os['placa'] . ': ' . $linkAcompanhamento) ?>" target="_blank" rel="noopener"><?= icone('message') ?> Enviar link pelo WhatsApp</a>
+        <?php endif; ?>
+      </div>
+
+      <div class="ver-grupo">
+        <h2 class="ver-grupo__titulo"><?= icone('car', 15) ?> Veículo</h2>
+        <a class="ver-pessoa cu-os-pessoa" href="./veiculo?id=<?= (int) $os['veiculo_id'] ?>">
+          <?= placa_caixa($os['placa'], false) ?>
+          <span class="ver-pessoa__texto"><strong><?= e($os['modelo'] ?: 'Modelo não informado') ?></strong><small><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km na entrada' : 'Km não informado' ?></small></span>
+          <?= icone('chevron-right', 14, 2) ?>
+        </a>
+      </div>
+
+      <div class="ver-grupo">
+        <div class="cu-os-grupo-cabeca">
+          <h2 class="ver-grupo__titulo"><?= icone('work-order', 15) ?> Dados da OS</h2>
+          <?php if (!in_array($st, ['ENTREGUE', 'CANCELADA'], true)): ?><button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-dados"><?= icone('edit') ?> Editar</button><?php endif; ?>
+        </div>
+        <dl class="ver-lista">
+          <div><dt>Técnico responsável</dt><dd><?= e($os['tecnico'] ?? '—') ?></dd></div>
+          <div><dt>Previsão de entrega</dt><dd class="tabular"><?= data_br($os['previsao_conclusao'], true) ?></dd></div>
+          <?php if ($st === 'ORCAMENTO'): ?><div><dt>Orçamento válido até</dt><dd class="tabular"><?= data_br($os['validade_orcamento']) ?></dd></div><?php endif; ?>
+          <div><dt>Quilometragem</dt><dd class="tabular"><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km' : '—' ?></dd></div>
+          <?php if ($os['aprovado_em']): ?><div><dt>Aprovação</dt><dd class="tabular"><?= data_br($os['aprovado_em'], true) ?><?= $os['aprovado_por_nome'] ? ' · ' . e($os['aprovado_por_nome']) : '' ?></dd></div><?php endif; ?>
+          <?php if ($os['entregue_em']): ?><div><dt>Entregue em</dt><dd class="tabular"><?= data_br($os['entregue_em'], true) ?></dd></div><?php endif; ?>
+        </dl>
+        <?php if ($os['aprovado_em'] && $os['assinatura_cliente']): ?>
+          <div class="cu-os-assinatura">
+            <h3 class="ver-grupo__titulo"><?= icone('edit', 15) ?> Assinatura do cliente</h3>
+            <img class="os-assinatura" src="<?= e($os['assinatura_cliente']) ?>" alt="Assinatura do cliente">
+          </div>
+        <?php endif; ?>
+      </div>
+    </section>
+
     <!-- Relato e diagnóstico -->
     <section class="card ver-dados" aria-label="Relato e diagnóstico">
       <div class="ver-grupo">
@@ -321,6 +369,52 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
     </section>
     <?php endif; ?>
 
+    <!-- Pagamento (só o balcão: o técnico não mexe em dinheiro) -->
+    <?php if ($veDinheiro && ($cobravel || $contas)): ?>
+      <section class="card card--tabela ver-historico" id="pagamento" aria-labelledby="os-pag-titulo">
+        <header class="ver-historico__cabeca">
+          <div><h2 id="os-pag-titulo">Pagamento</h2><p>Cobranças lançadas e recebimentos desta OS.</p></div>
+          <?php if ($st !== 'CANCELADA'): ?><span class="badge badge--<?= $aReceber <= 0.004 ? 'success' : ($recebido > 0 ? 'info' : 'neutral') ?>"><?= $aReceber <= 0.004 ? 'Quitada' : 'Falta ' . dinheiro($aReceber) ?></span><?php endif; ?>
+        </header>
+        <div class="cu-os-pagamento">
+          <?php if ($contas): ?>
+            <ul class="conta-lista">
+              <?php foreach ($contas as $c): $saldoC = round((float) $c['devido'] - (float) $c['valor_pago'], 2); ?>
+                <li class="conta-lista__item os-conta">
+                  <span class="conta-lista__n"><?= $c['parcela_total'] > 1 ? (int) $c['parcela_numero'] . '/' . (int) $c['parcela_total'] : '1x' ?></span>
+                  <span class="conta-lista__texto">
+                    <strong><?= dinheiro($c['devido']) ?></strong>
+                    <small>vence <?= data_br($c['vencimento']) ?> · <?= $nomesConta[$c['status']] ?><?php if ((float) $c['valor_pago'] > 0 && $c['status'] !== 'PAGO'): ?> · recebido <?= dinheiro($c['valor_pago']) ?><?php endif; ?></small>
+                  </span>
+                  <?php if (in_array($c['status'], ['ABERTO', 'PARCIAL'], true)): ?>
+                    <button type="button" class="btn btn--primary btn--sm" data-baixar="dlg-receber" data-conta="<?= (int) $c['id'] ?>" data-saldo="<?= e(number_format($saldoC, 2, ',', '.')) ?>" data-forma="<?= e($c['forma_prevista'] ?? '') ?>" data-rotulo="Saldo desta parcela: <?= e(dinheiro($saldoC)) ?>">Receber</button>
+                  <?php else: ?>
+                    <span class="badge badge--<?= $coresConta[$c['status']] ?>"><?= $nomesConta[$c['status']] ?></span>
+                  <?php endif; ?>
+                </li>
+              <?php endforeach; ?>
+            </ul>
+          <?php endif; ?>
+          <?php if ($cobravel && $faltaLancar > 0.004): ?>
+            <form method="post" action="<?= $acaoUrl ?>" class="os-cobrar cu-os-cobrar">
+              <?= csrf_field() ?><input type="hidden" name="acao" value="cobrar">
+              <p class="os-cobrar__titulo">Lançar cobrança de <strong><?= dinheiro($faltaLancar) ?></strong></p>
+              <div class="form-field"><label for="cobrar-parcelas">Parcelas</label><select id="cobrar-parcelas" name="parcelas"><?php for ($i = 1; $i <= 12; $i++): ?><option value="<?= $i ?>"><?= $i === 1 ? 'À vista' : $i . 'x de ' . dinheiro($faltaLancar / $i) ?></option><?php endfor; ?></select></div>
+              <div class="os-cobrar__linha">
+                <div class="form-field"><label for="cobrar-vencimento">1º vencimento</label><input id="cobrar-vencimento" type="date" name="vencimento" value="<?= date('Y-m-d') ?>"></div>
+                <div class="form-field"><label for="cobrar-forma">Forma</label><select id="cobrar-forma" name="forma"><?php foreach (Lancamento::FORMAS as $k => $r): ?><option value="<?= $k ?>" <?= $k === 'PIX' ? 'selected' : '' ?>><?= $r ?></option><?php endforeach; ?></select></div>
+              </div>
+              <button class="btn btn--ghost btn--sm"><?= icone('receipt') ?> Lançar cobrança</button>
+            </form>
+          <?php elseif ($faltaLancar < -0.004): ?>
+            <p class="form-dica">O lançado é maior que o total atual da OS (<?= dinheiro(-$faltaLancar) ?> a mais). Ajuste no financeiro.</p>
+          <?php elseif (!$contas): ?>
+            <div class="ver-lado__vazio"><?= icone('wallet', 22, 1.25) ?>Nenhuma cobrança lançada.</div>
+          <?php endif; ?>
+        </div>
+      </section>
+    <?php endif; ?>
+
     <!-- Fotos e documentos -->
     <section class="card card--tabela ver-historico" id="arquivos" aria-labelledby="os-arquivos-titulo">
       <header class="ver-historico__cabeca">
@@ -391,92 +485,6 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
         <?php endforeach; ?>
       </ol>
     </section>
-  </div>
-
-  <div class="ver-coluna">
-    <!-- Cliente e veículo -->
-    <aside class="card ver-lado" aria-label="Cliente e veículo">
-      <header class="ver-lado__cabeca"><h2>Cliente e veículo</h2></header>
-      <a class="ver-veiculo" href="./cliente?id=<?= (int) $os['cliente_id'] ?>">
-        <span class="avatar avatar--g" aria-hidden="true"><?= e($iniciais($os['cliente'])) ?></span>
-        <span class="ver-veiculo__texto"><strong><?= e($os['cliente']) ?></strong><small><?= $os['cliente_telefone'] ? e(telefone_fmt($os['cliente_telefone'])) : 'Ver ficha do cliente' ?></small></span>
-        <?= icone('chevron-right', 14, 2) ?>
-      </a>
-      <a class="ver-veiculo" href="./veiculo?id=<?= (int) $os['veiculo_id'] ?>">
-        <?= placa_caixa($os['placa'], false) ?>
-        <span class="ver-veiculo__texto"><strong><?= e($os['modelo'] ?: 'Modelo não informado') ?></strong><small><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km na entrada' : 'Km não informado' ?></small></span>
-        <?= icone('chevron-right', 14, 2) ?>
-      </a>
-      <?php if ($os['cliente_telefone'] && $os['aceita_contato']): ?>
-        <a class="btn btn--ghost btn--sm os-whats" href="https://wa.me/55<?= e(so_digitos($os['cliente_telefone'])) ?>?text=<?= rawurlencode('Olá! Acompanhe o serviço do seu veículo ' . $os['placa'] . ': ' . $linkAcompanhamento) ?>" target="_blank" rel="noopener"><?= icone('message') ?> Enviar link pelo WhatsApp</a>
-      <?php endif; ?>
-    </aside>
-
-    <!-- Pagamento (só o balcão: o técnico não mexe em dinheiro) -->
-    <?php $veDinheiro = Permissao::permite(Contexto::perfil(), Permissao::BALCAO); ?>
-    <?php if ($veDinheiro && ($cobravel || $contas)): ?>
-      <aside class="card ver-lado" aria-label="Pagamento">
-        <header class="ver-lado__cabeca"><h2>Pagamento</h2>
-          <?php if ($st !== 'CANCELADA'): ?><span class="badge badge--<?= $aReceber <= 0.004 ? 'success' : ($recebido > 0 ? 'info' : 'neutral') ?>"><?= $aReceber <= 0.004 ? 'Quitada' : 'Falta ' . dinheiro($aReceber) ?></span><?php endif; ?>
-        </header>
-        <?php if ($contas): ?>
-          <ul class="conta-lista">
-            <?php foreach ($contas as $c): $saldoC = round((float) $c['devido'] - (float) $c['valor_pago'], 2); ?>
-              <li class="conta-lista__item os-conta">
-                <span class="conta-lista__n"><?= $c['parcela_total'] > 1 ? (int) $c['parcela_numero'] . '/' . (int) $c['parcela_total'] : '1x' ?></span>
-                <span class="conta-lista__texto">
-                  <strong><?= dinheiro($c['devido']) ?></strong>
-                  <small>vence <?= data_br($c['vencimento']) ?> · <?= $nomesConta[$c['status']] ?><?php if ((float) $c['valor_pago'] > 0 && $c['status'] !== 'PAGO'): ?> · recebido <?= dinheiro($c['valor_pago']) ?><?php endif; ?></small>
-                </span>
-                <?php if (in_array($c['status'], ['ABERTO', 'PARCIAL'], true)): ?>
-                  <button type="button" class="btn btn--primary btn--sm" data-baixar="dlg-receber" data-conta="<?= (int) $c['id'] ?>" data-saldo="<?= e(number_format($saldoC, 2, ',', '.')) ?>" data-forma="<?= e($c['forma_prevista'] ?? '') ?>" data-rotulo="Saldo desta parcela: <?= e(dinheiro($saldoC)) ?>">Receber</button>
-                <?php else: ?>
-                  <span class="badge badge--<?= $coresConta[$c['status']] ?>"><?= $nomesConta[$c['status']] ?></span>
-                <?php endif; ?>
-              </li>
-            <?php endforeach; ?>
-          </ul>
-        <?php endif; ?>
-        <?php if ($cobravel && $faltaLancar > 0.004): ?>
-          <form method="post" action="<?= $acaoUrl ?>" class="os-cobrar">
-            <?= csrf_field() ?><input type="hidden" name="acao" value="cobrar">
-            <p class="os-cobrar__titulo">Lançar cobrança de <strong><?= dinheiro($faltaLancar) ?></strong></p>
-            <div class="form-field"><label for="cobrar-parcelas">Parcelas</label><select id="cobrar-parcelas" name="parcelas"><?php for ($i = 1; $i <= 12; $i++): ?><option value="<?= $i ?>"><?= $i === 1 ? 'À vista' : $i . 'x de ' . dinheiro($faltaLancar / $i) ?></option><?php endfor; ?></select></div>
-            <div class="os-cobrar__linha">
-              <div class="form-field"><label for="cobrar-vencimento">1º vencimento</label><input id="cobrar-vencimento" type="date" name="vencimento" value="<?= date('Y-m-d') ?>"></div>
-              <div class="form-field"><label for="cobrar-forma">Forma</label><select id="cobrar-forma" name="forma"><?php foreach (Lancamento::FORMAS as $k => $r): ?><option value="<?= $k ?>" <?= $k === 'PIX' ? 'selected' : '' ?>><?= $r ?></option><?php endforeach; ?></select></div>
-            </div>
-            <button class="btn btn--ghost btn--sm"><?= icone('receipt') ?> Lançar cobrança</button>
-          </form>
-        <?php elseif ($faltaLancar < -0.004): ?>
-          <p class="form-dica">O lançado é maior que o total atual da OS (<?= dinheiro(-$faltaLancar) ?> a mais). Ajuste no financeiro.</p>
-        <?php elseif (!$contas): ?>
-          <div class="ver-lado__vazio"><?= icone('wallet', 22, 1.25) ?>Nenhuma cobrança lançada.</div>
-        <?php endif; ?>
-      </aside>
-    <?php endif; ?>
-
-    <!-- Dados -->
-    <aside class="card ver-lado" aria-label="Dados da OS">
-      <header class="ver-lado__cabeca"><h2>Dados da OS</h2>
-        <?php if (!in_array($st, ['ENTREGUE', 'CANCELADA'], true)): ?><button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-dados"><?= icone('edit') ?> Editar</button><?php endif; ?>
-      </header>
-      <dl class="ver-lista">
-        <div><dt>Técnico responsável</dt><dd><?= e($os['tecnico'] ?? '—') ?></dd></div>
-        <div><dt>Previsão de entrega</dt><dd class="tabular"><?= data_br($os['previsao_conclusao'], true) ?></dd></div>
-        <?php if ($st === 'ORCAMENTO'): ?><div><dt>Orçamento válido até</dt><dd class="tabular"><?= data_br($os['validade_orcamento']) ?></dd></div><?php endif; ?>
-        <div><dt>Quilometragem</dt><dd class="tabular"><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km' : '—' ?></dd></div>
-        <?php if ($os['aprovado_em']): ?><div><dt>Aprovação</dt><dd class="tabular"><?= data_br($os['aprovado_em'], true) ?><?= $os['aprovado_por_nome'] ? ' · ' . e($os['aprovado_por_nome']) : '' ?></dd></div><?php endif; ?>
-        <?php if ($os['entregue_em']): ?><div><dt>Entregue em</dt><dd class="tabular"><?= data_br($os['entregue_em'], true) ?></dd></div><?php endif; ?>
-      </dl>
-      <?php if ($os['aprovado_em'] && $os['assinatura_cliente']): ?>
-        <div class="ver-lado__bloco">
-          <h3 class="ver-grupo__titulo"><?= icone('edit', 15) ?> Assinatura do cliente</h3>
-          <img class="os-assinatura" src="<?= e($os['assinatura_cliente']) ?>" alt="Assinatura do cliente">
-        </div>
-      <?php endif; ?>
-    </aside>
-  </div>
 </div>
 
 <?php if ($veDinheiro): $dlgId = 'dlg-receber'; $acao = $acaoUrl; $extras = ['acao' => 'receber']; $tipo = 'RECEBER'; require V2_RAIZ . '/app/views/financeiro/_baixa.php'; endif; ?>
@@ -537,7 +545,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
     <p><?= e($os['tecnico'] ?: 'O técnico') ?> informou que terminou em <?= data_br($os['execucao_enviada_em'], true) ?>.<?= $os['execucao_observacao'] ? ' Relato: “' . e($os['execucao_observacao']) . '”' : '' ?></p>
     <?php if ($pendentesTec): ?>
       <fieldset class="exec-validar">
-        <legend>Materiais informados — marque os que foram mesmo usados</legend>
+        <legend>Materiais informados: marque os que foram mesmo usados</legend>
         <?php foreach ($pendentesTec as $m): $prev = $previstas[(int) $m['produto_id']] ?? null; ?>
           <label class="exec-validar__linha">
             <input type="checkbox" name="aprovar[]" value="<?= (int) $m['id'] ?>" <?= $prev ? '' : 'checked' ?>>

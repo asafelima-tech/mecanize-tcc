@@ -48,10 +48,17 @@ final class FinanceiroController extends Controller
         $r = new Relatorio($de->format('Y-m-d'), $ate->format('Y-m-d'));
         $p = new Paginacao();
 
+        // Linha da Evolução (mesmo desenho do Faturamento do Início): muitos pontos, cada um somando a janela
+        // anterior. Base diária (semanal no agrupamento anual), no máximo 400 pontos, sempre terminando no fim do período.
+        $baseLinha = $agrupar === 'ano' ? 'semana' : 'dia';
+        $iniLinha = $baseLinha === 'dia' ? max($de, $ate->modify('-399 days')) : $de;
+        $linha = (new Relatorio($iniLinha->format('Y-m-d'), $ate->format('Y-m-d')))->fluxoNoTempo($baseLinha);
+
         $this->tela('financeiro/resumo', [
             'agrupar' => $agrupar, 'de' => $de, 'ate' => $ate, 'busca' => trim((string) ($_GET['busca'] ?? '')),
             'caixa' => $r->caixa(), 'anterior' => $antes->caixa(), 'sessoes' => $r->sessoesCaixa(),
             'fluxo' => $r->fluxoNoTempo($agrupar), 'maiorSaida' => $r->maiorSaida(),
+            'linha' => $linha, 'baseLinha' => $baseLinha, 'janela' => ['dia' => 1, 'semana' => 7, 'mes' => 30, 'ano' => 4][$agrupar],
             'movimentos' => $r->movimentos($p, trim((string) ($_GET['busca'] ?? ''))), 'p' => $p,
             'abertas' => $r->contasEmAberto(),
         ]);

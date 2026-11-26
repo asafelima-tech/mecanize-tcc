@@ -119,28 +119,128 @@ $composicao = function (array $itens, float $total, callable $nome) use ($pct): 
 <section class="card quadro card--espaco fin-evolucao">
   <div class="quadro__topo">
     <h2 class="card__title">Evolução</h2>
-    <div class="quadro__legenda"><span><span class="legenda-cor"></span>Entradas</span><span><span class="legenda-cor legenda-cor--clara"></span>Saídas</span></div>
+    <div class="quadro__legenda"><span><span class="legenda-linha"></span>Entradas</span><span><span class="legenda-linha legenda-linha--saida"></span>Saídas</span></div>
   </div>
-  <div class="barras barras--duplas" role="img" aria-label="Entradas e saídas: <?= e(implode('; ', array_map(fn ($b) => $b['rotulo'] . ' entradas ' . dinheiro($b['entradas']) . ', saídas ' . dinheiro($b['saidas']), $fluxo))) ?>">
-    <div class="barras__escala"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topo / 4 * $i) ?></span><?php endfor; ?></div>
-    <div class="barras__area">
-      <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
-      <?php $rotular = max(1, (int) ceil(count($fluxo) / 14)); $i = 0; foreach ($fluxo as $b): $alto = max($b['entradas'], $b['saidas']) / $topo * 100; ?>
-        <div class="barras__coluna">
-          <span class="barras__par">
-            <span class="barras__barra" style="height:<?= round($b['entradas'] / $topo * 100, 1) ?>%"></span>
-            <span class="barras__barra barras__barra--clara" style="height:<?= round($b['saidas'] / $topo * 100, 1) ?>%"></span>
-          </span>
-          <span class="barras__dica" style="bottom:calc(<?= round($alto, 1) ?>% + 8px)">
-            <small><?= e($b['rotulo']) ?></small>
-            <span><i></i><?= dinheiro($b['entradas']) ?></span>
-            <span><i class="is-saida"></i><?= dinheiro($b['saidas']) ?></span>
-          </span>
-          <?php if ($i++ % $rotular === 0): ?><span class="barras__rotulo"><?= e($b['rotulo']) ?></span><?php endif; ?>
-        </div>
-      <?php endforeach; ?>
+  <?php
+    // Mesmo desenho do Faturamento do Início: muitos pontos ligados por segmentos retos (a linha "viva"), cada um
+    // somando a janela anterior (1 dia no diário, 7 dias no semanal, 30 no mensal, 4 semanas no anual). Entradas na
+    // linha azul com degradê; saídas numa linha cinza escura, mais fina e sem área.
+    $mesesCurtos = ['', 'Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    $datasEvo = [];
+    foreach (array_keys($linha) as $k) {
+        $datasEvo[] = $baseLinha === 'dia' ? new DateTimeImmutable($k) : (new DateTimeImmutable())->setISODate((int) substr($k, 0, 4), (int) substr($k, 5));
+    }
+    $brutos = array_values($linha);
+    $nEvo = count($brutos);
+    $somaEnt = []; $somaSai = []; $se = 0.0; $ss = 0.0;
+    foreach ($brutos as $i => $b) {
+        $se += (float) $b['entradas']; $ss += (float) $b['saidas'];
+        if ($i >= $janela) { $se -= (float) $brutos[$i - $janela]['entradas']; $ss -= (float) $brutos[$i - $janela]['saidas']; }
+        $somaEnt[] = max(0.0, $se); $somaSai[] = max(0.0, $ss);
+    }
+    $maxEvo = max(array_merge([0.0], $somaEnt, $somaSai));
+    $pEvo = $maxEvo > 0 ? (float) pow(10, floor(log10($maxEvo / 4))) : 1.0;
+    foreach ([1, 2, 2.5, 5, 10] as $m) { if ($pEvo * $m * 4 >= $maxEvo) { $pEvo *= $m; break; } }
+    $topoEvo = max($pEvo * 4, 1);
+    $xEvo = fn (int $i): float => $nEvo > 1 ? round($i / ($nEvo - 1) * 100, 3) : 50.0;
+    $linhaDe = function (array $vals) use ($xEvo, $topoEvo): string {
+        $p = [];
+        foreach ($vals as $i => $v) $p[] = $xEvo($i) . ' ' . round(100 - min(100, $v / $topoEvo * 100), 3);
+        return $p ? 'M ' . implode(' L ', $p) : '';
+    };
+    $curvaEnt = $linhaDe($somaEnt);
+    $curvaSai = $linhaDe($somaSai);
+    $areaEnt = $curvaEnt !== '' ? $curvaEnt . ' L 100 100 L 0 100 Z' : '';
+    $sufixo = $janela <= 1 ? '' : ($baseLinha === 'dia' ? $janela . ' dias até ' : $janela . ' semanas até ');
+    $dadosEvo = [];
+    foreach ($datasEvo as $i => $d) $dadosEvo[] = [$sufixo . $d->format('d/m') . ($d->format('Y') !== date('Y') ? '/' . $d->format('y') : ''), dinheiro($somaEnt[$i]), dinheiro($somaSai[$i])];
+    // Rótulos: períodos longos, o mês onde ele começa (no anual, a cada trimestre); curtos, algumas datas espaçadas.
+    $rotulosEvo = [];
+    if ($baseLinha === 'semana') {
+        foreach ($datasEvo as $i => $d) {
+            $m = (int) $d->format('n');
+            if (($i === 0 || (int) $datasEvo[$i - 1]->format('n') !== $m) && in_array($m, [1, 4, 7, 10], true)) $rotulosEvo[] = [$xEvo($i), $mesesCurtos[$m] . '/' . $d->format('y')];
+        }
+    } elseif ($nEvo > 45) {
+        foreach ($datasEvo as $i => $d) { if ($d->format('d') === '01') $rotulosEvo[] = [$xEvo($i), $mesesCurtos[(int) $d->format('n')]]; }
+    } else {
+        $passoR = max(1, (int) ceil($nEvo / 7));
+        foreach ($datasEvo as $i => $d) { if ($i % $passoR === 0) $rotulosEvo[] = [$xEvo($i), $d->format('d/m')]; }
+    }
+  ?>
+  <div class="fat__quadro fin-linha" role="img" aria-label="Entradas e saídas no período: <?= e(implode('; ', array_map(fn ($b) => $b['rotulo'] . ' entradas ' . dinheiro($b['entradas']) . ', saídas ' . dinheiro($b['saidas']), array_values($fluxo)))) ?>">
+    <div class="fat__escala" aria-hidden="true"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topoEvo / 4 * $i) ?></span><?php endfor; ?></div>
+    <div class="fat__area-grafico">
+      <?php for ($i = 0; $i < 5; $i++): ?><span class="fat__grade" style="bottom: calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
+      <div class="fat__grafico" data-pontos="<?= e(json_encode($dadosEvo, JSON_UNESCAPED_UNICODE)) ?>">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <defs>
+            <linearGradient id="fin-degrade" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0" class="fat__degrade-azul"/><stop offset=".55" class="fat__degrade-meio"/><stop offset="1" class="fat__degrade-cinza"/>
+            </linearGradient>
+          </defs>
+          <path class="fat__area" d="<?= $areaEnt ?>" fill="url(#fin-degrade)"/>
+          <path class="fat__linha fat__linha--saida" d="<?= $curvaSai ?>"/>
+          <path class="fat__linha" d="<?= $curvaEnt ?>"/>
+        </svg>
+        <span class="fat__ponto fat__ponto--saida" aria-hidden="true"></span>
+        <span class="fat__ponto" aria-hidden="true"></span>
+        <span class="fat__dica fin-linha__dica" aria-hidden="true"><small></small><span><i></i><b data-ent></b></span><span><i class="is-saida"></i><b data-sai></b></span></span>
+      </div>
+      <div class="fat__meses" aria-hidden="true">
+        <?php foreach ($rotulosEvo as [$x, $rot]): ?>
+          <span class="<?= $x < 4 ? 'is-inicio' : ($x > 96 ? 'is-fim' : '') ?>" style="left: <?= $x ?>%"><?= e($rot) ?></span>
+        <?php endforeach; ?>
+      </div>
     </div>
   </div>
+  <script>
+    // Os dois pontos deslizam sobre as linhas acompanhando o mouse (ou o dedo); o balão mostra o período mais
+    // próximo com as entradas e as saídas dele.
+    (function () {
+      var area = document.currentScript.previousElementSibling.querySelector('.fat__grafico');
+      var linhas = area ? area.querySelectorAll('.fat__linha') : [], svg = area && area.querySelector('svg');
+      var saida = linhas[0], entrada = linhas[1];
+      if (!entrada || !entrada.getTotalLength) return;
+      var dados = []; try { dados = JSON.parse(area.dataset.pontos || '[]'); } catch (e) {}
+      if (dados.length < 2) return;
+      function amostrar(p) {
+        var t = p.getTotalLength(), a = [];
+        for (var k = 0; k <= 400; k++) { var q = p.getPointAtLength(t * k / 400); a.push([q.x, q.y]); }
+        return a;
+      }
+      function alturaEm(a, x) {
+        var i = 0, j = a.length - 1;
+        while (j - i > 1) { var m = (i + j) >> 1; if (a[m][0] <= x) i = m; else j = m; }
+        var t = a[j][0] === a[i][0] ? 0 : (x - a[i][0]) / (a[j][0] - a[i][0]);
+        return a[i][1] + (a[j][1] - a[i][1]) * Math.max(0, Math.min(1, t));
+      }
+      var aEnt = amostrar(entrada), aSai = amostrar(saida);
+      var pEnt = area.querySelector('.fat__ponto:not(.fat__ponto--saida)'), pSai = area.querySelector('.fat__ponto--saida'), dica = area.querySelector('.fat__dica');
+      var alvo = null, quadro = 0;
+      function desenhar() {
+        quadro = 0;
+        var x = alvo, yE = alturaEm(aEnt, x), yS = alturaEm(aSai, x), i = Math.max(0, Math.min(dados.length - 1, Math.round(x / 100 * (dados.length - 1))));
+        pEnt.style.left = pSai.style.left = dica.style.left = x + '%';
+        pEnt.style.top = yE + '%'; pSai.style.top = yS + '%';
+        dica.style.top = Math.min(yE, yS) + '%';
+        dica.querySelector('small').textContent = dados[i][0];
+        dica.querySelector('[data-ent]').textContent = dados[i][1];
+        dica.querySelector('[data-sai]').textContent = dados[i][2];
+        dica.classList.toggle('is-a-esquerda', x > 80);
+        dica.classList.toggle('is-a-direita', x < 20);
+        area.classList.add('is-seguindo');
+      }
+      function mover(ev) {
+        var r = svg.getBoundingClientRect();
+        alvo = Math.max(0, Math.min(100, (ev.clientX - r.left) / r.width * 100));
+        if (!quadro) quadro = requestAnimationFrame(desenhar);
+      }
+      area.addEventListener('pointermove', mover);
+      area.addEventListener('pointerdown', mover);
+      area.addEventListener('pointerleave', function () { area.classList.remove('is-seguindo'); });
+    })();
+  </script>
 </section>
 
 <div class="grade-2 grade-2--espaco grade-2--igual">

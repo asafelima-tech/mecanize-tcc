@@ -50,7 +50,7 @@ $inativos = $resumo['total'] - $resumo['ativos'];
   </div>
 </div>
 
-<div class="lista-lateral card--espaco">
+<div class="card--espaco">
   <div>
     <nav class="abas abas--contagem" aria-label="Situação">
       <a href="<?= e(url_com(['status' => null, 'pagina' => null])) ?>"<?= $f['status'] === 'ativos' ? ' class="ativa" aria-current="page"' : '' ?>>Usuários ativos<span class="abas__n"><?= (int) $resumo['ativos'] ?></span></a>
@@ -101,17 +101,32 @@ $inativos = $resumo['total'] - $resumo['ativos'];
       <?php $rotuloItens = $f['status'] === 'inativos' ? 'usuários inativos' : 'usuários'; require V2_RAIZ . '/app/views/layout/_rodape.php'; ?>
     </div>
   </div>
-
-  <aside class="card painel-lateral" aria-label="Perfis de acesso">
-    <h2 class="card__titulo">Perfis de acesso</h2>
-    <dl class="perfis">
-      <div><dt><span class="badge badge--plain badge--perfil-admin">Administrador</span></dt>
-        <dd>Dono ou gerente. Acesso a tudo da oficina, inclusive financeiro, estoque, relatórios, configurações e usuários.</dd></div>
-      <div><dt><span class="badge badge--plain badge--perfil-atendente">Atendente</span></dt>
-        <dd>Balcão. Cadastra clientes e veículos, agenda, abre e conduz orçamentos e OS, recebe pela OS e opera o caixa.</dd></div>
-      <div><dt><span class="badge badge--plain badge--perfil-tecnico">Técnico</span></dt>
-        <dd>Mecânico. Pelo celular, vê só os serviços dele, registra os materiais usados, pede peças e informa quando termina; o administrador valida. Pode receber comissão. Não vê valores, cadastros, estoque nem financeiro.</dd></div>
-    </dl>
-    <p class="nota"><?= icone('info') ?><span>Administrador e atendente consultam os cadastros (o custo das peças só o administrador vê). Excluir cadastros é sempre do administrador.</span></p>
-  </aside>
 </div>
+
+<?php
+// O que cada perfil pode fazer: três cartões lado a lado, em largura cheia, abaixo da lista. Cada um filtra a lista pelo perfil.
+$perfisAcesso = [
+    'ADMIN'     => ['admin', 'Dono ou gerente', 'Acesso a tudo da oficina, inclusive financeiro, estoque, relatórios, configurações e usuários.', 'administradores'],
+    'ATENDENTE' => ['atendente', 'Balcão', 'Cadastra clientes e veículos, agenda, abre e conduz orçamentos e OS, recebe pela OS e opera o caixa.', 'atendentes'],
+    'TECNICO'   => ['tecnico', 'Mecânico', 'Pelo celular, vê só os serviços dele, registra os materiais usados, pede peças e informa quando termina; o administrador valida. Pode receber comissão. Não vê valores, cadastros, estoque nem financeiro.', 'técnicos'],
+];
+?>
+<section class="cu-faixa cu-faixa--depois" aria-labelledby="us-h-perfis">
+  <div class="cu-faixa__topo">
+    <h2 id="us-h-perfis">Perfis de acesso</h2>
+    <span class="cu-faixa__info">O que cada perfil pode fazer</span>
+  </div>
+  <div class="cu-faixa__lista cu-faixa__lista--3">
+    <?php foreach ($perfisAcesso as $k => [$classe, $papel, $texto, $plural]): $filtrado = $f['perfil'] === $k; ?>
+      <article class="card cu-perfil<?= $filtrado ? ' is-ativo' : '' ?>">
+        <span class="badge badge--plain badge--perfil-<?= $classe ?>"><?= e(Usuario::PERFIS[$k] ?? ucfirst($classe)) ?></span>
+        <strong class="cu-perfil__papel"><?= e($papel) ?></strong>
+        <p class="cu-perfil__texto"><?= e($texto) ?></p>
+        <span class="cu-perfil__pe">
+          <a class="cu-faixa__link" href="<?= e(url_com(['perfil' => $filtrado ? null : $k, 'pagina' => null])) ?>"<?= $filtrado ? ' aria-current="true"' : '' ?>><?= $filtrado ? 'Mostrar todos' : 'Ver ' . $plural ?><?= icone('chevron-right', 14, 2) ?></a>
+        </span>
+      </article>
+    <?php endforeach; ?>
+  </div>
+  <p class="nota cu-faixa__nota"><?= icone('info') ?><span>Administrador e atendente consultam os cadastros (o custo das peças só o administrador vê). Excluir cadastros é sempre do administrador.</span></p>
+</section>
