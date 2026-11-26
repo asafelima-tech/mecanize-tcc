@@ -2209,7 +2209,6 @@ input[type=radio]:not([data-nativo]):checked:focus-visible { box-shadow: inset 0
   .barra-periodo .campo-periodo input.campo-data { flex: 1 1 0; width: 0; min-width: 84px; }
 }
 
-
 /* ── 20. Topo · botão Criar e o painel de atalhos ────────────────────── */
 .topbar-criar { height: 34px; padding: 0 14px 0 6px; border: 0; border-radius: var(--r-chip, 999px); display: inline-flex; align-items: center; gap: 8px; cursor: pointer;
   font: inherit; font-size: 13px; font-weight: 600; letter-spacing: -0.005em; color: var(--text); background: var(--card);
@@ -2562,7 +2561,6 @@ form.grupo { margin: 0; }
 }
 .ver-topo__acoes .menu-mais__lista.menu-mais__lista--direita { left: 0; right: auto; }
 
-
 /* ══════════════════════════════════════════════════════════════════════════════════════════════════
    30. IDENTIDADE MECANIZE · COMO A APPLE DESENHA UM APLICATIVO DE TRABALHO
    Referência: os aplicativos e sistemas da própria Apple (Mail, Finder, Ajustes do Sistema, iCloud,
@@ -2653,214 +2651,35 @@ form.grupo { margin: 0; }
 }
 
 html, body, button, input, select, textarea, optgroup, option, table, dialog, .dlg, .mec-lista, .mec-data, .painel-criar { font-family: var(--font-family); }
-body.ap { background: var(--pagina); font-size: var(--t-corpo); line-height: 1.45; letter-spacing: -0.003em; font-synthesis: none; }
-body.ap h1, body.ap h2, body.ap h3, body.ap h4 { font-family: var(--font-family); }
 
 /* ── 30.2 Barra lateral (lista de origem) ───────────────────────────────────────────────────────── */
-body.ap .app { grid-template-columns: 248px minmax(0, 1fr); background: linear-gradient(to right, var(--lateral) 248px, transparent 248px); }
-body.ap.sidebar-collapsed .app { grid-template-columns: 64px minmax(0, 1fr); background: linear-gradient(to right, var(--lateral) 64px, transparent 64px); }
-body.ap .sidebar { background: var(--lateral); color: var(--lateral-texto); padding: 14px 10px 12px; gap: 14px; box-shadow: inset -1px 0 0 var(--lateral-linha); }
-body.ap .sidebar__brand { height: 36px; padding-left: 10px; }
-body.ap .sidebar__logo-full { height: 18px; }
-[data-theme="light"] body.ap .sidebar__logo-full, [data-theme="light"] body.ap .sidebar__logo-icon,
-:root:not([data-theme="dark"]) body.ap .sidebar__logo-full, :root:not([data-theme="dark"]) body.ap .sidebar__logo-icon { filter: invert(1); }
-body.ap .sidebar__logo-icon { width: 26px; }
-body.ap .sidebar__retrair { width: 28px; height: 28px; border-radius: var(--r-controle); color: var(--lateral-icone); }
-body.ap .sidebar__retrair .icone { width: 18px; height: 18px; }
-body.ap .sidebar__retrair:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
-
-body.ap .sidebar__grupo { gap: 1px; }
-body.ap .sidebar__grupo + .sidebar__grupo { margin-top: 2px; }
-body.ap .sidebar__rotulo { font-size: var(--t-rotulo); font-weight: 700; letter-spacing: .01em; color: var(--lateral-rotulo); padding: 0 10px 4px; }
-body.ap .sidebar__item { height: 32px; padding: 0 10px; gap: 9px; border-radius: var(--r-controle); font-size: 13.5px; font-weight: 400; letter-spacing: -0.005em;
-  color: var(--lateral-texto); box-shadow: none; background: transparent; transition: background .12s ease; }
-body.ap .sidebar__item .icone { width: 18px; height: 18px; color: var(--lateral-icone); stroke-width: 1.6; flex: none; }
-body.ap .sidebar__item:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
-body.ap .sidebar__item.is-active { background: var(--lateral-selecao); color: var(--lateral-texto); font-weight: 700; box-shadow: none; }
-body.ap .sidebar__item.is-active .icone { color: var(--lateral-texto); stroke-width: 1.9; }
-body.ap .sidebar .contador { background: var(--lateral-icone); color: var(--lateral); }
-
-body.ap .sidebar__rodape { gap: 4px; padding-top: 10px; box-shadow: inset 0 1px 0 var(--lateral-linha); }
-body.ap .sidebar__tema { height: 32px; padding: 0 10px; border-radius: var(--r-controle); color: var(--lateral-texto); font-size: 13.5px; justify-content: space-between; }
-body.ap .sidebar__tema:hover { background: var(--lateral-hover); color: var(--lateral-texto); }
-body.ap .sidebar__tema .interruptor { order: 2; width: 30px; height: 18px; background: rgba(0, 0, 0, .14); }
-body.ap .sidebar__tema .interruptor::after { top: 2px; left: 2px; width: 14px; height: 14px; box-shadow: 0 1px 2px rgba(0, 0, 0, .25); }
-[data-theme="dark"] body.ap .sidebar__tema .interruptor { background: #F5F5F7; }
-[data-theme="dark"] body.ap .sidebar__tema .interruptor::after { transform: translateX(12px); background: #1F1F1F; }
-body.ap .sidebar__perfil { padding: 6px 6px 6px 8px; gap: 8px; border-radius: var(--r-controle); background: transparent; box-shadow: none; }
-body.ap .sidebar__perfil:hover { background: var(--lateral-hover); }
-body.ap .sidebar__avatar { width: 28px; height: 28px; font-size: 10.5px; background: var(--lateral-texto); color: var(--lateral); box-shadow: none; }
-body.ap .sidebar__nome { font-size: 13px; color: var(--lateral-texto); }
-body.ap .sidebar__papel { font-size: var(--t-nota); color: var(--lateral-rotulo); }
-body.ap .sidebar__sair { width: 26px; height: 26px; border-radius: 6px; color: var(--lateral-icone); }
-body.ap .sidebar__sair:hover { background: var(--lateral-selecao); color: var(--lateral-texto); }
-
-body.ap.sidebar-collapsed .sidebar { padding: 14px 10px 12px; }
-body.ap.sidebar-collapsed .sidebar__item { width: 40px; height: 36px; }
-body.ap.sidebar-collapsed .sidebar__item .icone { width: 19px; height: 19px; }
-body.ap.sidebar-collapsed .sidebar__rotulo { background: var(--lateral-linha); margin: 6px 8px; }
-body.ap.sidebar-collapsed .sidebar__retrair { width: 36px; height: 32px; }
-body.ap.sidebar-collapsed .sidebar__tema { justify-content: center; }
 
 /* ── 30.3 Barra de ferramentas ──────────────────────────────────────────────────────────────────── */
-body.ap .topbar { height: 52px; padding: 0 28px; gap: 10px; background: var(--ferramentas); box-shadow: inset 0 -1px 0 var(--linha);
-  -webkit-backdrop-filter: saturate(180%) blur(20px); backdrop-filter: saturate(180%) blur(20px); }
-body.ap .topbar__right { gap: 6px; }
-body.ap .topbar-criar { height: 30px; padding: 0 12px 0 8px; gap: 6px; border-radius: var(--r-controle); background: var(--botao); color: var(--text);
-  box-shadow: var(--botao-borda); font-size: 13px; font-weight: 700; }
-body.ap .topbar-criar:hover, body.ap .topbar-criar[aria-expanded="true"] { background: var(--botao); filter: brightness(.97); }
-[data-theme="dark"] body.ap .topbar-criar:hover, [data-theme="dark"] body.ap .topbar-criar[aria-expanded="true"] { filter: brightness(1.12); }
-body.ap .topbar-criar__mais { width: 18px; height: 18px; background: var(--action); color: var(--on-action); }
-body.ap .topbar-criar__mais .icone { width: 11px; height: 11px; }
-body.ap .topbar-caixa { height: 30px; padding: 0 11px; gap: 7px; border-radius: var(--r-controle); background: transparent; box-shadow: none; font-size: 12.5px; color: var(--text-secondary); }
-body.ap .topbar-caixa:hover { background: var(--hover); color: var(--text); text-decoration: none; }
-body.ap .topbar-caixa__ponto { width: 7px; height: 7px; }
-body.ap .topbar-caixa.is-aberto .topbar-caixa__ponto { background: var(--text); }
-body.ap .topbar-sino { width: 30px; height: 30px; border-radius: var(--r-controle); background: transparent; color: var(--text-secondary); box-shadow: none; }
-body.ap .topbar-sino:hover { opacity: 1; background: var(--hover); color: var(--text); }
-body.ap .topbar-sino .icone { width: 18px; height: 18px; }
-body.ap .topbar-sino__n { top: 1px; right: 0; min-width: 15px; height: 15px; padding: 0 4px; border-radius: 8px; font-size: 9.5px; line-height: 15px; }
-body.ap .topbar__hamburger { border-radius: var(--r-controle); }
 
 /* Menu "Criar": como um menu do Mac */
-body.ap .painel-criar { width: 232px; padding: 5px; border-radius: var(--r-menu); background: var(--grupo); box-shadow: var(--menu-sombra); }
-body.ap .painel-criar__grupo + .painel-criar__grupo { border-top: 1px solid var(--linha); margin-top: 5px; padding-top: 5px; }
-body.ap .painel-criar__opcao { height: 28px; padding: 0 10px; border-radius: 5px; font-size: 13px; }
 
 /* ── 30.4 Área de conteúdo e cabeçalho da tela ──────────────────────────────────────────────────── */
-body.ap .content { padding: 28px 36px 56px; max-width: 1480px; }
-body.ap .page-header { align-items: flex-end; gap: 12px 24px; margin-bottom: 22px; }
-body.ap .page-header > div:first-child { gap: 3px; }
-body.ap .page-header__title { font-size: var(--t-titulo); font-weight: 700; letter-spacing: -0.022em; line-height: 1.15; }
-body.ap .page-header__subtitle { font-size: 13px; font-weight: 400; color: var(--text-secondary); letter-spacing: -0.003em; }
-body.ap .page-header__actions { gap: 8px; }
 
 /* ── 30.5 Botões ────────────────────────────────────────────────────────────────────────────────── */
-body.ap .btn { height: var(--h-controle); padding: 0 14px; gap: 6px; border-radius: var(--r-controle); font-size: 13px; font-weight: 700; letter-spacing: -0.003em;
-  transition: background .12s ease, filter .12s ease, box-shadow .12s ease; }
-body.ap .btn:active { transform: none; filter: brightness(.93); }
-body.ap .btn .icone { width: 15px; height: 15px; }
-body.ap .btn--sm { height: var(--h-controle-p); padding: 0 10px; font-size: 12px; border-radius: 6px; }
-body.ap .btn--sm .icone { width: 14px; height: 14px; }
-body.ap .btn--icone { width: var(--h-controle); padding: 0; }
-body.ap .btn--sm.btn--icone { width: var(--h-controle-p); }
-body.ap .btn--primary, [data-theme="dark"] body.ap .btn--primary { background: var(--action); color: var(--on-action); box-shadow: 0 1px 1.5px rgba(0, 0, 0, .14); }
-body.ap .btn--primary:hover, [data-theme="dark"] body.ap .btn--primary:hover { background: var(--action); filter: brightness(1.35); }
-[data-theme="dark"] body.ap .btn--primary:hover { filter: brightness(.9); }
-body.ap .btn--ghost, body.ap .btn--contorno { background: var(--botao); color: var(--text); box-shadow: var(--botao-borda); }
-body.ap .btn--ghost:hover, body.ap .btn--contorno:hover { background: var(--botao); filter: brightness(.97); box-shadow: var(--botao-borda); }
-[data-theme="dark"] body.ap .btn--ghost:hover, [data-theme="dark"] body.ap .btn--contorno:hover { filter: brightness(1.12); }
-body.ap .btn--fantasma { background: transparent; box-shadow: none; color: var(--text-secondary); }
-body.ap .btn--fantasma:hover { background: var(--hover); color: var(--text); }
-body.ap .btn--danger, body.ap .btn--danger-ghost { background: var(--botao); color: var(--text); box-shadow: 0 0 0 1px var(--text), 0 1px 1.5px rgba(0, 0, 0, .08); }
-body.ap .btn--danger:hover, body.ap .btn--danger-ghost:hover { background: var(--action); color: var(--on-action); filter: none; }
-body.ap .btn[aria-disabled="true"], body.ap .btn:disabled { opacity: .45; filter: none; }
 
 /* ── 30.6 Grupos (cartões) ──────────────────────────────────────────────────────────────────────── */
-body.ap .card { background: var(--grupo); border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); }
-body.ap .card__header { min-height: 50px; padding: 0 20px; }
-body.ap .card__title, body.ap .card__titulo, body.ap .secao-titulo h2 { font-size: var(--t-bloco); font-weight: 700; letter-spacing: -0.012em; }
-body.ap .card__header a, body.ap .card__titulo a { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
-body.ap .card__header a:hover, body.ap .card__titulo a:hover { color: var(--text); text-decoration: none; }
-body.ap .etiqueta { font-size: 11.5px; font-weight: 400; padding: 2px 8px; border-radius: 6px; background: var(--trilho); color: var(--text-secondary); box-shadow: none; }
 
 /* Indicadores: blocos calmos, valor em destaque, sem cartão invertido */
-body.ap .stat-grid { gap: 12px; margin-bottom: 18px; }
-body.ap .stat-card { background: var(--grupo); color: var(--text); border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); padding: 16px 18px 15px; gap: 2px; }
-body.ap a.stat-card:hover { background: var(--grupo); box-shadow: var(--grupo-borda), 0 4px 14px -6px rgba(0, 0, 0, .14); transform: none; text-decoration: none; }
-body.ap .stat-card__label { font-size: 12.5px; font-weight: 400; color: var(--text-secondary); }
-body.ap .stat-card__value { font-size: 26px; font-weight: 700; letter-spacing: -0.03em; line-height: 1.15; color: var(--text); margin-top: 6px; }
-body.ap .stat-card__pe { font-size: var(--t-nota); color: var(--text-secondary); }
-body.ap .stat-card__chip { height: 20px; padding: 0 7px; border-radius: 6px; font-size: 11px; font-weight: 700; background: var(--trilho); color: var(--text); box-shadow: none; }
-body.ap .stat-card__topo .icone { width: 15px; height: 15px; color: var(--text-tertiary); opacity: 1; }
 
 /* ── 30.7 Seletor segmentado (abas) ─────────────────────────────────────────────────────────────── */
-body.ap .abas { display: inline-flex; gap: 2px; padding: 2px; margin-bottom: 16px; border: 0; border-radius: 9px; background: var(--trilho); max-width: 100%; overflow-x: auto; scrollbar-width: none; }
-body.ap .abas::-webkit-scrollbar { display: none; }
-body.ap .abas a { height: 28px; padding: 0 12px; margin: 0; border: 0; border-radius: var(--r-controle); font-size: 13px; font-weight: 400; color: var(--text);
-  display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; transition: background .12s ease; }
-body.ap .abas a:hover { background: rgba(0, 0, 0, .04); }
-[data-theme="dark"] body.ap .abas a:hover { background: rgba(255, 255, 255, .05); }
-body.ap .abas a.ativa { background: var(--interno); font-weight: 700; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .12); }
-[data-theme="dark"] body.ap .abas a.ativa { background: #4A4A4A; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
-body.ap .abas__n, body.ap .abas a.ativa .abas__n { padding: 0; background: transparent; color: var(--text-secondary); font-size: 11.5px; font-weight: 400; }
-body.ap .abas--compactas { margin: 0; }
-body.ap .abas--compactas a { height: 26px; padding: 0 11px; font-size: 12.5px; }
-body.ap .segmento, [data-theme="dark"] body.ap .segmento { padding: 2px; gap: 2px; border-radius: 9px; background: var(--trilho); box-shadow: none; }
-body.ap .segmento span { height: 28px; padding: 0 12px; border-radius: var(--r-controle); font-size: 13px; font-weight: 400; color: var(--text); }
-body.ap .segmento input:checked + span { background: var(--interno); font-weight: 700; box-shadow: 0 0 0 .5px rgba(0, 0, 0, .08), 0 1px 3px rgba(0, 0, 0, .12); }
-[data-theme="dark"] body.ap .segmento input:checked + span { background: #4A4A4A; box-shadow: 0 1px 2px rgba(0, 0, 0, .4); }
 
 /* ── 30.8 Tabelas (listas) ──────────────────────────────────────────────────────────────────────── */
-body.ap .table { font-size: var(--t-corpo); }
-body.ap .table th { height: 34px; font-size: var(--t-rotulo); font-weight: 700; letter-spacing: .01em; text-transform: none; color: var(--text-secondary);
-  background: transparent; border-bottom: 1px solid var(--linha); }
-body.ap .table td { height: 48px; border-bottom: 1px solid var(--linha); }
-body.ap .table th:first-child, body.ap .table td:first-child { padding-left: 20px; }
-body.ap .table th:last-child, body.ap .table td:last-child { padding-right: 20px; }
-body.ap .table tbody tr:last-child td { border-bottom: 0; }
-body.ap .table tbody tr { transition: background .1s ease; }
-body.ap .table tbody tr:hover { background: var(--hover); }
-body.ap .table td .sub { font-size: var(--t-nota); margin-top: 1px; }
-body.ap .table td strong { font-weight: 700; }
-body.ap .table a { color: var(--text); text-decoration: none; }
-body.ap .table tfoot td { border-bottom: 0; }
-body.ap .vazio { border: 0; border-radius: 10px; background: var(--interno); color: var(--text-secondary); font-size: 13px; padding: 32px 20px; }
-[data-theme="dark"] body.ap .vazio { background: #2A2A2A; }
 
 /* Listas direto na janela (sem caixa em volta), como o Finder em lista e o iCloud Drive */
-body.ap .card--tabela { background: transparent; box-shadow: none; border-radius: 0; overflow: visible; }
-body.ap .card--tabela > .card__header, body.ap .card--tabela > .ver-historico__cabeca { padding-left: 0; padding-right: 0; }
-body.ap .card--tabela .table th:first-child, body.ap .card--tabela .table td:first-child { padding-left: 8px; }
-body.ap .card--tabela .table th:last-child, body.ap .card--tabela .table td:last-child { padding-right: 8px; }
-body.ap .card--tabela .table th { border-bottom-color: var(--linha-forte); }
-body.ap .card--tabela .table tbody tr:last-child td { border-bottom: 1px solid var(--linha); }
-body.ap .card--tabela .table tbody tr:hover { background: var(--grupo); }
-body.ap .card--tabela > .vazio { margin: 4px 0 0; }
-body.ap .card--tabela .rodape-tabela { padding-left: 8px; padding-right: 8px; }
-body.ap .card--tabela .os-totais, body.ap .card--tabela .os-arquivos { padding-left: 8px; padding-right: 8px; }
-body.ap .card--tabela .os-incluir, [data-theme="dark"] body.ap .card--tabela .os-incluir { border-radius: var(--r-grupo); margin-top: 12px; background: var(--grupo); border-top: 0; }
-body.ap .os-incluir .os-novo-item { background: transparent; border-top: 0; }
-body.ap .card--tabela .os-linha-tempo { margin-left: 12px; }
-body.ap .card--tabela + .card, body.ap .card + .card--tabela, body.ap .card--tabela + .card--tabela { margin-top: 28px; }
 
 /* Filtros e busca: campos do Mac, compactos */
-body.ap .filtros { gap: 8px; margin-bottom: 14px; }
-body.ap .filtros__busca, body.ap .filtros__busca--largo { height: var(--h-controle); border-radius: 8px; background: var(--campo); box-shadow: 0 0 0 1px var(--campo-borda); padding: 0 10px; }
-body.ap .filtros__busca input, body.ap .filtros__busca--compacta input { font-size: 13px; background: transparent; box-shadow: none; }
-body.ap .filtros__busca .icone { width: 15px; height: 15px; color: var(--text-tertiary); }
-body.ap .filtros select, body.ap .barra-periodo select { height: var(--h-controle); border-radius: var(--r-controle); font-size: 13px; background-color: var(--botao); box-shadow: var(--botao-borda); border: 0; }
-body.ap .campo-periodo { height: var(--h-controle); border-radius: var(--r-controle); background: var(--campo); box-shadow: 0 0 0 1px var(--campo-borda); }
 
 /* ── 30.9 Formulários ───────────────────────────────────────────────────────────────────────────── */
-body.ap .form-field label { font-size: 12.5px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
-body.ap .form-field input:not([type=checkbox]):not([type=radio]):not([type=file]), body.ap .form-field select, body.ap .form-field textarea {
-  min-height: 34px; padding: 0 11px; border-radius: var(--r-controle); font-size: 13.5px; border: 1px solid var(--campo-borda); background-color: var(--campo); box-shadow: none; }
-[data-theme="dark"] body.ap .form-field input:not([type=checkbox]):not([type=radio]):not([type=file]), [data-theme="dark"] body.ap .form-field select, [data-theme="dark"] body.ap .form-field textarea {
-  background-color: var(--campo); border-color: var(--campo-borda); }
-body.ap .form-field textarea { padding: 8px 11px; line-height: 1.45; }
-body.ap .form-field input:focus, body.ap .form-field select:focus, body.ap .form-field textarea:focus,
-body.ap .filtros__busca:focus-within, body.ap .filtros input:focus { border-color: transparent; box-shadow: 0 0 0 1.5px var(--text); }
-body.ap .form-field input[readonly], body.ap .form-field input:disabled { background-color: var(--grupo); }
-body.ap .form-dica { font-size: var(--t-nota); }
-body.ap .form-acoes { gap: 8px; }
 
 /* Fichas de cadastro: grupos como os do Ajustes do Sistema */
-body.ap .form-ficha { gap: 18px; }
-body.ap .form-ficha__secao { padding: 20px 22px 22px; }
-body.ap .form-ficha__corpo > .form-ficha__secao + .form-ficha__secao, body.ap .orc__corpo > .card + .card { box-shadow: inset 0 1px 0 var(--linha); clip-path: none; }
-body.ap .form-ficha__cabeca { gap: 12px; margin-bottom: 18px; align-items: center; }
-body.ap .form-ficha__icone { width: 30px; height: 30px; border-radius: 8px; background: var(--trilho); color: var(--text); box-shadow: none; }
-body.ap .form-ficha__icone .icone { width: 16px; height: 16px; }
-body.ap .form-ficha__cabeca h2, body.ap .grupo__cabeca h2 { font-size: var(--t-bloco); font-weight: 700; letter-spacing: -0.012em; margin: 0 0 1px; }
-body.ap .form-ficha__cabeca p { font-size: var(--t-nota); color: var(--text-secondary); }
-body.ap .form-ficha__resumo { padding: 18px; }
-body.ap .form-ficha__acoes .btn { height: 34px; }
 
 /* ── 30.10 Menus e diálogos ─────────────────────────────────────────────────────────────────────── */
-body.ap .menu-mais__lista { padding: 5px; border-radius: var(--r-menu); background: var(--grupo); box-shadow: var(--menu-sombra); border: 0; min-width: 200px; }
-body.ap .menu-mais__lista a, body.ap .menu-mais__lista button { height: 28px; padding: 0 9px; border-radius: 5px; font-size: 13px; }
-body.ap .menu-mais__lista a:hover, body.ap .menu-mais__lista button:hover { background: var(--action); color: var(--on-action); }
+
 .dlg { border-radius: 14px; padding: 22px 22px 18px; background: var(--grupo); box-shadow: var(--menu-sombra); }
 .dlg::backdrop { background: rgba(0, 0, 0, .22); }
 [data-theme="dark"] .dlg::backdrop { background: rgba(0, 0, 0, .5); }
@@ -2869,75 +2688,21 @@ body.ap .menu-mais__lista a:hover, body.ap .menu-mais__lista button:hover { back
 .dlg .form-acoes { justify-content: flex-end; margin-top: 20px; }
 
 /* ── 30.11 Selos e alertas ──────────────────────────────────────────────────────────────────────── */
-body.ap .badge { height: 22px; padding: 0 8px; font-size: 11.5px; font-weight: 700; letter-spacing: 0; }
-body.ap .alerta { border-radius: 10px; font-size: 13px; box-shadow: var(--grupo-borda); background: var(--grupo); border: 0; }
-body.ap .aviso-chip { height: 28px; border-radius: var(--r-controle); background: var(--grupo); color: var(--text); box-shadow: var(--grupo-borda); font-size: 12.5px; }
-body.ap .aviso-chip--danger { background: var(--action); color: var(--on-action); box-shadow: none; }
 
 /* ── 30.12 Fichas de consulta (como o app Contatos) ─────────────────────────────────────────────── */
-body.ap .ver-topo { margin-bottom: 20px; gap: 16px; }
-body.ap .ver-topo__id { gap: 16px; }
-body.ap .ver-topo__avatar { width: 64px; height: 64px; font-size: 22px; box-shadow: none; }
-body.ap .ver-topo__avatar--quadrado { border-radius: 15px; }
-body.ap .ver-topo__avatar .icone { width: 28px; height: 28px; }
-body.ap .ver-topo__texto { gap: 4px; }
-body.ap .ver-topo__voltar { font-size: 12.5px; }
-body.ap .ver-topo h1 { font-size: var(--t-titulo); font-weight: 700; letter-spacing: -0.022em; line-height: 1.15; }
-body.ap .ver-chip { height: 24px; padding: 0 9px; font-size: 12px; background: var(--grupo); box-shadow: var(--grupo-borda); color: var(--text-secondary); }
-body.ap .ver-topo__meta .badge { height: 24px; }
-body.ap .ver-numeros { border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); background: var(--grupo); margin-bottom: 16px; }
-body.ap .ver-numeros > div { padding: 15px 20px; }
-body.ap .ver-numeros span { font-size: 12.5px; color: var(--text-secondary); font-weight: 400; }
-body.ap .ver-numeros strong, body.ap .ver-numeros > div:first-child strong { font-size: 22px; font-weight: 700; letter-spacing: -0.025em; }
-body.ap .ver-numeros small { font-size: var(--t-nota); }
-body.ap .ver-grade { gap: 16px; }
-body.ap .ver-lado { border-radius: var(--r-grupo); padding: 18px; gap: 14px; top: 68px; }
-body.ap .ver-lado__cabeca h2, body.ap .ver-historico__cabeca h2 { font-size: var(--t-bloco); font-weight: 700; }
-body.ap .ver-historico__cabeca { padding: 16px 20px 12px; }
-body.ap .ver-historico__cabeca p { font-size: var(--t-nota); }
-body.ap .ver-grupo { padding: 18px 20px; gap: 12px; }
-body.ap .ver-grupo__titulo { font-size: var(--t-rotulo); font-weight: 700; letter-spacing: .02em; text-transform: uppercase; color: var(--text-secondary); }
-body.ap .ver-lista dt { font-size: var(--t-nota); }
-body.ap .ver-lista dd { font-size: 13.5px; }
-body.ap .ver-veiculo, body.ap .conta-lista__item { border-radius: 10px; background: var(--interno); }
-[data-theme="dark"] body.ap .ver-veiculo, [data-theme="dark"] body.ap .conta-lista__item { background: #2A2A2A; }
-body.ap .ver-veiculo:hover, body.ap .conta-lista__item:hover { box-shadow: inset 0 0 0 1px var(--linha-forte); }
 
 /* Tela da OS */
-body.ap .os-etapas { border-radius: var(--r-grupo); box-shadow: var(--grupo-borda); padding: 14px 20px; margin-bottom: 16px; }
-body.ap .os-etapas__item { font-size: 12.5px; }
-body.ap .os-etapas__marca { width: 20px; height: 20px; }
-body.ap .os-totais__total dd { font-size: 20px; }
-body.ap .os-itens__tipo { width: 28px; height: 28px; border-radius: 8px; background: var(--trilho); }
-body.ap .os-incluir { background: var(--interno); }
-[data-theme="dark"] body.ap .os-incluir { background: #2A2A2A; }
 
 /* ── 30.13 Quadros e gráficos ───────────────────────────────────────────────────────────────────── */
-body.ap .quadro__topo h2, body.ap .card.quadro .card__title { font-size: var(--t-bloco); }
-body.ap .mini-numeros > div { border-radius: 10px; background: var(--interno); box-shadow: none; }
-[data-theme="dark"] body.ap .mini-numeros > div { background: #2A2A2A; }
-body.ap .barras__barra { background: var(--grafico-1); border-radius: 5px 5px 2px 2px; box-shadow: none; }
-body.ap .barras__barra--clara { background: var(--grafico-4); }
 
 /* Superfícies antigas que ainda usavam o branco dos cartões: viram grupos */
-body.ap .kanban__coluna, body.ap .mini-cal, body.ap .painel-lateral { background: var(--grupo); box-shadow: none; }
-body.ap .kanban__card, body.ap .kanban__item { background: var(--interno); }
-
-@media (max-width: 720px) { body.ap .card--tabela .table { min-width: 680px; } }
 
 /* ── 30.14 Celular e tablet ─────────────────────────────────────────────────────────────────────── */
-@media (max-width: 900px) {
-  body.ap .app, body.ap.sidebar-collapsed .app { grid-template-columns: minmax(0, 1fr); background: none; }
-  body.ap .sidebar { width: 280px; box-shadow: none; }
-  body.ap.mobile-nav-open .sidebar { box-shadow: 0 0 0 .5px var(--lateral-linha), 0 24px 60px rgba(0, 0, 0, .25); }
-  body.ap .topbar { padding: 0 16px; }
-  body.ap .topbar__hamburger { display: inline-flex; width: 32px; height: 32px; align-items: center; justify-content: center; background: transparent; color: var(--text); }
-  body.ap .content { padding: 20px 16px 40px; }
-}
+
 @media (max-width: 640px) {
   :root { --t-titulo: 24px; }
-  body.ap .ver-topo__avatar { width: 52px; height: 52px; font-size: 18px; margin-top: 0; }
-  body.ap .ver-topo__avatar--quadrado { border-radius: 13px; }
-  body.ap .ver-numeros strong, body.ap .ver-numeros > div:first-child strong { font-size: 19px; }
-  body.ap .stat-card__value { font-size: 22px; }
+  
+  
+  
+  
 }
