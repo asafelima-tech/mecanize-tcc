@@ -159,7 +159,7 @@ body.sidebar-collapsed .sidebar__perfil { box-shadow: none !important; }
 .topbar-sino__n { top: -3px !important; right: -3px !important; border-radius: 8px !important; background: var(--perigo) !important; color: #fff !important; font-weight: 600 !important; box-shadow: 0 0 0 2px var(--surface) !important; }
 .topbar__hamburger { border-radius: 50% !important; background: var(--card) !important; box-shadow: inset 0 0 0 1px var(--border-subtle) !important; }
 
-.content { max-width: 1440px !important; padding: 0 36px 64px !important; }
+.content { max-width: 1440px !important; margin-inline: auto !important; padding: 0 36px 64px !important; }   /* centralizado na área livre: com a sidebar retraída sobra o mesmo espaço dos dois lados */
 .content > .alerta:first-child { margin-top: 24px; }
 .form-ficha__lado, .ver-lado, .orc__lado, .config__menu { top: 76px !important; }
 
