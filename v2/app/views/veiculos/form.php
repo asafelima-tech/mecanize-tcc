@@ -52,8 +52,15 @@ $secoes = [['identificacao', 'plate', 'Identificação'], ['caracteristicas', 'c
           </div>
         </div>
         <div class="mf-linha">
-          <div class="mf-linha__rotulo"><label for="placa">Placa</label><small>Modelo antigo ou Mercosul.</small></div>
-          <div class="mf-linha__campo"><input id="placa" name="placa" class="campo-placa" value="<?= $val('placa') ?>" data-mascara="placa" required placeholder="ABC1D23" autocomplete="off" style="text-transform:uppercase"></div>
+          <div class="mf-linha__rotulo"><label for="placa">Placa</label><small data-placa-dica>Digite ou leia pela foto.</small></div>
+          <div class="mf-linha__campo">
+            <div class="placa-entrada">
+              <input id="placa" name="placa" class="campo-placa" value="<?= $val('placa') ?>" data-mascara="placa" required placeholder="ABC1D23" autocomplete="off" style="text-transform:uppercase">
+              <button type="button" class="btn btn--ghost placa-entrada__foto" data-ler-placa title="Ler a placa por uma foto"><?= icone('scan-plate', 16, 1.8) ?><span>Ler pela foto</span></button>
+              <input type="file" accept="image/*" capture="environment" class="sr-only" data-placa-arquivo tabindex="-1" aria-hidden="true">
+            </div>
+            <div class="placa-leitura" data-placa-leitura hidden aria-live="polite"></div>
+          </div>
         </div>
       </section>
 
@@ -149,6 +156,90 @@ $secoes = [['identificacao', 'plate', 'Identificação'], ['caracteristicas', 'c
         rotulo.setAttribute('for', usarTexto ? 'modelo_texto' : 'modelo_id');
       });
       carregar();
+    })();
+
+    (function () {
+      // Placa: mostra o padrão enquanto digita e lê a placa por uma foto. A leitura é só uma sugestão: aparece
+      // embaixo do campo, desenhada no padrão dela, e só vai para o campo quando a pessoa escolhe "Usar".
+      var raiz = document.currentScript.closest('.mf');
+      var campo = raiz.querySelector('#placa'), dica = raiz.querySelector('[data-placa-dica]'), dicaPadrao = dica.textContent;
+      var botao = raiz.querySelector('[data-ler-placa]'), arquivo = raiz.querySelector('[data-placa-arquivo]');
+      var painel = raiz.querySelector('[data-placa-leitura]'), token = (raiz.querySelector('[name=csrf_token]') || {}).value || '';
+
+      function limpar(t) { return String(t || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+      function tipo(p) { return /^[A-Z]{3}\d[A-Z]\d{2}$/.test(p) ? 'mercosul' : (/^[A-Z]{3}\d{4}$/.test(p) ? 'antiga' : ''); }
+      function plaquinha(p) {
+        var t = tipo(p), s = document.createElement('span');
+        s.className = 'placa-caixa placa-caixa--p' + (t ? ' placa-caixa--' + t : '');
+        s.textContent = t === 'antiga' ? p.slice(0, 3) + '-' + p.slice(3) : p;
+        return s;
+      }
+      function atualizarDica() {
+        var t = tipo(limpar(campo.value));
+        dica.textContent = t === 'mercosul' ? 'Placa Mercosul.' : (t === 'antiga' ? 'Placa modelo antigo.' : dicaPadrao);
+      }
+      campo.addEventListener('input', atualizarDica);
+      atualizarDica();
+
+      function usar(p) {
+        if (campo._mascara) campo._mascara.value = p; else campo.value = p;
+        campo.dispatchEvent(new Event('input', { bubbles: true }));
+        campo.dispatchEvent(new Event('change', { bubbles: true }));
+        painel.hidden = true; painel.innerHTML = '';
+        campo.focus();
+      }
+      function mostrar(html, classe) { painel.className = 'placa-leitura' + (classe ? ' ' + classe : ''); painel.innerHTML = html; painel.hidden = false; }
+
+      function resultado(r) {
+        if (!r || !r.ok || !r.placa) { mostrar('', 'is-erro'); painel.textContent = (r && r.erro) || 'Não foi possível ler a placa. Digite a placa.'; return; }
+        mostrar('<span class="placa-leitura__rotulo">Lemos esta placa</span><span class="placa-leitura__placa"></span>'
+          + '<button type="button" class="btn btn--primary btn--sm" data-usar>Usar</button>', r.baixa_confianca ? 'is-incerta' : '');
+        painel.querySelector('.placa-leitura__placa').appendChild(plaquinha(r.placa));
+        painel.querySelector('[data-usar]').addEventListener('click', function () { usar(r.placa); });
+        var aviso = r.erro || (r.baixa_confianca ? 'A leitura ficou incerta: confira com a placa do carro.' : '');
+        if (aviso) { var a = document.createElement('small'); a.className = 'placa-leitura__aviso'; a.textContent = aviso; painel.appendChild(a); }
+        if (r.candidatos && r.candidatos.length) {
+          var alt = document.createElement('div'); alt.className = 'placa-leitura__outras';
+          alt.appendChild(document.createTextNode('Ou: '));
+          r.candidatos.forEach(function (c) {
+            var b = document.createElement('button'); b.type = 'button'; b.className = 'placa-leitura__opcao'; b.title = 'Usar ' + c.placa;
+            b.appendChild(plaquinha(c.placa)); b.addEventListener('click', function () { usar(c.placa); });
+            alt.appendChild(b);
+          });
+          painel.appendChild(alt);
+        }
+      }
+
+      // A foto é reduzida no navegador (até 1600 px, JPEG) antes de enviar: sobe mais rápido e fica abaixo do limite.
+      function reduzir(f) {
+        return new Promise(function (ok) {
+          if (!window.createImageBitmap || !HTMLCanvasElement.prototype.toBlob) { ok(f); return; }
+          createImageBitmap(f).then(function (img) {
+            var esc = Math.min(1, 1600 / Math.max(img.width, img.height)), c = document.createElement('canvas');
+            c.width = Math.round(img.width * esc); c.height = Math.round(img.height * esc);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            c.toBlob(function (b) { ok(b || f); }, 'image/jpeg', .88);
+          }).catch(function () { ok(f); });
+        });
+      }
+
+      botao.addEventListener('click', function () { arquivo.value = ''; arquivo.click(); });
+      arquivo.addEventListener('change', function (e) {
+        e.stopPropagation();
+        var f = arquivo.files && arquivo.files[0];
+        if (!f) return;
+        botao.disabled = true; botao.classList.add('is-enviando');
+        mostrar('<span class="placa-leitura__carregando" aria-hidden="true"></span>Lendo a placa…', 'is-lendo');
+        reduzir(f).then(function (img) {
+          var dados = new FormData();
+          dados.append('imagem', img, 'placa.jpg');
+          dados.append('csrf_token', token);
+          return fetch('./veiculo-placa', { method: 'POST', body: dados, credentials: 'same-origin', headers: { 'X-Requested-With': 'fetch', 'X-CSRF-Token': token } });
+        }).then(function (r) { return r.json(); })
+          .then(resultado)
+          .catch(function () { resultado({ ok: false, erro: 'Sem conexão com o servidor. Tente de novo ou digite a placa.' }); })
+          .then(function () { botao.disabled = false; botao.classList.remove('is-enviando'); arquivo.value = ''; });
+      });
     })();
   </script>
 </form>

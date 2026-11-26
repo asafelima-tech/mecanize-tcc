@@ -121,3 +121,68 @@ function icone(string $nome, int $tamanho = 16, float $traco = 1.5, string $clas
         . '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="' . $traco
         . '" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="' . $d . '"/></svg>';
 }
+
+/**
+ * Caminho SVG de uma curva suave que passa por cada ponto [[x, y], ...] (coordenadas de 0 a 100, x crescente).
+ * Monotônica (Fritsch-Carlson): ondas suaves sem subir ou descer além dos valores reais entre dois pontos.
+ */
+function curva_suave(array $pts): string
+{
+    $pts = array_values($pts);
+    $n = count($pts);
+    if (!$n) return '';
+    $f = fn (float $v): string => (string) round($v, 3);
+    $d = 'M ' . $f($pts[0][0]) . ' ' . $f($pts[0][1]);
+    if ($n === 1) return $d;
+
+    $inc = [];
+    for ($i = 0; $i < $n - 1; $i++) {
+        $dx = $pts[$i + 1][0] - $pts[$i][0];
+        $inc[$i] = $dx == 0 ? 0.0 : ($pts[$i + 1][1] - $pts[$i][1]) / $dx;
+    }
+    $tan = [$inc[0]];
+    for ($i = 1; $i < $n - 1; $i++) $tan[$i] = $inc[$i - 1] * $inc[$i] <= 0 ? 0.0 : ($inc[$i - 1] + $inc[$i]) / 2;
+    $tan[$n - 1] = $inc[$n - 2];
+    for ($i = 0; $i < $n - 1; $i++) {
+        if ($inc[$i] == 0) { $tan[$i] = 0.0; $tan[$i + 1] = 0.0; continue; }
+        $a = $tan[$i] / $inc[$i]; $b = $tan[$i + 1] / $inc[$i]; $s = $a * $a + $b * $b;
+        if ($s > 9) { $t = 3 / sqrt($s); $tan[$i] = $t * $a * $inc[$i]; $tan[$i + 1] = $t * $b * $inc[$i]; }
+    }
+    for ($i = 0; $i < $n - 1; $i++) {
+        $dx = ($pts[$i + 1][0] - $pts[$i][0]) / 3;
+        $d .= ' C ' . $f($pts[$i][0] + $dx) . ' ' . $f($pts[$i][1] + $tan[$i] * $dx)
+            . ', ' . $f($pts[$i + 1][0] - $dx) . ' ' . $f($pts[$i + 1][1] - $tan[$i + 1] * $dx)
+            . ', ' . $f($pts[$i + 1][0]) . ' ' . $f($pts[$i + 1][1]);
+    }
+
+    return $d;
+}
+
+/** Padrão da placa pelo formato: 'mercosul' (ABC1D23), 'antiga' (ABC1234) ou null se não reconhecer. */
+function placa_tipo(?string $placa): ?string
+{
+    $p = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $placa));
+    if (preg_match('/^[A-Z]{3}\d[A-Z]\d{2}$/', $p)) return 'mercosul';
+    if (preg_match('/^[A-Z]{3}\d{4}$/', $p)) return 'antiga';
+
+    return null;
+}
+
+/**
+ * Placa desenhada no padrão dela, para reconhecer sem precisar ler: Mercosul com a faixa de cima no azul do
+ * sistema; modelo antigo cinza, sem faixa e com o hífen (ABC-1234), como a placa de verdade.
+ * $pequena: versão de tabela e lista. Com $href, a placa é um link.
+ */
+function placa_caixa(?string $placa, bool $pequena = true, ?string $href = null): string
+{
+    $tipo = placa_tipo($placa);
+    $p = strtoupper(preg_replace('/[^A-Za-z0-9]/', '', (string) $placa));
+    $texto = $tipo === 'antiga' ? substr($p, 0, 3) . '-' . substr($p, 3) : ($tipo ? $p : strtoupper(trim((string) $placa)));
+    $classe = 'placa-caixa' . ($pequena ? ' placa-caixa--p' : '') . ($tipo ? ' placa-caixa--' . $tipo : '');
+    $titulo = $tipo === 'mercosul' ? 'Placa Mercosul' : ($tipo === 'antiga' ? 'Placa modelo antigo' : 'Placa');
+    $atr = ' class="' . $classe . '" title="' . $titulo . '"';
+
+    return $href !== null
+        ? '<a' . $atr . ' href="' . e($href) . '">' . e($texto) . '</a>'
+        : '<span' . $atr . '>' . e($texto) . '</span>';
+}

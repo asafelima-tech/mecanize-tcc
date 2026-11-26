@@ -108,7 +108,7 @@ $admin = Permissao::permite(Contexto::perfil(), Permissao::ADMIN);
               <?php foreach ($historico as $os): [$r, $cor] = os_status($os['status']); $link = './os?id=' . (int) $os['id']; ?>
                 <tr data-href="<?= $link ?>">
                   <td><a href="<?= $link ?>"><strong><?= os_numero($os['numero']) ?></strong></a></td>
-                  <td><span class="placa-caixa placa-caixa--p"><?= e($os['placa']) ?></span></td>
+                  <td><?= placa_caixa($os['placa']) ?></td>
                   <td class="tabular"><?= data_br($os['criado_em']) ?></td>
                   <td class="tabular secundario"><?= $os['entregue_em'] ? data_br($os['entregue_em']) : '—' ?></td>
                   <td><span class="badge badge--<?= $cor ?>"><?= $r ?></span></td>
@@ -130,7 +130,7 @@ $admin = Permissao::permite(Contexto::perfil(), Permissao::ADMIN);
     <ul class="ver-veiculos">
       <?php foreach ($veiculos as $v): $det = array_filter([$v['ano'] ?? '', $v['cor'] ?? '', $v['combustivel'] ?? ''], fn($x) => (string) $x !== ''); ?>
         <li><a href="./veiculo?id=<?= (int) $v['id'] ?>" class="ver-veiculo<?= $v['ativo'] ? '' : ' is-inativo' ?>">
-          <span class="placa-caixa placa-caixa--p"><?= e($v['placa']) ?></span>
+          <?= placa_caixa($v['placa']) ?>
           <span class="ver-veiculo__texto"><strong><?= e($v['modelo'] ?: 'Modelo não informado') ?></strong><small><?= e(implode(' · ', $det)) ?><?= $v['ativo'] ? '' : ($det ? ' · ' : '') . 'Inativo' ?></small></span>
           <?= icone('chevron-right', 14, 2) ?>
         </a></li>

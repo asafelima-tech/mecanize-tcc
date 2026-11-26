@@ -3,20 +3,25 @@
   <img class="login-vitrine__marca-dagua" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="simbolo" alt="" aria-hidden="true">
   <img class="login-vitrine__logo" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
 
-  <div class="login-vitrine__cena" aria-hidden="true">
-    <div class="login-vitrine__os">
-      <div class="login-vitrine__topo"><span>OS #1042</span><span class="login-vitrine__chip">Em andamento</span></div>
-      <strong class="login-vitrine__nome">Carlos Andrade</strong>
-      <span class="login-vitrine__sub">VW Polo · <b>BRA2E19</b></span>
-      <span class="login-vitrine__barra"><span></span></span>
+  <!-- Prévia do sistema: os mesmos cartões do Início e da Agenda (números do painel e um agendamento). -->
+  <div class="login-vitrine__cena vit" aria-hidden="true">
+    <div class="vit-cartao vit-cartao--numero vit-cartao--fat">
+      <div class="vit-numero__topo"><span>Faturamento mensal</span><i class="vit-chip">+45%</i></div>
+      <strong class="vit-numero__valor">R$ 6.429,90</strong>
+      <span class="vit-numero__pe">16 OS entregues no mês</span>
     </div>
-    <div class="login-vitrine__faturamento">
-      <div><span class="login-vitrine__rotulo">Faturamento</span><strong>R$ 48.320</strong><b>+12% no mês</b></div>
-      <svg width="56" height="56" viewBox="0 0 84 84"><circle cx="42" cy="42" r="34" fill="none" stroke="#D2D2D7" stroke-width="10"/><circle cx="42" cy="42" r="34" fill="none" stroke="#1D1D1F" stroke-width="10" stroke-linecap="round" stroke-dasharray="153.8 213.6" transform="rotate(-90 42 42)"/></svg>
+    <div class="vit-cartao vit-cartao--numero vit-cartao--escuro vit-cartao--andamento">
+      <div class="vit-numero__topo"><span>Em andamento</span><i class="vit-chip">3 prontas</i></div>
+      <strong class="vit-numero__valor">5</strong>
+      <span class="vit-numero__pe">Serviços em execução</span>
     </div>
-    <div class="login-vitrine__aviso">
-      <span class="login-vitrine__check"><?= icone('check', 16, 2.4) ?></span>
-      <span><b>OS #1040 concluída</b><span class="login-vitrine__sub" style="display:block">R$ 2.940,00 lançado no caixa</span></span>
+    <div class="vit-cartao vit-cartao--agenda">
+      <div class="vit-agenda__hora"><b>09:00</b><span>até 10:00</span></div>
+      <div class="vit-agenda__corpo">
+        <div class="vit-agenda__titulo"><b>Troca de óleo e filtros</b><i class="vit-badge"><i></i>Agendado</i></div>
+        <span class="vit-agenda__meta">Fernanda Costa Lima · <b>ILD6X26</b> · Gabriel</span>
+      </div>
+      <span class="vit-botao">Confirmar</span>
     </div>
   </div>
 

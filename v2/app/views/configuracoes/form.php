@@ -50,10 +50,10 @@ $secoes = [['oficina', 'home', 'Oficina'], ['endereco', 'location', 'Endereço']
           <div class="mf-linha__rotulo"><span id="rotulo-logo">Logotipo</span><small id="logo-dica">JPG, PNG ou WEBP até 5 MB. Sai no orçamento, na OS e no acompanhamento.</small></div>
           <div class="mf-linha__campo mf-linha__campo--fim">
             <div class="mf-logo<?= $temLogo ? ' tem-logo' : '' ?>">
-              <label class="mf-logo__miniatura" for="logo-arquivo" title="Trocar logotipo">
+              <button type="button" class="mf-logo__miniatura" title="<?= $temLogo ? 'Ver logotipo' : 'Enviar logotipo' ?>" aria-label="<?= $temLogo ? 'Ver logotipo' : 'Enviar logotipo' ?>">
                 <img id="logo-previa" src="<?= $temLogo ? './oficina-logo?v=' . e(substr(md5($of['logo_caminho']), 0, 8)) : '' ?>" alt="Logotipo da oficina"<?= $temLogo ? '' : ' hidden' ?>>
                 <span class="mf-logo__vazio"<?= $temLogo ? ' hidden' : '' ?>><?= icone('image', 18) ?></span>
-              </label>
+              </button>
               <label class="btn btn--ghost btn--sm mf-logo__botao">
                 <span id="logo-acao"><?= $temLogo ? 'Trocar' : 'Enviar' ?></span>
                 <input type="file" name="logo" accept="image/jpeg,image/png,image/webp" class="sr-only" id="logo-arquivo" aria-describedby="logo-dica" aria-label="Enviar logotipo (JPG, PNG ou WEBP até 5 MB)">
@@ -207,8 +207,41 @@ $secoes = [['oficina', 'home', 'Oficina'], ['endereco', 'location', 'Endereço']
       var arq = form.querySelector('#logo-arquivo'), img = form.querySelector('#logo-previa'), vazio = form.querySelector('.mf-logo__vazio');
       var remover = form.querySelector('#logo-remover'), removerCampo = form.querySelector('#remover-logo'), caixa = form.querySelector('.mf-logo');
       var acao = form.querySelector('#logo-acao'), dica = form.querySelector('#logo-dica'), dicaOriginal = dica.textContent;
+      // Foto ou imagem quase quadrada preenche a miniatura; logo comprido aparece inteiro.
+      var ajustarLogo = function () {
+        var r = img.naturalWidth && img.naturalHeight ? img.naturalWidth / img.naturalHeight : 2;
+        img.classList.toggle('is-foto', r >= .7 && r <= 1.45);
+      };
+      img.addEventListener('load', ajustarLogo);
+      if (img.complete && img.naturalWidth) ajustarLogo();
+
+      // Clicar na miniatura mostra o logotipo ampliado (como o Visualização Rápida do Mac); sem logotipo, abre a
+      // escolha de arquivo. Fecha com Esc, com o X ou clicando fora da imagem.
+      var mini = form.querySelector('.mf-logo__miniatura'), iconeFechar = <?= json_encode(icone('close', 18, 1.75)) ?>;
+      mini.addEventListener('click', function () {
+        if (img.hidden || !img.getAttribute('src')) { arq.click(); return; }
+        var d = document.createElement('dialog');
+        d.className = 'visor';
+        d.setAttribute('aria-label', 'Logotipo da oficina');
+        d.innerHTML = '<button type="button" class="visor__fechar" aria-label="Fechar">' + iconeFechar + '</button><img alt="">';
+        var grande = d.querySelector('img');
+        grande.src = img.src; grande.alt = img.alt;
+        if (img.classList.contains('is-foto')) grande.classList.add('is-foto');
+        document.body.appendChild(d);
+        var fechar = function () {
+          if (d.classList.contains('is-saindo')) return;
+          d.classList.add('is-saindo');
+          setTimeout(function () { d.close(); d.remove(); mini.focus({ preventScroll: true }); }, 180);
+        };
+        d.addEventListener('cancel', function (e) { e.preventDefault(); fechar(); });
+        d.addEventListener('click', function (e) { if (e.target === d || e.target.closest('.visor__fechar')) fechar(); });
+        d.showModal();
+        d.querySelector('.visor__fechar').focus({ preventScroll: true });
+      });
       var mostrarLogo = function (src) {
         img.hidden = !src; vazio.hidden = !!src; caixa.classList.toggle('tem-logo', !!src); remover.hidden = !src;
+        mini.title = src ? 'Ver logotipo' : 'Enviar logotipo'; mini.setAttribute('aria-label', mini.title);
+        if (!src) img.removeAttribute('src');
         acao.textContent = src ? 'Trocar' : 'Enviar';
         if (src) img.src = src;
       };

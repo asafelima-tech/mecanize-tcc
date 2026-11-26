@@ -66,14 +66,21 @@ $secoes = [['identificacao', 'user', 'Identificação'], ['acesso', 'lock', 'Ace
             <span id="rotulo-perfil">Perfil</span>
             <small id="perfil-desc"><?= $eu ? 'Você não pode mudar o próprio perfil.' : e($descPerfil[$perfilAtual] ?? '') ?></small>
           </div>
-          <div class="mf-linha__campo">
-            <div class="segmento" role="radiogroup" aria-labelledby="rotulo-perfil" aria-describedby="perfil-desc">
-              <?php foreach (Usuario::PERFIS as $k => $r): ?>
-                <label><input type="radio" name="perfil" value="<?= $k ?>" data-desc="<?= e($descPerfil[$k] ?? '') ?>" <?= $perfilAtual === $k ? 'checked' : '' ?> <?= $eu ? 'disabled' : '' ?>><span><?= e($r) ?></span></label>
-              <?php endforeach; ?>
+          <?php if ($eu): ?>
+            <?php // Na própria conta o perfil não muda: aparece só o valor (como em "Meu perfil"), sem um seletor apagado. ?>
+            <div class="mf-linha__campo mf-linha__campo--fim">
+              <span class="mf-leitura"><?= e(Usuario::PERFIS[$perfilAtual] ?? $perfilAtual) ?></span>
+              <input type="hidden" name="perfil" value="<?= $val('perfil') ?>">
             </div>
-            <?php if ($eu): ?><input type="hidden" name="perfil" value="<?= $val('perfil') ?>"><?php endif; ?>
-          </div>
+          <?php else: ?>
+            <div class="mf-linha__campo">
+              <div class="segmento" role="radiogroup" aria-labelledby="rotulo-perfil" aria-describedby="perfil-desc">
+                <?php foreach (Usuario::PERFIS as $k => $r): ?>
+                  <label><input type="radio" name="perfil" value="<?= $k ?>" data-desc="<?= e($descPerfil[$k] ?? '') ?>" <?= $perfilAtual === $k ? 'checked' : '' ?>><span><?= e($r) ?></span></label>
+                <?php endforeach; ?>
+              </div>
+            </div>
+          <?php endif; ?>
         </div>
         <div class="mf-linha">
           <div class="mf-linha__rotulo"><label for="senha"><?= $id ? 'Nova senha' : 'Senha' ?></label><small><?= $id ? 'Preencha só para trocar a senha.' : 'A pessoa entra com o e-mail e esta senha.' ?></small></div>

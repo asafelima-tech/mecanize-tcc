@@ -200,8 +200,14 @@ body.sidebar-collapsed .sidebar__perfil { box-shadow: none !important; }
 .btn--danger-ghost:hover { background: var(--perigo-fundo) !important; }
 .btn--sm { height: 30px !important; padding: 0 14px !important; font-size: 13px !important; }
 .btn--lg { height: 44px !important; padding: 0 24px !important; font-size: 16px !important; }
-.btn--icone { width: 36px !important; padding: 0 !important; justify-content: center; }
-.btn--sm.btn--icone { width: 30px !important; }
+/* Botão só de ícone: sempre um círculo perfeito (largura = altura), ícone centralizado e traço um pouco mais firme. */
+.btn--icone { width: 36px !important; height: 36px !important; flex: none; padding: 0 !important; justify-content: center; align-items: center; }
+.btn--sm.btn--icone { width: 30px !important; height: 30px !important; }
+/* margin 0: tira o recuo de 2 px que os botões com texto dão ao ícone (mecanize.css), que o descentralizava aqui. */
+.btn--icone .icone { width: 17px; height: 17px; margin: 0 !important; stroke-width: 2.1; stroke-linecap: round; stroke-linejoin: round; }
+/* Excluir: discreto como os botões cinza ao lado; fica vermelho só ao passar o mouse. */
+.btn--excluir { color: var(--text-secondary) !important; }
+.btn--excluir:hover, .btn--excluir:focus-visible { background: var(--perigo-fundo) !important; color: var(--perigo) !important; }
 .btn:disabled, .btn[aria-disabled="true"] { opacity: .4; }
 .btn:focus-visible { outline: none; box-shadow: var(--focus-ring) !important; }
 
@@ -314,6 +320,10 @@ input[type=checkbox], input[type=radio] { accent-color: var(--acento); }
 [data-theme="dark"] .opcao { background: var(--recuo) !important; }
 .opcao:has(input:checked) { box-shadow: inset 0 0 0 1.5px var(--acento) !important; }
 .segmento { background: var(--fill) !important; border-radius: var(--r-chip) !important; padding: 3px !important; box-shadow: none !important; }
+/* O rádio de cada opção fica sempre escondido (só a pílula aparece), inclusive desativado: a regra geral de
+   rádio desativado (opacidade .45) fazia as bolinhas reaparecerem por cima das pílulas. */
+.segmento input[type="radio"] { position: absolute !important; width: 1px !important; height: 1px !important; margin: 0 !important; opacity: 0 !important;
+  box-shadow: none !important; pointer-events: none; }
 .segmento label span { border-radius: var(--r-chip) !important; }
 .segmento input:checked + span { background: var(--card) !important; color: var(--text) !important; box-shadow: 0 1px 4px rgba(0, 0, 0, .12) !important; }
 
@@ -556,9 +566,12 @@ body.sidebar-collapsed .sidebar__tema .interruptor { margin: 0; }
 .pm__alternar button[aria-checked="true"] { background: var(--card); color: var(--text); font-weight: 600; box-shadow: 0 1px 3px rgba(0, 0, 0, .1); }
 [data-theme="dark"] .pm__alternar button[aria-checked="true"] { background: var(--fill-forte); }
 
-.pm__grade { position: relative; display: grid; grid-template-columns: repeat(var(--colunas), minmax(0, 1fr)); column-gap: 4px; padding-top: 6px; cursor: crosshair; touch-action: pan-y; }
+/* Colunas próximas umas das outras (~17 px) ocupando a largura toda do cartão: o script da tela calcula quantos
+   dias cabem e esconde os mais antigos (.is-fora). A legenda de baixo segue a mesma divisão. */
+.pm__grade { position: relative; display: grid; grid-template-columns: repeat(var(--colunas), minmax(0, 1fr)); column-gap: 1px; padding-top: 6px; cursor: crosshair; touch-action: pan-y; }
+.pm__col.is-fora, .pm__eixo > .is-fora { display: none !important; }
 .pm__col { display: flex; flex-direction: column-reverse; align-items: center; gap: 5px; padding: 4px 0; border-radius: 8px; transition: opacity .2s var(--ease), background-color .2s var(--ease); }
-.pm__col i { display: block; width: min(100%, 11px); aspect-ratio: 1; border-radius: 50%; background: var(--grafico-vazio);
+.pm__col i { display: block; width: min(100%, 12px); aspect-ratio: 1; border-radius: 50%; background: var(--grafico-vazio);
   transition: background-color .35s var(--ease-saida) calc(var(--k) * 18ms), transform .35s var(--ease-saida);
   animation: pm-surge .5s var(--ease-saida) both; animation-delay: calc(var(--c) * 14ms + var(--k) * 22ms); }
 @keyframes pm-surge { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: none; } }
@@ -568,7 +581,7 @@ body.sidebar-collapsed .sidebar__tema .interruptor { margin: 0; }
 .pm__col.is-ativa i { transform: scale(1.12); }
 
 .pm.is-dia .pm__resumo b, .pm.is-dia .pm__resumo span { color: var(--text); }
-.pm__eixo { display: grid; grid-template-columns: repeat(var(--colunas), minmax(0, 1fr)); column-gap: 4px; font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+.pm__eixo { display: grid; grid-template-columns: repeat(var(--colunas), minmax(0, 1fr)); column-gap: 1px; font-size: 11px; color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
 .pm__eixo span { white-space: nowrap; overflow: visible; }
 .pm__eixo span:last-child { justify-self: end; color: var(--text-secondary); font-weight: 600; }
 
@@ -957,7 +970,7 @@ a.rl-lista__nome:hover { color: var(--link); opacity: 1; }
 .rl-lista li > b small { font-size: 11.5px; font-weight: 400; color: var(--text-tertiary); }
 .rl-trilho { display: block; height: 6px; border-radius: 3px; background: var(--grafico-vazio); overflow: hidden; }
 .rl-trilho i { display: block; height: 100%; border-radius: 3px; background: var(--grafico-1); }
-.rl-lista--clientes li { grid-template-columns: 26px minmax(0, 1fr) minmax(60px, 30%) minmax(100px, auto); }
+.rl-lista--clientes li { grid-template-columns: 26px minmax(0, 1fr) auto; }
 /* Cartão estreito: a barra desce para baixo do nome e o nome usa a largura toda. */
 @container (max-width: 460px) {
   .rl-lista li { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; padding: 9px 0; }
@@ -1609,6 +1622,133 @@ html.mf-aberta { overflow: hidden; }
   .mf--simples .mf__conteudo { padding: 0 20px 28px; }
 }
 
+/* ── 41. Login: prévia do sistema na vitrine ───────────────────────────────────────────────────────
+   Os mesmos cartões do sistema (números do Início e um agendamento da Agenda), flutuando sobre o fundo
+   escuro da vitrine. Cores fixas: a vitrine é sempre escura, no tema claro ou no escuro. */
+.vit { position: relative; height: 340px; }
+.vit-cartao { position: absolute; border-radius: 20px; background: #FFFFFF; color: #1D1D1F; font-family: var(--font);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .45), 0 2px 8px rgba(0, 0, 0, .2); }
+.vit-cartao--escuro { background: #303030; color: #F5F5F7; box-shadow: 0 0 0 1px rgba(255, 255, 255, .08), 0 24px 60px rgba(0, 0, 0, .5); }
+.vit-cartao--numero { display: flex; flex-direction: column; gap: 4px; padding: 20px 22px 18px; }
+.vit-cartao--fat { left: 0; top: 0; width: min(280px, 58%); z-index: 2; }
+.vit-cartao--andamento { right: 0; top: 62px; width: min(230px, 46%); z-index: 1; }
+.vit-cartao--agenda { left: 6%; right: 0; bottom: 8px; z-index: 3; display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 18px; padding: 18px 20px; }
+.vit-numero__topo { display: flex; align-items: center; justify-content: space-between; gap: 10px; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: #6E6E73; }
+.vit-cartao--escuro .vit-numero__topo { color: #A1A1A6; }
+.vit-chip { flex: none; padding: 3px 9px; border-radius: 980px; background: #E8E8ED; color: #1D1D1F; font-size: 11.5px; font-style: normal; font-weight: 600; }
+.vit-cartao--escuro .vit-chip { background: #3A3A3C; color: #F5F5F7; }
+.vit-numero__valor { margin-top: 6px; font-family: var(--font-titulo); font-size: 28px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.vit-numero__pe { font-size: 12.5px; color: #6E6E73; }
+.vit-cartao--escuro .vit-numero__pe { color: #A1A1A6; }
+.vit-agenda__hora { display: flex; flex-direction: column; gap: 2px; }
+.vit-agenda__hora b { font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.vit-agenda__hora span { font-size: 12px; color: #6E6E73; white-space: nowrap; }
+.vit-agenda__corpo { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.vit-agenda__titulo { display: flex; align-items: center; gap: 8px; min-width: 0; }
+.vit-agenda__titulo > b { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; font-weight: 600; letter-spacing: -0.01em; }
+.vit-badge { flex: none; display: inline-flex; align-items: center; gap: 5px; padding: 3px 9px; border-radius: 980px; background: #E8E8ED; font-size: 11.5px; font-style: normal; font-weight: 600; }
+.vit-badge > i { width: 6px; height: 6px; border-radius: 50%; background: #1D1D1F; }
+.vit-agenda__meta { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #6E6E73; }
+.vit-agenda__meta b { color: #1D1D1F; font-weight: 600; letter-spacing: .04em; }
+.vit-botao { flex: none; display: inline-flex; align-items: center; height: 32px; padding: 0 14px; border-radius: 980px; background: #0071E3; color: #FFFFFF; font-size: 13px; font-weight: 500; }
+
+/* ── 42. Início: anel de tracinhos (Status das OS) e tendência do faturamento ───────────────────────
+   Anel: 60 tracinhos finos e arredondados em volta do total, cada situação no seu tom; aparecem em sequência
+   ao abrir a tela. Faturamento: valor, variação e um gráfico compacto de linha fina (ver abaixo). */
+.rosca__desenho--tracos line { stroke-width: 3; stroke-linecap: round; animation: rosca-marca .45s var(--ease-saida) both; animation-delay: calc(var(--m) * 7ms); }
+@keyframes rosca-marca { from { opacity: 0; } }
+.rosca__desenho--tracos .rosca__centro b { font-family: var(--font-titulo); font-size: 30px; font-weight: 600; letter-spacing: -0.035em; line-height: 1.1; }
+.rosca__desenho--tracos .rosca__centro span { font-size: 12px; }
+
+/* Faturamento por mês: a estrutura de sempre (escala à esquerda, grade discreta, meses embaixo) ocupando a altura
+   do card, com o desenho fino da referência: linha de 1,5 px com pequenas ondas no azul do sistema e o degradê
+   descendo do azul para o cinza escuro do sistema no finalzinho, como uma mistura das duas cores. */
+.fat__quadro { flex: 1 1 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; min-height: 220px; }
+.fat__escala { display: flex; flex-direction: column; justify-content: space-between; margin-top: -6px; padding-bottom: 18px; font-size: 10px; color: var(--text-tertiary);
+  text-align: right; font-variant-numeric: tabular-nums; }
+.fat__area-grafico { position: relative; min-width: 0; }
+.fat__grade { position: absolute; left: 0; right: 0; height: 1px; background: var(--hairline); }
+.fat__grafico { position: absolute; left: 0; right: 0; top: 0; bottom: 18px; z-index: 1; cursor: default; touch-action: pan-y; }
+.fat__grafico svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; animation: curva-surge 1.1s var(--ease-saida) both; }
+@keyframes curva-surge { from { clip-path: inset(-12px 100% -12px -12px); } to { clip-path: inset(-12px -12px -12px -12px); } }
+.fat__linha { fill: none; stroke: var(--acento); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fat__degrade-azul { stop-color: var(--acento); stop-opacity: .26; }
+.fat__degrade-meio { stop-color: color-mix(in srgb, var(--acento) 45%, var(--grafico-1)); stop-opacity: .1; }
+.fat__degrade-cinza { stop-color: var(--grafico-1); stop-opacity: .03; }
+[data-theme="dark"] .fat__degrade-azul { stop-opacity: .3; }
+.fat__meses { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; pointer-events: none; }
+.fat__meses span { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--text-secondary); white-space: nowrap; }
+.fat__meses span.is-inicio { transform: none; }
+.fat__meses span.is-fim { transform: translateX(-100%); }
+.fat__dica.is-a-direita { transform: translate(-16px, calc(-100% - 12px)); }
+/* Ponto e balão que deslizam sobre a linha (posicionados pelo script da tela, quadro a quadro). */
+.fat__ponto { position: absolute; z-index: 2; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--acento); box-shadow: 0 0 0 3px var(--card);
+  opacity: 0; pointer-events: none; transition: opacity .15s var(--ease); }
+.fat__dica { position: absolute; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 10px; border-radius: 9px;
+  background: var(--action); color: var(--on-action); font-size: 12px; font-weight: 600; line-height: 1.25; white-space: nowrap; font-variant-numeric: tabular-nums;
+  box-shadow: 0 4px 14px -4px rgba(0, 0, 0, .3); transform: translate(-50%, calc(-100% - 12px)); opacity: 0; pointer-events: none; transition: opacity .15s var(--ease); }
+.fat__dica.is-a-esquerda { transform: translate(calc(-100% + 16px), calc(-100% - 12px)); }
+.fat__dica small { font-size: 10.5px; font-weight: 500; opacity: .7; }
+.fat__grafico.is-seguindo .fat__ponto, .fat__grafico.is-seguindo .fat__dica { opacity: 1; }
+@media (max-width: 599.98px) { .fat__quadro { min-height: 180px; } }
+@media (prefers-reduced-motion: reduce) { .rosca__desenho--tracos line, .fat__grafico svg { animation: none; } }
+/* Azul do sistema só no que está acontecendo agora ou no que está sob o mouse: a coluna de hoje e a coluna
+   escolhida no Fluxo de OS × Receita, as OS em andamento no anel e o ponto que segue o mouse na linha. */
+.pm[data-metrica="os"] .pm__col.is-hoje i.o, .pm[data-metrica="rec"] .pm__col.is-hoje i.r,
+.pm[data-metrica="os"] .pm__col.is-ativa i.o, .pm[data-metrica="rec"] .pm__col.is-ativa i.r { background: var(--acento); }
+.pm__eixo span:last-child { color: var(--link); }
+
+/* ── 43. Agenda: rodapé de páginas (o mesmo "Mostrando X de Y" das tabelas), num cartão fino abaixo dos dias. */
+.card.agenda-paginas { padding: 6px 6px 6px 8px !important; }
+.agenda-paginas .rodape-tabela { border-top: 0 !important; min-height: 44px; }
+
+/* ── 44. Placas: Mercosul e modelo antigo ────────────────────────────────────────────────────────────
+   O padrão sai do formato (placa_caixa() em Html.php) e cada um tem o seu desenho, para reconhecer de relance:
+   Mercosul é a placa clara com contorno e a faixa de cima no azul do sistema (a faixa azul da placa real);
+   a antiga é cinza preenchida, sem faixa, com o hífen. Sem padrão reconhecido, fica o desenho neutro. */
+.placa-caixa { background: var(--card); color: var(--text); white-space: nowrap; }
+.placa-caixa--mercosul { box-shadow: inset 0 0 0 1.5px var(--text), inset 0 5px 0 var(--acento) !important; }
+.placa-caixa--p.placa-caixa--mercosul { box-shadow: inset 0 0 0 1.5px var(--text), inset 0 4px 0 var(--acento) !important; }
+.placa-caixa--antiga { padding-top: 0 !important; background: var(--fill-forte); color: var(--text);
+  box-shadow: inset 0 0 0 1.5px color-mix(in srgb, var(--text) 55%, transparent) !important; letter-spacing: .06em; }
+a.placa-caixa { text-decoration: none; transition: opacity .2s var(--ease); }
+a.placa-caixa:hover { opacity: .75; }
+.placa--bloco { display: block; line-height: 1; }
+.placa--bloco + .placa--bloco { margin-top: 5px; }
+
+/* ── 45. Cadastro de veículo: ler a placa pela foto ──────────────────────────────────────────────────
+   O botão fica na mesma linha do campo, com a mesma altura; a leitura aparece logo abaixo, num quadro discreto,
+   com a placa desenhada no padrão dela e o botão "Usar" (nada vai para o campo sem a pessoa escolher). */
+.placa-entrada { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 8px; min-width: 0; }
+.placa-entrada > .campo-aviso { flex-basis: 100%; }
+.placa-entrada > input { flex: 1 1 auto; min-width: 0; }
+.mf .placa-entrada__foto { flex: none; height: 40px !important; padding: 0 14px !important; gap: 7px; white-space: nowrap; }
+.placa-entrada__foto .icone { margin: 0 !important; }
+.placa-entrada__foto.is-enviando { opacity: .6; pointer-events: none; }
+.placa-leitura { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 2px; padding: 10px 12px; border-radius: 12px;
+  background: var(--recuo); font-size: 13.5px; color: var(--text-secondary); animation: avisos-surge .18s ease-out; }
+.placa-leitura[hidden] { display: none !important; }
+.placa-leitura__rotulo { color: var(--text-secondary); }
+.placa-leitura__placa { display: inline-flex; }
+.placa-leitura .btn--sm { margin-left: auto; }
+.placa-leitura__aviso { flex-basis: 100%; font-size: 12.5px; color: var(--text-secondary); }
+.placa-leitura.is-incerta .placa-leitura__aviso { color: var(--atencao); }
+.placa-leitura__outras { flex-basis: 100%; display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-tertiary); }
+.placa-leitura__opcao { padding: 0; border: 0; background: none; cursor: pointer; border-radius: 6px; transition: opacity .2s var(--ease); }
+.placa-leitura__opcao:hover { opacity: .7; }
+.placa-leitura__opcao:focus-visible { outline: none; box-shadow: var(--focus-ring); }
+.placa-leitura.is-erro { background: var(--perigo-fundo); color: var(--perigo); }
+.placa-leitura__carregando { width: 14px; height: 14px; border-radius: 50%; border: 2px solid var(--fill-forte); border-top-color: var(--text-secondary); animation: mf-gira .8s linear infinite; }
+@media (max-width: 599.98px) { .mf .placa-entrada__foto { height: 44px !important; } }
+
+/* ── 46. Relatórios no padrão do sistema ─────────────────────────────────────────────────────────────
+   Faturamento na mesma linha fina do Início (azul com degradê até o cinza); situação das OS, mais vendidos,
+   entradas e saídas na composição do Financeiro (barra única e lista com ponto). */
+.rl-cartao .fat__quadro { min-height: 260px; }
+.fin-comp__nome small { display: block; margin-top: 1px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: var(--text-tertiary); }
+.rl-cartao .fin-comp__lista { margin-top: 0; }
+@media (max-width: 599.98px) { .rl-cartao .fat__quadro { min-height: 200px; } }
+
 /* ── 40. Janelas: peças de cada tela ────────────────────────────────────────────────────────────────
    Complementos da seção 39 usados por telas específicas. Tudo com escopo .mf e só com tokens. */
 
@@ -1665,7 +1805,35 @@ html.mf-aberta { overflow: hidden; }
   border-radius: 12px; background: var(--recuo); box-shadow: inset 0 0 0 1px var(--hairline); color: var(--text-tertiary); transition: opacity .2s var(--ease); }
 .mf .mf-logo__miniatura:hover { opacity: .8; }
 .mf .mf-logo.tem-logo .mf-logo__miniatura { background: var(--card); }
-.mf .mf-logo__miniatura img { display: block; width: 100%; height: 100%; padding: 4px; object-fit: contain; }
+/* Logo comprido aparece inteiro, com respiro; foto ou imagem quase quadrada preenche o quadro (classe is-foto,
+   definida pelo script da tela pela proporção da imagem). */
+.mf .mf-logo__miniatura img { display: block; box-sizing: border-box; width: 100%; height: 100%; padding: 5px; object-fit: contain; object-position: center; }
+.mf .mf-logo__miniatura img.is-foto { padding: 0; object-fit: cover; }
+.mf button.mf-logo__miniatura { padding: 0; border: 0; font: inherit; }
+.mf .mf-logo.tem-logo .mf-logo__miniatura { cursor: zoom-in; }
+.mf .mf-logo__miniatura:focus-visible { outline: none; box-shadow: var(--focus-ring), inset 0 0 0 1px var(--hairline); }
+
+/* Visor de imagem (Visualização Rápida): fundo escuro desfocado, a imagem centralizada com cantos arredondados
+   e o fechar no canto. Logo comprido ganha um fundo branco com respiro; foto aparece inteira, sem moldura. */
+.visor { width: 100vw; height: 100dvh; max-width: none; max-height: none; margin: 0; padding: 64px 48px; border: 0; background: transparent;
+  display: flex; align-items: center; justify-content: center; overflow: hidden; color: #FFFFFF; }
+.visor:not([open]) { display: none; }
+.visor::backdrop { background: rgba(0, 0, 0, .62); -webkit-backdrop-filter: blur(24px) saturate(140%); backdrop-filter: blur(24px) saturate(140%); }
+.visor img { display: block; max-width: min(760px, 100%); max-height: 100%; width: auto; height: auto; object-fit: contain; padding: 32px; border-radius: 22px;
+  background: #FFFFFF; box-shadow: 0 30px 90px rgba(0, 0, 0, .45); cursor: default; }
+.visor img.is-foto { padding: 0; background: transparent; border-radius: 18px; }
+.visor__fechar { position: fixed; top: 20px; right: 20px; width: 36px; height: 36px; padding: 0; border: 0; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .14); color: #FFFFFF; cursor: pointer; transition: background-color .2s var(--ease); }
+.visor__fechar:hover { background: rgba(255, 255, 255, .24); }
+.visor__fechar:focus-visible { outline: 2px solid #FFFFFF; outline-offset: 2px; }
+.visor[open] { animation: visor-entra .26s var(--ease-saida); }
+.visor[open]::backdrop { animation: mf-fundo .26s ease-out; }
+.visor.is-saindo { animation: visor-sai .18s ease-in forwards; }
+.visor.is-saindo::backdrop { animation: mf-fundo-sai .18s ease-in forwards; }
+@keyframes visor-entra { from { opacity: 0; transform: scale(.96); } to { opacity: 1; transform: none; } }
+@keyframes visor-sai { to { opacity: 0; transform: scale(.97); } }
+@media (max-width: 599.98px) { .visor { padding: 72px 16px 32px; } .visor img { padding: 20px; } }
+@media (prefers-reduced-motion: reduce) { .visor[open], .visor.is-saindo, .visor[open]::backdrop, .visor.is-saindo::backdrop { animation: none; } }
 .mf .mf-logo__vazio { display: grid; place-items: center; }
 .mf .mf-logo__botao { margin: 0; cursor: pointer; }
 .mf .mf-logo__botao:focus-within { box-shadow: var(--focus-ring); }

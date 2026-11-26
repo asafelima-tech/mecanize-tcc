@@ -66,7 +66,7 @@ $filtrado = $f['busca'] !== '' || $f['marca'] !== '' || $f['combustivel'] !== ''
         <tbody>
           <?php foreach ($veiculos as $v): $link = './veiculo?id=' . (int) $v['id']; ?>
             <tr data-href="<?= e($link) ?>" class="<?= $v['ativo'] ? '' : 'inativo' ?>">
-              <td><a class="placa-caixa placa-caixa--p" href="<?= e($link) ?>"><?= e($v['placa']) ?></a></td>
+              <td><?= placa_caixa($v['placa'], true, $link) ?></td>
               <td><strong><?= e($v['modelo_nome'] ?: 'Veículo') ?></strong><?php if ($v['marca']): ?><span class="sub"><?= e($v['marca']) ?></span><?php endif; ?></td>
               <td><?php if ($v['cor']): ?><span class="cor-veiculo"><span class="cor-veiculo__ponto" style="background:<?= e($cores[$v['cor']] ?? '#A1A1A6') ?>"></span><?= e($v['cor']) ?></span><?php else: ?><span class="secundario">—</span><?php endif; ?></td>
               <td class="tabular"><?= e($v['ano'] ?? '—') ?></td>

@@ -262,7 +262,7 @@ final class Etapa6Test extends Cenario
     {
         $g = (new Painel())->graficos();
         $this->assertSame(1, $g['status_mes']['abertas'], 'a OS de teste da oficina A está em orçamento');
-        $this->assertCount(7, $g['fluxo']);
+        $this->assertCount(Painel::DIAS_FLUXO, $g['fluxo']);
         $this->assertCount(6, $g['meses']);
         $this->assertSame(array_sum(array_column($g['fluxo'], 'os')), $g['abertas_hoje'], 'as OS de hoje entram no último dia do fluxo');
 

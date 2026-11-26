@@ -82,7 +82,7 @@ $acoes = function (array $c): string {
                     <span><a href="./cliente?id=<?= (int) $c['id'] ?>"><?= e($c['nome']) ?></a><span class="sub"><?= $c['documento'] ? ($c['tipo_pessoa'] === 'PJ' ? 'CNPJ ' : 'CPF ') . e(documento_fmt($c['documento'])) : ($c['tipo_pessoa'] === 'PJ' ? 'Pessoa jurídica' : 'Pessoa física') ?></span></span></span></td>
                   <td><?= $c['telefone'] ? e(telefone_fmt($c['telefone'])) : '—' ?><?php if ($c['email']): ?><span class="sub"><?= e($c['email']) ?></span><?php endif; ?></td>
                   <td><?php if (!$placas): ?><span class="secundario">—</span><?php else: ?>
-                    <?php foreach (array_slice($placas, 0, 2) as $pl): ?><span class="placa placa--bloco"><?= e($pl) ?></span><?php endforeach; ?>
+                    <?php foreach (array_slice($placas, 0, 2) as $pl): ?><span class="placa--bloco"><?= placa_caixa($pl) ?></span><?php endforeach; ?>
                     <?php if (count($placas) > 2): ?><span class="secundario">+<?= count($placas) - 2 ?></span><?php endif; ?><?php endif; ?></td>
                   <td class="secundario tabular"><?= $c['ultima_os'] ? data_br($c['ultima_os']) : '—' ?></td>
                   <td class="num"><strong><?= $moeda((float) $c['total_gasto']) ?></strong></td>

@@ -73,6 +73,39 @@ final class VeiculosController extends Cadastro
         $this->json((new ModeloVeiculo())->daMarca((string) ($_GET['marca'] ?? '')));
     }
 
+    /**
+     * Lê a placa de uma foto (JSON, POST com o arquivo em "imagem"). A resposta é uma SUGESTÃO: o cadastro mostra
+     * a leitura e só preenche o campo quando a pessoa escolhe. Nada é gravado. Limite de leituras por sessão,
+     * porque cada uma tem custo no plano do serviço.
+     */
+    public function lerPlaca(): void
+    {
+        $arquivo = $_FILES['imagem'] ?? null;
+        $vazio = ['ok' => false, 'placa' => null, 'formato' => null, 'candidatos' => [], 'baixa_confianca' => true, 'requer_conferencia' => true];
+
+        // O tipo real sai do CONTEÚDO (em LeituraPlaca), nunca de $_FILES['type'], que vem do navegador.
+        if (!$arquivo || ($arquivo['error'] ?? UPLOAD_ERR_NO_FILE) !== UPLOAD_ERR_OK || empty($arquivo['tmp_name']) || !is_uploaded_file($arquivo['tmp_name'])) {
+            $grande = in_array($arquivo['error'] ?? 0, [UPLOAD_ERR_INI_SIZE, UPLOAD_ERR_FORM_SIZE], true);
+            $this->json(['codigo' => $grande ? 'TAMANHO' : 'IMAGEM_INVALIDA',
+                'erro' => $grande ? 'A foto é grande demais. Tire de novo, mais perto da placa.' : 'Nenhuma imagem foi recebida. Tire a foto novamente.'] + $vazio);
+        }
+
+        $leitor = new LeituraPlaca();
+        if (!$leitor->configurada()) {
+            $this->json(['codigo' => 'NAO_CONFIGURADO', 'erro' => 'A leitura automática de placa não está configurada neste sistema. Digite a placa.'] + $vazio);
+        }
+
+        $historico = (array) ($_SESSION['placa_leituras'] ?? []);
+        $permitido = LeituraPlaca::dentroDoLimite($historico, time());
+        $_SESSION['placa_leituras'] = $historico;
+        if (!$permitido) {
+            $this->json(['codigo' => 'LIMITE_SESSAO', 'erro' => 'Muitas leituras seguidas. Aguarde alguns minutos ou digite a placa.'] + $vazio, 429);
+        }
+
+        header('Cache-Control: no-store');
+        $this->json($leitor->ler($arquivo['tmp_name']));
+    }
+
     private function desenharForm(array $veiculo, ?int $id, ?string $erro = null): void
     {
         $this->tela('veiculos/form', [

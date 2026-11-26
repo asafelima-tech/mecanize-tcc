@@ -20,7 +20,7 @@ $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
 <main class="pub">
   <p class="form-dica"><?= e($os['oficina']) ?><?= $os['oficina_telefone'] ? ' · ' . e(telefone_fmt($os['oficina_telefone'])) : '' ?></p>
   <div class="card" style="margin-top:8px">
-    <h1 style="font-size:21px;font-weight:700;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><span class="placa-caixa"><?= e($os['placa']) ?></span> <span class="badge badge--<?= $cor ?>"><?= $r ?></span></h1>
+    <h1 style="font-size:21px;font-weight:700;letter-spacing:-0.01em;display:flex;align-items:center;gap:10px;flex-wrap:wrap"><?= placa_caixa($os['placa'], false) ?> <span class="badge badge--<?= $cor ?>"><?= $r ?></span></h1>
     <p class="form-dica"><?= e($os['modelo']) ?> · <?= os_numero($os['numero']) ?> · aberta em <?= data_br($os['criado_em']) ?></p>
     <?php if (!in_array($os['status'], ['RECUSADA'], true)): ?>
       <ol class="stepper" style="margin-top:20px">

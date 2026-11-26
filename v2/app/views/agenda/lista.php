@@ -2,7 +2,7 @@
 /**
  * Agenda (Design System, tela 13): navegação por dia, semana ou mês, números do período, os
  * horários agrupados por dia e o calendário do mês ao lado.
- * Espera: $periodo, $ini, $fim, $ref, $mes, $f, $agendamentos, $resumo, $diasMarcados, $tecnicos
+ * Espera: $periodo, $ini, $fim, $ref, $mes, $f, $p (Paginacao), $agendamentos, $resumo, $diasMarcados, $tecnicos
  */
 $titulo = 'Agenda';
 $diasNome = ['', 'Segunda', 'Terça', 'Quarta', 'Quinta', 'Sexta', 'Sábado', 'Domingo'];
@@ -20,6 +20,8 @@ $destaque = (int) ($_GET['destaque'] ?? 0);
 $ehAdmin = Contexto::perfil() === 'ADMIN';
 $hoje = date('Y-m-d');
 $ocultos = $base;
+// Depois de confirmar, cancelar ou reativar, a agenda volta para a mesma página.
+if ($p->pagina > 1) $ocultos['pagina'] = $p->pagina;
 $dataLonga = fn(DateTimeImmutable $d) => (int) $d->format('j') . ' de ' . $mesesNome[(int) $d->format('n')];
 
 // Título do período: "12 de novembro de 2026", "9 a 15 de novembro de 2026" ou "Novembro de 2026".
@@ -184,7 +186,7 @@ $filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
               <?php elseif (!$a['ordem_servico_id']): ?>
                 <form method="post" action="./agenda-marcar?id=<?= (int) $a['id'] ?>"><?= $campos() ?><button class="btn btn--ghost btn--sm" name="status" value="AGENDADO">Reativar</button></form>
                 <?php if ($ehAdmin): ?>
-                  <form method="post" action="./agenda-excluir?id=<?= (int) $a['id'] ?>" data-confirmar="Excluir este agendamento? Não dá para desfazer."><?= $campos() ?><button class="btn btn--fantasma btn--icone" aria-label="Excluir" title="Excluir"><?= icone('trash') ?></button></form>
+                  <form method="post" action="./agenda-excluir?id=<?= (int) $a['id'] ?>" data-confirmar="Excluir este agendamento? Não dá para desfazer."><?= $campos() ?><button class="btn btn--ghost btn--sm btn--icone btn--excluir" aria-label="Excluir agendamento" title="Excluir"><?= icone('trash', 17, 2.1) ?></button></form>
                 <?php endif; ?>
               <?php endif; ?>
             </div>
@@ -192,6 +194,9 @@ $filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
         <?php endforeach; ?>
       </section>
     <?php endforeach; ?>
+    <?php if ($p->paginas() > 1): ?>
+      <div class="card agenda-paginas"><?php $rotuloItens = 'agendamentos'; require V2_RAIZ . '/app/views/layout/_rodape.php'; ?></div>
+    <?php endif; ?>
   </div>
 
   <aside class="card mini-cal" aria-label="Calendário">

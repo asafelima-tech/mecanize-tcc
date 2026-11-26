@@ -403,7 +403,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
         <?= icone('chevron-right', 14, 2) ?>
       </a>
       <a class="ver-veiculo" href="./veiculo?id=<?= (int) $os['veiculo_id'] ?>">
-        <span class="placa-caixa"><?= e($os['placa']) ?></span>
+        <?= placa_caixa($os['placa'], false) ?>
         <span class="ver-veiculo__texto"><strong><?= e($os['modelo'] ?: 'Modelo não informado') ?></strong><small><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km na entrada' : 'Km não informado' ?></small></span>
         <?= icone('chevron-right', 14, 2) ?>
       </a>

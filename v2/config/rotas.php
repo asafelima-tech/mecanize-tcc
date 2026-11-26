@@ -77,6 +77,7 @@ return [
     'veiculo-ativo'   => ['VeiculosController', 'ativo', Permissao::ATENDIMENTO],
     'veiculo-excluir' => ['VeiculosController', 'excluir', Permissao::ADMIN],
     'veiculo-modelos' => ['VeiculosController', 'modelos', Permissao::ATENDIMENTO],
+    'veiculo-placa'   => ['VeiculosController', 'lerPlaca', Permissao::ATENDIMENTO],   // leitura da placa por foto (POST, JSON)
 
     // Peças e serviços — consultar: escritório (sem custo); cadastrar/editar: ADMIN
     'produtos'        => ['ProdutosController', 'lista', Permissao::ATENDIMENTO],

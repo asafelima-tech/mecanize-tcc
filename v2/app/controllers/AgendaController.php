@@ -12,9 +12,12 @@ final class AgendaController extends Controller
         // Mês do calendário lateral: o da data escolhida, ou outro com ?mes=AAAA-MM (setas do calendário).
         $mes = preg_match('/^\d{4}-(0[1-9]|1[0-2])$/', (string) ($_GET['mes'] ?? '')) ? new DateTimeImmutable($_GET['mes'] . '-01') : $ref->modify('first day of this month');
 
+        // Paginada (7 por página): a semana ou o mês cheios não viram uma rolagem sem fim.
+        $p = new Paginacao(null, 7);
+
         $this->tela('agenda/lista', [
-            'periodo' => $periodo, 'ini' => $ini, 'fim' => $fim, 'ref' => $ref, 'f' => $f, 'mes' => $mes,
-            'agendamentos' => $m->porPeriodo($ini, $fim, $f),
+            'periodo' => $periodo, 'ini' => $ini, 'fim' => $fim, 'ref' => $ref, 'f' => $f, 'mes' => $mes, 'p' => $p,
+            'agendamentos' => $m->porPeriodo($ini, $fim, $f, $p),
             'resumo' => $m->resumo($ini, $fim),
             'diasMarcados' => $m->diasComAgendamento($mes->format('Y-m-d'), $mes->modify('+1 month')->format('Y-m-d')),
             'tecnicos' => (new Usuario())->tecnicos(),
@@ -121,7 +124,7 @@ final class AgendaController extends Controller
 
     private function voltar(): never
     {
-        $q = array_intersect_key($_POST, array_flip(['periodo', 'data', 'status', 'tecnico']));
+        $q = array_intersect_key($_POST, array_flip(['periodo', 'data', 'status', 'tecnico', 'pagina']));
         $this->redirecionar('agenda', array_filter($q, fn($v) => is_string($v) && $v !== ''));
     }
 }

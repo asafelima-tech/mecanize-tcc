@@ -38,7 +38,36 @@ $maxSituacao = max(array_merge([1], array_values($situacao)));
 $maxCliente = max(array_merge([1.0], array_map('floatval', array_column($clientes, 'total'))));
 $maxItem = max(array_merge([1.0], array_map('floatval', array_column($itens, 'total'))));
 $porForma = $caixa['por_forma'];
-$picoIndice = $max > 0 ? array_search($max, array_column($serie, 'total'), true) : null;
+
+// Composição (mesmo padrão do Financeiro e do Início): uma barra única dividida entre as partes, do maior para o
+// menor, cada uma num tom da cor dos gráficos, e a lista com ponto do mesmo tom, nome, valor e porcentagem.
+// $linhas: [[nome, detalhe ou null, valor, valor escrito], ...]
+$composicao = function (array $linhas): string {
+    $linhas = array_values(array_filter($linhas, fn ($l) => $l[2] > 0));
+    usort($linhas, fn ($a, $b) => $b[2] <=> $a[2]);
+    $n = count($linhas);
+    $total = array_sum(array_column($linhas, 2));
+    $tom = fn (int $i): int => (int) round(100 - $i * (82 / max(1, $n - 1)));
+    $barra = '';
+    $lista = '';
+    foreach ($linhas as $i => [$nome, $detalhe, $v, $texto]) {
+        $porc = $total > 0 ? number_format($v / $total * 100, 0, ',', '.') . '%' : '0%';
+        $barra .= '<i style="flex-grow:' . round($v, 2) . ';--tom:' . $tom($i) . '%" title="' . e($nome . ' · ' . $texto) . '"></i>';
+        $lista .= '<li><span class="fin-comp__ponto" style="--tom:' . $tom($i) . '%"></span><span class="fin-comp__nome">' . e($nome)
+            . ($detalhe !== null ? '<small>' . e($detalhe) . '</small>' : '') . '</span><b>' . e($texto) . '</b><span class="fin-comp__pct">' . $porc . '</span></li>';
+    }
+
+    return '<div class="fin-comp__barra" aria-hidden="true">' . $barra . '</div><ul class="fin-comp__lista">' . $lista . '</ul>';
+};
+
+// Faturamento em linha (o mesmo desenho do Início): pontos de ponta a ponta, curva suave, escala de zero ao topo.
+$nSerie = count($serie);
+$xSerie = fn (int $i): float => $nSerie > 1 ? $i / ($nSerie - 1) * 100 : 50.0;
+$ptsSerie = [];
+foreach ($serie as $i => $s) $ptsSerie[] = [$xSerie($i), 100 - min(100, (float) $s['total'] / $topo * 100)];
+$curvaSerie = curva_suave($ptsSerie);
+$areaSerie = $ptsSerie ? $curvaSerie . ' L ' . round(end($ptsSerie)[0], 3) . ' 100 L ' . round($ptsSerie[0][0], 3) . ' 100 Z' : '';
+$dadosSerie = array_map(fn ($s) => [$s['rotulo'], dinheiro($s['total']), (int) $s['os']], $serie);
 
 // Período em texto: "1 a 17 de novembro de 2026" e quantos dias tem (para "comparado aos N dias anteriores").
 $meses = ['', 'janeiro', 'fevereiro', 'março', 'abril', 'maio', 'junho', 'julho', 'agosto', 'setembro', 'outubro', 'novembro', 'dezembro'];
@@ -114,18 +143,72 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
       <?php if ($max <= 0): ?>
         <div class="rl-vazio"><?= icone('chart', 28, 1.25) ?>Nenhuma OS entregue no período.</div>
       <?php else: ?>
-        <div class="barras barras--pico rl-barras" role="img" aria-label="Faturamento <?= $tempo['por_mes'] ? 'por mês' : 'por dia' ?>, máximo de <?= e(dinheiro($max)) ?>">
-          <div class="barras__escala"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topo / 4 * $i) ?></span><?php endfor; ?></div>
-          <div class="barras__area">
-            <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
-            <?php $rotular = max(1, (int) ceil(count($serie) / 12)); foreach ($serie as $i => $s): ?>
-              <div class="barras__coluna<?= $i === $picoIndice ? ' is-pico' : '' ?>">
-                <span class="barras__barra" style="height:<?= round($s['total'] / $topo * 100, 1) ?>%"><span class="rel-pico"><?= e(dinheiro($s['total'])) ?><small><?= e($s['rotulo'] . ' · ' . (int) $s['os'] . ' OS') ?></small></span></span>
-                <?php if ($i % $rotular === 0): ?><span class="barras__rotulo"><?= e($s['rotulo']) ?></span><?php endif; ?>
-              </div>
-            <?php endforeach; ?>
+        <div class="fat__quadro rl-linha">
+          <div class="fat__escala" aria-hidden="true"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topo / 4 * $i) ?></span><?php endfor; ?></div>
+          <div class="fat__area-grafico">
+            <?php for ($i = 0; $i < 5; $i++): ?><span class="fat__grade" style="bottom: calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
+            <div class="fat__grafico" role="img" aria-label="Faturamento <?= $tempo['por_mes'] ? 'por mês' : 'por dia' ?>, máximo de <?= e(dinheiro($max)) ?>" data-pontos="<?= e(json_encode($dadosSerie, JSON_UNESCAPED_UNICODE)) ?>">
+              <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="rl-degrade" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" class="fat__degrade-azul"/><stop offset=".55" class="fat__degrade-meio"/><stop offset="1" class="fat__degrade-cinza"/>
+                  </linearGradient>
+                </defs>
+                <path class="fat__area" d="<?= $areaSerie ?>" fill="url(#rl-degrade)"/>
+                <path class="fat__linha" d="<?= $curvaSerie ?>"/>
+              </svg>
+              <span class="fat__ponto" aria-hidden="true"></span>
+              <span class="fat__dica" aria-hidden="true"><b></b><small></small></span>
+            </div>
+            <div class="fat__meses" aria-hidden="true">
+              <?php $rotular = max(1, (int) ceil($nSerie / 10)); foreach ($serie as $i => $s): if ($i % $rotular !== 0 && $i !== $nSerie - 1) continue; if ($i !== $nSerie - 1 && $nSerie - 1 - $i < $rotular / 2) continue; $x = round($xSerie($i), 3); ?>
+                <span class="<?= $x < 4 ? 'is-inicio' : ($x > 96 ? 'is-fim' : '') ?>" style="left: <?= $x ?>%"><?= e($s['rotulo']) ?></span>
+              <?php endforeach; ?>
+            </div>
           </div>
         </div>
+        <script>
+          // O ponto desliza sobre a linha acompanhando o mouse (ou o dedo); o balão mostra o valor do período mais
+          // próximo e quantas OS foram entregues nele.
+          (function () {
+            var area = document.currentScript.previousElementSibling.querySelector('.fat__grafico');
+            var path = area && area.querySelector('.fat__linha'), svg = area && area.querySelector('svg');
+            if (!path || !path.getTotalLength) return;
+            var total = path.getTotalLength();
+            if (!total) return;
+            var ponto = area.querySelector('.fat__ponto'), dica = area.querySelector('.fat__dica');
+            var dados = []; try { dados = JSON.parse(area.dataset.pontos || '[]'); } catch (e) {}
+            if (!dados.length) return;
+            var amostras = [], N = 500, alvo = null, quadro = 0;
+            for (var k = 0; k <= N; k++) { var p = path.getPointAtLength(total * k / N); amostras.push([p.x, p.y]); }
+            var xMin = amostras[0][0], xMax = amostras[N][0];
+            function alturaEm(x) {
+              var a = 0, b = N;
+              while (b - a > 1) { var m = (a + b) >> 1; if (amostras[m][0] <= x) a = m; else b = m; }
+              var p0 = amostras[a], p1 = amostras[b], t = p1[0] === p0[0] ? 0 : (x - p0[0]) / (p1[0] - p0[0]);
+              return p0[1] + (p1[1] - p0[1]) * Math.max(0, Math.min(1, t));
+            }
+            function desenhar() {
+              quadro = 0;
+              var x = alvo, y = alturaEm(x), i = Math.max(0, Math.min(dados.length - 1, Math.round(x / 100 * (dados.length - 1))));
+              ponto.style.left = dica.style.left = x + '%';
+              ponto.style.top = dica.style.top = y + '%';
+              dica.querySelector('b').textContent = dados[i][1];
+              dica.querySelector('small').textContent = dados[i][0] + ' · ' + dados[i][2] + (dados[i][2] === 1 ? ' OS' : ' OS');
+              dica.classList.toggle('is-a-esquerda', x > 80);
+              dica.classList.toggle('is-a-direita', x < 20);
+              area.classList.add('is-seguindo');
+            }
+            function mover(ev) {
+              var r = svg.getBoundingClientRect();
+              alvo = Math.max(xMin, Math.min(xMax, (ev.clientX - r.left) / r.width * 100));
+              if (!quadro) quadro = requestAnimationFrame(desenhar);
+            }
+            area.addEventListener('pointermove', mover);
+            area.addEventListener('pointerdown', mover);
+            area.addEventListener('pointerleave', function () { area.classList.remove('is-seguindo'); });
+          })();
+        </script>
       <?php endif; ?>
     </div>
 
@@ -136,11 +219,11 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
           <strong><?= $pct($ordens['aprovacao']) ?></strong>
           <span>dos orçamentos aprovados<small><?= $plural((int) $ordens['aprovadas'], 'aprovado', 'aprovados') ?> · <?= $plural((int) $ordens['recusadas'], 'recusado', 'recusados') ?></small></span>
         </div>
-        <ul class="rl-lista">
-          <?php foreach ($situacao as $rotulo => $n): ?>
-            <li><span class="rl-lista__nome"><?= e($rotulo) ?></span><span class="rl-trilho"><i style="width:<?= round($n / $maxSituacao * 100, 1) ?>%"></i></span><b><?= (int) $n ?></b></li>
-          <?php endforeach; ?>
-        </ul>
+        <?php if (array_sum($situacao) > 0): ?>
+          <?= $composicao(array_map(fn ($r, $n) => [$r, null, (float) $n, (string) (int) $n], array_keys($situacao), array_values($situacao))) ?>
+        <?php else: ?>
+          <div class="rl-vazio">Nenhuma OS aberta no período.</div>
+        <?php endif; ?>
         <dl class="rl-rodape">
           <div><dt>Em aberto agora</dt><dd><a href="./ordens"><?= (int) $abertasHoje ?></a></dd></div>
           <div><dt>Atendimentos da agenda</dt><dd><?= (int) $agenda['CONCLUIDO'] ?></dd></div>
@@ -151,15 +234,9 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
       <div class="card rl-cartao">
         <header class="rl-cartao__cabeca"><h3>Mais vendidos</h3><span>Peças e serviços das OS entregues</span></header>
         <?php if (!$itens): ?><div class="rl-vazio">Nenhuma OS entregue no período.</div><?php else: ?>
-          <ol class="rl-lista rl-lista--itens">
-            <?php foreach (array_slice($itens, 0, 8) as $it): ?>
-              <li>
-                <span class="rl-lista__nome"><?= e($it['descricao']) ?><small><?= $it['tipo'] === 'PECA' ? 'Peça' : 'Serviço' ?> · <?= $qtd($it['quantidade']) ?> un.<?= $it['margem'] !== null ? ' · margem ' . dinheiro($it['margem']) : '' ?></small></span>
-                <span class="rl-trilho"><i style="width:<?= round((float) $it['total'] / $maxItem * 100, 1) ?>%"></i></span>
-                <b><?= dinheiro($it['total']) ?></b>
-              </li>
-            <?php endforeach; ?>
-          </ol>
+          <?= $composicao(array_map(fn ($it) => [$it['descricao'],
+                ($it['tipo'] === 'PECA' ? 'Peça' : 'Serviço') . ' · ' . $qtd($it['quantidade']) . ' un.' . ($it['margem'] !== null ? ' · margem ' . dinheiro($it['margem']) : ''),
+                (float) $it['total'], dinheiro($it['total'])], array_slice($itens, 0, 8))) ?>
         <?php endif; ?>
       </div>
     </div>
@@ -179,23 +256,13 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
       <div class="card rl-cartao">
         <header class="rl-cartao__cabeca"><h3>Entradas por forma</h3><b><?= dinheiro($caixa['recebido']) ?></b></header>
         <?php if (!$porForma): ?><div class="rl-vazio">Nada recebido no período.</div><?php else: ?>
-          <ul class="rl-lista">
-            <?php foreach ($porForma as $forma => $v): ?>
-              <li><span class="rl-lista__nome"><?= e(Lancamento::FORMAS[$forma] ?? $forma) ?></span><span class="rl-trilho"><i style="width:<?= $caixa['recebido'] > 0 ? round(max(0, $v) / $caixa['recebido'] * 100, 1) : 0 ?>%"></i></span>
-                <b><?= dinheiro($v) ?><small><?= $caixa['recebido'] > 0 ? $pct($v / $caixa['recebido'] * 100) : '' ?></small></b></li>
-            <?php endforeach; ?>
-          </ul>
+          <?= $composicao(array_map(fn ($forma, $v) => [Lancamento::FORMAS[$forma] ?? $forma, null, (float) $v, dinheiro($v)], array_keys($porForma), array_values($porForma))) ?>
         <?php endif; ?>
       </div>
       <div class="card rl-cartao">
         <header class="rl-cartao__cabeca"><h3>Saídas por categoria</h3><b><?= dinheiro($caixa['pago']) ?></b></header>
         <?php if (!$caixa['despesas']): ?><div class="rl-vazio">Nada pago no período.</div><?php else: ?>
-          <ul class="rl-lista">
-            <?php foreach ($caixa['despesas'] as $cat => $v): ?>
-              <li><span class="rl-lista__nome"><?= e(Lancamento::categoria('PAGAR', $cat)) ?></span><span class="rl-trilho"><i style="width:<?= $caixa['pago'] > 0 ? round(max(0, $v) / $caixa['pago'] * 100, 1) : 0 ?>%"></i></span>
-                <b><?= dinheiro($v) ?><small><?= $caixa['pago'] > 0 ? $pct($v / $caixa['pago'] * 100) : '' ?></small></b></li>
-            <?php endforeach; ?>
-          </ul>
+          <?= $composicao(array_map(fn ($cat, $v) => [Lancamento::categoria('PAGAR', $cat), null, (float) $v, dinheiro($v)], array_keys($caixa['despesas']), array_values($caixa['despesas']))) ?>
         <?php endif; ?>
       </div>
     </div>
@@ -240,7 +307,6 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
           <?php foreach (array_slice($clientes, 0, 6) as $pos => $c): ?>
             <li><span class="rl-posicao"><?= $pos + 1 ?></span>
               <a class="rl-lista__nome" href="./cliente?id=<?= (int) $c['id'] ?>"><?= e($c['nome']) ?><small><?= $plural((int) $c['os'], 'OS', 'OS') ?></small></a>
-              <span class="rl-trilho"><i style="width:<?= round((float) $c['total'] / $maxCliente * 100, 1) ?>%"></i></span>
               <b><?= dinheiro($c['total']) ?></b></li>
           <?php endforeach; ?>
         </ol>

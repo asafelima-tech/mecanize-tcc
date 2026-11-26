@@ -25,7 +25,8 @@ final class Agendamento extends Modelo
     /** Situações que a equipe pode marcar pelos botões rápidos. */
     public const MARCAVEIS = ['AGENDADO', 'CONFIRMADO', 'CANCELADO', 'FALTOU'];
 
-    public function porPeriodo(string $inicio, string $fim, array $f = []): array
+    /** Agendamentos do período, em ordem de horário. Com $p, só a página pedida (e $p->total recebe a contagem). */
+    public function porPeriodo(string $inicio, string $fim, array $f = [], ?Paginacao $p = null): array
     {
         $where = ['a.oficina_id = :oficina', 'a.data_hora >= :ini', 'a.data_hora < :fim'];
         $params = ['ini' => $inicio . ' 00:00:00', 'fim' => $fim . ' 00:00:00'];
@@ -39,6 +40,14 @@ final class Agendamento extends Modelo
             $params['tecnico'] = (int) $f['tecnico'];
         }
 
+        if ($p) {
+            $p->total = (int) $this->valor(
+                'SELECT COUNT(*) FROM agendamentos a JOIN clientes c ON c.oficina_id = a.oficina_id AND c.id = a.cliente_id
+                 WHERE ' . implode(' AND ', $where),
+                $params
+            );
+        }
+
         return $this->lista(
             'SELECT a.*, c.nome AS cliente, c.telefone AS cliente_telefone, v.placa, u.nome AS tecnico, os.numero AS os_numero
              FROM agendamentos a
@@ -47,7 +56,7 @@ final class Agendamento extends Modelo
              LEFT JOIN usuarios u ON u.oficina_id = a.oficina_id AND u.id = a.tecnico_id
              LEFT JOIN ordens_servico os ON os.oficina_id = a.oficina_id AND os.id = a.ordem_servico_id
              WHERE ' . implode(' AND ', $where) . '
-             ORDER BY a.data_hora, a.id',
+             ORDER BY a.data_hora, a.id' . ($p ? $p->sql() : ''),
             $params
         );
     }

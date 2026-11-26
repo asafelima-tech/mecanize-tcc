@@ -37,6 +37,7 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .btn { min-height: 44px; }
   .btn--sm { min-height: 40px; }
   .btn--icone { min-width: 44px; }
+  .btn--sm.btn--icone { min-width: 40px; }   /* continua um círculo (40 × 40) */
   .sidebar__item, .sidebar__tema { min-height: 44px; }
   .row-action-btn, .menu-mais > summary, .topbar-sino, .avisos__fechar { min-width: 44px; min-height: 44px; }
   .menu-mais__lista a, .menu-mais__lista button { min-height: 44px; }

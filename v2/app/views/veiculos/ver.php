@@ -23,7 +23,7 @@ $qtd = fn($q) => rtrim(rtrim((string) $q, '0'), '.');
       <p class="ver-topo__voltar"><a href="./veiculos"><?= icone('chevron-left', 14, 2) ?> Veículos</a></p>
       <h1><?= e($v['modelo'] ?: 'Modelo não informado') ?></h1>
       <p class="ver-topo__meta">
-        <span class="placa-caixa"><?= e($v['placa']) ?></span>
+        <?= placa_caixa($v['placa'], false) ?>
         <?php if (!empty($v['ano'])): ?><span class="ver-chip ver-chip--mono"><?= icone('calendar', 13) ?> <?= e($v['ano']) ?></span><?php endif; ?>
         <?php if (!empty($v['cor'])): ?><span class="ver-chip"><?= e($v['cor']) ?></span><?php endif; ?>
         <?php if (!empty($v['combustivel'])): ?><span class="ver-chip"><?= icone('oil', 13) ?> <?= e($v['combustivel']) ?></span><?php endif; ?>

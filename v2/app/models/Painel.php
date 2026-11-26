@@ -6,6 +6,12 @@
  */
 final class Painel extends Modelo
 {
+    /** Dias do gráfico de fluxo da tela inicial (a tela mostra os mais recentes que couberem). */
+    public const DIAS_FLUXO = 60;
+
+    /** Dias de faturamento diário para a tendência do card "Faturamento por mês" (6 meses + 30 dias de soma móvel). */
+    public const DIAS_TENDENCIA = 212;
+
     public function resumo(): array
     {
         $porStatus = [];
@@ -98,7 +104,7 @@ final class Painel extends Modelo
     /** Faturamento (OS entregues) de cada um dos últimos $dias dias, do mais antigo para hoje. */
     public function faturamentoDias(int $dias = 7): array
     {
-        $dias = max(1, min(31, $dias));
+        $dias = max(1, min(self::DIAS_TENDENCIA, $dias));
         $valores = [];
         foreach ($this->lista("SELECT DATE(entregue_em) AS dia, SUM(valor_total) AS total FROM ordens_servico
                                WHERE oficina_id = :oficina AND status = 'ENTREGUE' AND entregue_em >= CURDATE() - INTERVAL " . ($dias - 1) . " DAY
@@ -129,13 +135,14 @@ final class Painel extends Modelo
                AND entregue_em < DATE_FORMAT(CURDATE() - INTERVAL 1 MONTH, '%Y-%m-01') + INTERVAL DAY(CURDATE()) DAY"
         );
 
-        // Fluxo dos últimos 30 dias: OS abertas por dia e receita (OS entregues) por dia.
+        // Fluxo dos últimos DIAS_FLUXO dias: OS abertas por dia e receita (OS entregues) por dia. A tela mostra os
+        // dias mais recentes que couberem na largura do cartão.
         $abertas = [];
         foreach ($this->lista("SELECT DATE(criado_em) AS dia, COUNT(*) AS n FROM ordens_servico
-                               WHERE oficina_id = :oficina AND criado_em >= CURDATE() - INTERVAL 29 DAY GROUP BY DATE(criado_em)") as $l) {
+                               WHERE oficina_id = :oficina AND criado_em >= CURDATE() - INTERVAL " . (self::DIAS_FLUXO - 1) . " DAY GROUP BY DATE(criado_em)") as $l) {
             $abertas[$l['dia']] = (int) $l['n'];
         }
-        $receita = $this->faturamentoDias(30);
+        $receita = $this->faturamentoDias(self::DIAS_FLUXO);
         $fluxo = [];
         foreach ($receita as $dia => $valor) {
             $fluxo[$dia] = ['os' => $abertas[$dia] ?? 0, 'receita' => $valor];
@@ -193,6 +200,7 @@ final class Painel extends Modelo
             'abertas_hoje'  => $abertasHoje,
             'mes_anterior'  => $mesAnterior,
             'fluxo'         => $fluxo,
+            'diario'        => $this->faturamentoDias(self::DIAS_TENDENCIA),
             'status_mes'    => $statusMes,
             'tempo_medio'   => $prazo['dias'] === null ? null : (float) $prazo['dias'],
             'no_prazo'      => (int) $prazo['com_previsao'] > 0 ? (int) $prazo['no_prazo'] / (int) $prazo['com_previsao'] : null,

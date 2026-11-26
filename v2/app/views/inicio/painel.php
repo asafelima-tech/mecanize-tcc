@@ -31,9 +31,12 @@ $pmTotOs = array_sum($pmOs);
 $pmTotRec = array_sum($pmRec);
 
 // Rosca da situação das OS no mês.
+// Tons da cor dos gráficos, do mais forte ao mais leve, todos próximos do escuro do sistema. O azul do sistema
+// marca só o que está acontecendo agora (aqui, as OS em andamento), como o dia de hoje e o mês atual nos outros gráficos.
+$tom = fn (int $p): string => 'color-mix(in srgb, var(--grafico-1) ' . $p . '%, var(--card))';
 $fatias = [
-    'concluidas' => ['Concluídas', 'var(--grafico-1)'], 'andamento' => ['Em andamento', 'var(--grafico-2)'], 'peca' => ['Aguardando peça', 'var(--grafico-3)'],
-    'abertas' => ['Abertas', 'var(--grafico-4)'], 'canceladas' => ['Canceladas', 'var(--grafico-5)'],
+    'concluidas' => ['Concluídas', $tom(100)], 'andamento' => ['Em andamento', 'var(--acento)'], 'peca' => ['Aguardando peça', $tom(58)],
+    'abertas' => ['Abertas', $tom(42)], 'canceladas' => ['Canceladas', $tom(28)],
 ];
 $totalMes = array_sum($g['status_mes']);
 $circ = 2 * M_PI * 58;
@@ -115,7 +118,7 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
 
 <div class="painel-graficos">
   <section class="card quadro">
-    <div class="quadro__topo"><h2 class="card__title">Fluxo de OS × Receita</h2><span class="etiqueta">Últimos <?= $pmN ?> dias</span></div>
+    <div class="quadro__topo"><h2 class="card__title">Fluxo de OS × Receita</h2><span class="etiqueta" data-pm-periodo>Últimos <?= $pmN ?> dias</span></div>
     <div class="pm" id="grafico-fluxo" data-metrica="os">
       <div class="pm__cabeca">
         <p class="pm__resumo" aria-live="polite">
@@ -132,7 +135,7 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
         <?php foreach ($pmDias as $i => $dia): $po = $pmPontos($pmOs[$i], $pmMaxOs); $pr = $pmPontos($pmRec[$i], $pmMaxRec); $ehHoje = $i === $pmN - 1; ?>
           <div class="pm__col<?= $ehHoje ? ' is-hoje' : '' ?>" style="--c: <?= $i ?>"
                data-dia="<?= e(($ehHoje ? 'Hoje' : $curtos[(int) date('N', strtotime($dia))]) . ', ' . date('d/m', strtotime($dia))) ?>"
-               data-os="<?= $pmOs[$i] ?>" data-rec="<?= e(dinheiro($pmRec[$i])) ?>">
+               data-os="<?= $pmOs[$i] ?>" data-rec="<?= e(dinheiro($pmRec[$i])) ?>" data-rec-v="<?= round($pmRec[$i], 2) ?>">
             <?php for ($k = 0; $k < $pmLinhas; $k++): ?><i class="<?= trim(($k < $po ? 'o ' : '') . ($k < $pr ? 'r' : '')) ?>" style="--k: <?= $k ?>"></i><?php endfor; ?>
           </div>
         <?php endforeach; ?>
@@ -172,9 +175,39 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
       function mostrar(col) { atual = col; cols.forEach(function (c) { c.classList.toggle('is-ativa', c === col); }); grade.classList.add('is-focada'); resumo(); }
       function esconder() { atual = null; grade.classList.remove('is-focada'); cols.forEach(function (c) { c.classList.remove('is-ativa'); }); resumo(); }
       function colunaEm(ev) {
-        var gr = grade.getBoundingClientRect(), i = Math.floor((ev.clientX - gr.left) / gr.width * cols.length);
-        return cols[Math.max(0, Math.min(cols.length - 1, i))];
+        var gr = grade.getBoundingClientRect(), i = Math.floor((ev.clientX - gr.left) / gr.width * visiveis.length);
+        return visiveis[Math.max(0, Math.min(visiveis.length - 1, i))];
       }
+
+      // Quantos dias cabem: colunas de ~17 px com 1 px entre elas, ocupando a largura toda do cartão. Os dias mais
+      // antigos que não cabem saem; a escala das bolinhas e os totais do topo passam a ser os do período que aparece.
+      var COL = 17, GAP = 1, visiveis = Array.prototype.slice.call(cols);
+      var eixo = g.querySelector('.pm__eixo'), rotulos = eixo ? eixo.children : [], periodo = document.querySelector('[data-pm-periodo]');
+      var moeda = window.Intl ? new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }) : null;
+      function ajustar() {
+        var w = grade.clientWidth;
+        if (!w) return;
+        var n = Math.max(7, Math.min(cols.length, Math.floor((w + GAP) / (COL + GAP)))), ini = cols.length - n;
+        cols.forEach(function (c, i) { c.classList.toggle('is-fora', i < ini); });
+        Array.prototype.forEach.call(rotulos, function (r, i) { r.classList.toggle('is-fora', i < ini); });
+        grade.style.setProperty('--colunas', n);
+        if (eixo) eixo.style.setProperty('--colunas', n);
+        visiveis = Array.prototype.slice.call(cols, ini);
+        var maxO = 1, maxR = 1, totO = 0, totR = 0;
+        visiveis.forEach(function (c) { var o = +c.dataset.os || 0, r = +c.dataset.recV || 0; maxO = Math.max(maxO, o); maxR = Math.max(maxR, r); totO += o; totR += r; });
+        visiveis.forEach(function (c) {
+          var o = +c.dataset.os || 0, r = +c.dataset.recV || 0;
+          var po = o <= 0 ? 0 : Math.max(1, Math.round(o / maxO * 10)), pr = r <= 0 ? 0 : Math.max(1, Math.round(r / maxR * 10));
+          c.querySelectorAll('i').forEach(function (el, k) { el.classList.toggle('o', k < po); el.classList.toggle('r', k < pr); });
+        });
+        total.dataset.os = totO;
+        if (moeda) total.dataset.rec = moeda.format(totR);
+        if (periodo) periodo.textContent = 'Últimos ' + n + ' dias';
+        if (atual && atual.classList.contains('is-fora')) atual = null;
+        resumo();
+      }
+      ajustar();
+      if (window.ResizeObserver) new ResizeObserver(ajustar).observe(grade); else window.addEventListener('resize', ajustar);
       grade.addEventListener('pointermove', function (ev) { var c = colunaEm(ev); if (c !== atual) mostrar(c); });
       grade.addEventListener('pointerdown', function (ev) { mostrar(colunaEm(ev)); });
       grade.addEventListener('pointerleave', function (ev) { if (ev.pointerType === 'mouse') esconder(); });
@@ -185,13 +218,24 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
   <section class="card quadro">
     <div class="quadro__topo"><h2 class="card__title">Status das OS</h2><span class="etiqueta">Mês</span></div>
     <div class="rosca">
-      <div class="rosca__desenho">
+      <?php
+        // Anel de tracinhos: 60 marcas em volta, divididas entre as situações na proporção de cada uma
+        // (a partir do topo, no sentido do relógio). Sem OS no mês, todas ficam no cinza vazio.
+        $marcas = [];
+        if ($totalMes) {
+            $acum = 0;
+            foreach ($fatias as $k => [, $cor]) {
+                $v = (int) $g['status_mes'][$k];
+                if (!$v) continue;
+                $de = (int) round($acum / $totalMes * 60);
+                $acum += $v;
+                for ($m = $de, $ate = (int) round($acum / $totalMes * 60); $m < $ate; $m++) $marcas[$m] = $cor;
+            }
+        }
+      ?>
+      <div class="rosca__desenho rosca__desenho--tracos">
         <svg width="140" height="140" viewBox="0 0 140 140" aria-hidden="true">
-          <circle cx="70" cy="70" r="58" fill="none" stroke="var(--grafico-vazio)" stroke-width="24"/>
-          <?php $acumulado = 0.0; foreach ($fatias as $k => [, $cor]): $v = $g['status_mes'][$k]; if (!$v) continue; $tam = $v / $totalMes * $circ; ?>
-            <circle cx="70" cy="70" r="58" fill="none" stroke="<?= $cor ?>" stroke-width="24" stroke-dasharray="<?= round(max(0, $tam - 2), 1) ?> <?= round($circ, 1) ?>"
-                    stroke-dashoffset="<?= round(-$acumulado, 1) ?>" transform="rotate(-90 70 70)"/>
-          <?php $acumulado += $tam; endforeach; ?>
+          <?php for ($m = 0; $m < 60; $m++): ?><line x1="70" y1="5" x2="70" y2="17" transform="rotate(<?= $m * 6 ?> 70 70)" stroke="<?= $marcas[$m] ?? 'var(--grafico-vazio)' ?>" style="--m: <?= $m ?>"/><?php endfor; ?>
         </svg>
         <span class="rosca__centro"><b><?= $totalMes ?></b><span>OS no mês</span></span>
       </div>
@@ -207,21 +251,104 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
     </div>
   </section>
 
-  <section class="card quadro">
+  <section class="card quadro fat">
     <div class="quadro__topo"><h2 class="card__title">Faturamento por mês</h2><span class="etiqueta">Últimos 6 meses</span></div>
-    <?php $picoMes = $maxMes > 0 ? array_search($maxMes, array_values($g['meses']), true) : null; ?>
-    <div class="barras barras--pico" role="img" aria-label="Faturamento por mês: <?= e(implode('; ', array_map(fn ($m, $v) => $mesesCurto[(int) substr($m, 5)] . ' ' . dinheiro($v), array_keys($g['meses']), $g['meses']))) ?>">
-      <div class="barras__escala"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($topo / 4 * $i) ?></span><?php endfor; ?></div>
-      <div class="barras__area">
-        <?php for ($i = 0; $i < 5; $i++): ?><span class="barras__grade" style="bottom:calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
-        <?php $iMes = 0; foreach ($g['meses'] as $m => $v): $ehPico = $iMes++ === $picoMes; ?>
-          <div class="barras__coluna<?= $ehPico ? ' is-pico' : '' ?>">
-            <span class="barras__barra" style="height:<?= round($v / $topo * 100, 1) ?>%"><span class="rel-pico"><?= e(dinheiro($v)) ?></span></span>
-            <span class="barras__rotulo"><?= $mesesCurto[(int) substr($m, 5)] ?></span>
-          </div>
-        <?php endforeach; ?>
+    <?php
+      // Cada ponto é o faturamento dos 30 dias anteriores àquele dia, ao longo de 6 meses: muitos pontos dão a
+      // linha fina com pequenas ondas. Escala de zero ao topo arredondado, grade discreta e os meses embaixo, onde
+      // cada mês começa. Linha no azul do sistema; o degradê desce do azul para o cinza escuro do sistema.
+      $diario = array_map('floatval', $g['diario'] ?? []);
+      $datas = array_keys($diario);
+      $valoresDia = array_values($diario);
+      $serie = [];
+      $soma = 0.0;
+      foreach ($valoresDia as $i => $v) {
+          $soma += $v;
+          if ($i >= 30) $soma -= $valoresDia[$i - 30];
+          if ($i >= 29) $serie[] = [$datas[$i], max(0.0, $soma)];
+      }
+      $serie = array_slice($serie, -182);
+      $fN = count($serie);
+      $fVals = array_column($serie, 1);
+      $fMax = $fN ? max($fVals) : 0.0;
+      $fPasso = $fMax > 0 ? (float) pow(10, floor(log10($fMax / 4))) : 1.0;
+      foreach ([1, 2, 2.5, 5, 10] as $m) { if ($fPasso * $m * 4 >= $fMax) { $fPasso *= $m; break; } }
+      $fTopo = max($fPasso * 4, 1);
+      $fX = fn (int $i): float => $fN > 1 ? round($i / ($fN - 1) * 100, 3) : 50.0;
+      $fPts = [];
+      foreach ($fVals as $i => $v) $fPts[] = $fX($i) . ' ' . round(100 - min(100, $v / $fTopo * 100), 3);
+      $fLinha = $fPts ? 'M ' . implode(' L ', $fPts) : '';
+      $fArea = $fLinha ? $fLinha . ' L 100 100 L 0 100 Z' : '';
+      $fDados = array_map(fn ($p) => [date('d/m', strtotime($p[0])), dinheiro($p[1])], $serie);
+      // Meses no eixo: um rótulo onde cada mês começa.
+      $fMeses = [];
+      foreach ($serie as $i => [$d]) { if (substr($d, 8, 2) === '01') $fMeses[] = [$fX($i), $mesesCurto[(int) substr($d, 5, 2)]]; }
+    ?>
+    <div class="fat__quadro">
+      <div class="fat__escala" aria-hidden="true"><?php for ($i = 4; $i >= 0; $i--): ?><span><?= $escala($fTopo / 4 * $i) ?></span><?php endfor; ?></div>
+      <div class="fat__area-grafico">
+        <?php for ($i = 0; $i < 5; $i++): ?><span class="fat__grade" style="bottom: calc(18px + (100% - 18px) * <?= $i / 4 ?>)"></span><?php endfor; ?>
+        <div class="fat__grafico" role="img" aria-label="Faturamento dos 30 dias anteriores, dia a dia, nos últimos 6 meses: de <?= e(dinheiro($fVals[0] ?? 0)) ?> a <?= e(dinheiro($fN ? end($fVals) : 0)) ?>" data-pontos="<?= e(json_encode($fDados, JSON_UNESCAPED_UNICODE)) ?>">
+          <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+            <defs>
+              <linearGradient id="fat-degrade" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0" class="fat__degrade-azul"/><stop offset=".55" class="fat__degrade-meio"/><stop offset="1" class="fat__degrade-cinza"/>
+              </linearGradient>
+            </defs>
+            <path class="fat__area" d="<?= $fArea ?>" fill="url(#fat-degrade)"/>
+            <path class="fat__linha" d="<?= $fLinha ?>"/>
+          </svg>
+          <span class="fat__ponto" aria-hidden="true"></span>
+          <span class="fat__dica" aria-hidden="true"><b></b><small></small></span>
+        </div>
+        <div class="fat__meses" aria-hidden="true">
+          <?php foreach ($fMeses as [$x, $rot]): ?><span class="<?= $x < 4 ? 'is-inicio' : ($x > 96 ? 'is-fim' : '') ?>" style="left: <?= $x ?>%"><?= $rot ?></span><?php endforeach; ?>
+        </div>
       </div>
     </div>
+    <script>
+      // O ponto desliza sobre a linha acompanhando o mouse (ou o dedo); o balão mostra o faturamento dos 30 dias
+      // até o dia sob o cursor.
+      (function () {
+        var area = document.currentScript.previousElementSibling.querySelector('.fat__grafico');
+        var path = area && area.querySelector('.fat__linha'), svg = area && area.querySelector('svg');
+        if (!path || !path.getTotalLength) return;
+        var total = path.getTotalLength();
+        if (!total) return;
+        var ponto = area.querySelector('.fat__ponto'), dica = area.querySelector('.fat__dica');
+        var dados = []; try { dados = JSON.parse(area.dataset.pontos || '[]'); } catch (e) {}
+        if (!dados.length) return;
+        var amostras = [], N = 600, alvo = null, quadro = 0;
+        for (var k = 0; k <= N; k++) { var p = path.getPointAtLength(total * k / N); amostras.push([p.x, p.y]); }
+        var xMin = amostras[0][0], xMax = amostras[N][0];
+        function alturaEm(x) {
+          var a = 0, b = N;
+          while (b - a > 1) { var m = (a + b) >> 1; if (amostras[m][0] <= x) a = m; else b = m; }
+          var p0 = amostras[a], p1 = amostras[b], t = p1[0] === p0[0] ? 0 : (x - p0[0]) / (p1[0] - p0[0]);
+          return p0[1] + (p1[1] - p0[1]) * Math.max(0, Math.min(1, t));
+        }
+        function desenhar() {
+          quadro = 0;
+          var x = alvo, y = alturaEm(x);
+          ponto.style.left = dica.style.left = x + '%';
+          ponto.style.top = dica.style.top = y + '%';
+          var i = Math.max(0, Math.min(dados.length - 1, Math.round(x / 100 * (dados.length - 1))));
+          dica.querySelector('b').textContent = dados[i][1];
+          dica.querySelector('small').textContent = '30 dias até ' + dados[i][0];
+          dica.classList.toggle('is-a-esquerda', x > 80);
+          dica.classList.toggle('is-a-direita', x < 20);
+          area.classList.add('is-seguindo');
+        }
+        function mover(ev) {
+          var r = svg.getBoundingClientRect();
+          alvo = Math.max(xMin, Math.min(xMax, (ev.clientX - r.left) / r.width * 100));
+          if (!quadro) quadro = requestAnimationFrame(desenhar);
+        }
+        area.addEventListener('pointermove', mover);
+        area.addEventListener('pointerdown', mover);
+        area.addEventListener('pointerleave', function () { area.classList.remove('is-seguindo'); });
+      })();
+    </script>
   </section>
 
   <section class="card quadro">
@@ -232,13 +359,25 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
     </div>
     <?php if (!$g['pecas']): ?>
       <p class="form-dica">Nenhuma peça vendida nos últimos 6 meses.</p>
+    <?php else:
+      // Mesmo padrão das entradas e saídas do Financeiro: uma barra única dividida entre as peças (do mais vendido
+      // ao menos vendido, cada uma num tom) e a lista com ponto do mesmo tom, nome, quantidade e porcentagem.
+      $qtdPecas = array_map(fn ($p) => max(0.0, (float) $p['quantidade']), $g['pecas']);
+      $totPecas = array_sum($qtdPecas);
+      $nPecas = count($qtdPecas);
+      $tomPeca = fn (int $i): int => (int) round(100 - $i * (82 / max(1, $nPecas - 1)));
+      $un = fn (float $q): string => number_format($q, fmod($q, 1) ? 1 : 0, ',', '.') . ' un.';
+    ?>
+      <div class="fin-comp__barra" aria-hidden="true">
+        <?php foreach ($g['pecas'] as $i => $pc): ?><i style="flex-grow: <?= round($qtdPecas[$i], 2) ?>; --tom: <?= $tomPeca($i) ?>%" title="<?= e($pc['descricao'] . ' · ' . $un($qtdPecas[$i])) ?>"></i><?php endforeach; ?>
+      </div>
+      <ul class="fin-comp__lista">
+        <?php foreach ($g['pecas'] as $i => $pc): ?>
+          <li><span class="fin-comp__ponto" style="--tom: <?= $tomPeca($i) ?>%"></span><span class="fin-comp__nome"><?= e($pc['descricao']) ?></span>
+            <b><?= $un($qtdPecas[$i]) ?></b><span class="fin-comp__pct"><?= $totPecas > 0 ? $pct($qtdPecas[$i] / $totPecas) : '0%' ?></span></li>
+        <?php endforeach; ?>
+      </ul>
     <?php endif; ?>
-    <ul class="ranking">
-      <?php foreach ($g['pecas'] as $pc): $q = (float) $pc['quantidade']; ?>
-        <li><span class="ranking__nome"><?= e($pc['descricao']) ?></span><b><?= number_format($q, fmod($q, 1) ? 1 : 0, ',', '.') ?> un.</b>
-          <span class="ranking__trilho"><span style="width:<?= round($q / $maxPeca * 100, 1) ?>%"></span></span></li>
-      <?php endforeach; ?>
-    </ul>
   </section>
 </div>
 
