@@ -11,6 +11,7 @@ $iniciais = function (string $nome): string {
     return mb_strtoupper(mb_substr($p[0], 0, 1) . (count($p) > 1 ? mb_substr(end($p), 0, 1) : ''));
 };
 $variacao = $resumo['compras_anterior'] > 0 ? ($resumo['compras_mes'] - $resumo['compras_anterior']) / $resumo['compras_anterior'] * 100 : null;
+if ($variacao !== null && abs($variacao) > 999) { $variacao = null; }
 ?>
 <div class="page-header">
   <div>
@@ -18,7 +19,7 @@ $variacao = $resumo['compras_anterior'] > 0 ? ($resumo['compras_mes'] - $resumo[
     <p class="page-header__subtitle">Quem abastece a oficina de peças, lubrificantes e serviços.</p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--contorno" href="./estoque-entrada"><?= icone('download') ?> Entrada de mercadoria</a>
+    <a class="btn btn--ghost" href="./estoque-entrada"><?= icone('download') ?> Entrada de mercadoria</a>
     <a class="btn btn--primary" href="./fornecedor-form"><?= icone('plus') ?> Novo fornecedor</a>
   </div>
 </div>
@@ -30,7 +31,7 @@ $variacao = $resumo['compras_anterior'] > 0 ? ($resumo['compras_mes'] - $resumo[
     <span class="stat-card__pe"><?= $numero($resumo['inativos']) ?> inativo<?= $resumo['inativos'] === 1 ? '' : 's' ?></span>
   </div>
   <div class="stat-card">
-    <div class="stat-card__topo"><span class="stat-card__label">Comprado no mês</span><?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '−' ?><?= number_format(abs($variacao), 0) ?>%</span><?php endif; ?></div>
+    <div class="stat-card__topo"><span class="stat-card__label">Comprado no mês</span><?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '-' ?><?= number_format(abs($variacao), 0) ?>%</span><?php endif; ?></div>
     <span class="stat-card__value"><?= dinheiro($resumo['compras_mes']) ?></span>
     <span class="stat-card__pe">em <?= $numero($resumo['notas_mes']) ?> entrada<?= $resumo['notas_mes'] === 1 ? '' : 's' ?> de mercadoria</span>
   </div>
@@ -57,10 +58,10 @@ $variacao = $resumo['compras_anterior'] > 0 ? ($resumo['compras_mes'] - $resumo[
           <?php foreach ($fornecedores as $fo): $link = './fornecedor?id=' . (int) $fo['id']; $fone = so_digitos($fo['telefone'] ?? ''); ?>
             <tr data-href="<?= e($link) ?>" class="<?= $fo['ativo'] ? '' : 'inativo' ?>">
               <td><span class="celula-pessoa"><span class="avatar avatar--g"><?= e($iniciais($fo['nome'])) ?></span><a href="<?= e($link) ?>"><?= e($fo['nome']) ?></a></span></td>
-              <td class="secundario tabular"><?= $fo['documento'] ? e(documento_fmt($fo['documento'])) : '—' ?></td>
-              <td><?= e($fo['contato'] ?: '—') ?><?php if ($fone): ?><span class="sub"><?= e(telefone_fmt($fo['telefone'])) ?></span><?php endif; ?></td>
-              <td><?= $fo['email'] ? '<a class="link-discreto" href="mailto:' . e($fo['email']) . '">' . e($fo['email']) . '</a>' : '—' ?></td>
-              <td class="secundario tabular"><?= $fo['ultima_compra'] ? data_br($fo['ultima_compra']) : '—' ?></td>
+              <td class="secundario tabular"><?= $fo['documento'] ? e(documento_fmt($fo['documento'])) : '-' ?></td>
+              <td><?= e($fo['contato'] ?: '-') ?><?php if ($fone): ?><span class="sub"><?= e(telefone_fmt($fo['telefone'])) ?></span><?php endif; ?></td>
+              <td><?= $fo['email'] ? '<a class="link-discreto" href="mailto:' . e($fo['email']) . '">' . e($fo['email']) . '</a>' : '-' ?></td>
+              <td class="secundario tabular"><?= $fo['ultima_compra'] ? data_br($fo['ultima_compra']) : '-' ?></td>
               <td><span class="badge badge--<?= $fo['ativo'] ? 'neutral' : 'muted' ?>"><?= $fo['ativo'] ? 'Ativo' : 'Inativo' ?></span></td>
               <td class="num"><span class="acoes-linha">
                 <?php if (strlen($fone) >= 10): ?><a class="btn btn--fantasma btn--icone" href="https://wa.me/55<?= e($fone) ?>" target="_blank" rel="noopener" aria-label="Conversar no WhatsApp" title="WhatsApp"><?= icone('message') ?></a><?php endif; ?>

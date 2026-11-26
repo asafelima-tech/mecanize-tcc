@@ -251,7 +251,7 @@ final class OrdensController extends Controller
     public function veiculosDoCliente(): void
     {
         $lista = array_values(array_filter((new Cliente())->veiculos((int) ($_GET['cliente'] ?? 0)), fn($v) => (int) $v['ativo'] === 1));
-        $this->json(array_map(fn($v) => ['id' => (int) $v['id'], 'rotulo' => $v['placa'] . ' — ' . $v['modelo']], $lista));
+        $this->json(array_map(fn($v) => ['id' => (int) $v['id'], 'rotulo' => $v['placa'] . ' · ' . $v['modelo']], $lista));
     }
 
     /** Página pública de acompanhamento (o link que a oficina manda ao cliente). */

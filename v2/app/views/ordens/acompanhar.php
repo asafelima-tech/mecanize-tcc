@@ -14,6 +14,8 @@ $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
   <?php require V2_RAIZ . '/app/views/layout/_favicon.php'; ?>
   <link rel="stylesheet" href="./css/mecanize.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/mecanize.css') ?>">
   <link rel="stylesheet" href="./css/identidade.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/identidade.css') ?>">
+  <link rel="stylesheet" href="./css/responsivo.css?v=<?= (int) @filemtime(V2_RAIZ . '/public/css/responsivo.css') ?>">
+  <script>try { if (localStorage.getItem('mecanize-theme') === 'dark' || (!localStorage.getItem('mecanize-theme') && matchMedia('(prefers-color-scheme: dark)').matches)) document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
   <style>.pub { max-width: 640px; margin: 0 auto; padding: 24px 16px 48px; }</style>
 </head>
 <body>

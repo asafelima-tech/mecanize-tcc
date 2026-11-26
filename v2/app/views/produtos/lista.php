@@ -17,7 +17,7 @@ $ocultos = array_filter(['tipo' => $f['tipo']]);
   </div>
   <?php if ($admin): ?>
     <div class="page-header__actions">
-      <a class="btn btn--contorno" href="./estoque"><?= icone('part') ?> Estoque</a>
+      <a class="btn btn--ghost" href="./estoque"><?= icone('part') ?> Estoque</a>
       <details class="menu-mais"><summary class="btn btn--primary"><?= icone('plus') ?> Novo item<?= icone('chevron-down', 14) ?></summary>
         <div class="menu-mais__lista">
           <a href="./produto-form"><?= icone('part') ?>Peça</a>
@@ -92,12 +92,12 @@ $ocultos = array_filter(['tipo' => $f['tipo']]);
                 };
                 $link = './produto?id=' . (int) $pr['id']; ?>
             <tr data-href="<?= e($link) ?>" class="<?= $pr['ativo'] ? '' : 'inativo' ?>">
-              <td class="codigo"><?= $pr['codigo_interno'] ? e($pr['codigo_interno']) : '—' ?></td>
+              <td class="codigo"><?= $pr['codigo_interno'] ? e($pr['codigo_interno']) : '-' ?></td>
               <td><a href="<?= e($link) ?>" class="link-discreto"><strong><?= e($pr['nome']) ?></strong></a><?php $sub = trim(($pr['marca'] ?? '') . (($pr['marca'] ?? '') && ($pr['descricao'] ?? '') ? ' · ' : '') . mb_strimwidth((string) ($pr['descricao'] ?? ''), 0, 60, '…')); if ($sub !== ''): ?><span class="sub"><?= e($sub) ?></span><?php endif; ?></td>
               <td><span class="etiqueta<?= $peca ? '' : ' etiqueta--contorno' ?>"><?= $peca ? 'Peça' : 'Serviço' ?></span></td>
-              <td><?= e($pr['categoria'] ?: '—') ?></td>
-              <td class="num"><strong><?= $peca ? $qtd($pr['estoque_atual']) : '—' ?></strong></td>
-              <?php if ($admin): ?><td class="num secundario"><?= $peca ? dinheiro($pr['preco_custo']) : '—' ?></td><?php endif; ?>
+              <td><?= e($pr['categoria'] ?: '-') ?></td>
+              <td class="num"><strong><?= $peca ? $qtd($pr['estoque_atual']) : '-' ?></strong></td>
+              <?php if ($admin): ?><td class="num secundario"><?= $peca ? dinheiro($pr['preco_custo']) : '-' ?></td><?php endif; ?>
               <td class="num"><?= dinheiro($pr['preco_venda']) ?></td>
               <td><span class="badge badge--<?= $sitCor ?>"><?= $sitRotulo ?></span></td>
               <td class="num"><span class="acoes-linha">

@@ -885,7 +885,7 @@ body.sidebar-collapsed .sidebar__tema .interruptor { margin: 0; }
 .barras--pico .rel-pico { opacity: 0; pointer-events: none; transform: translate(-50%, 4px); transition: opacity .15s var(--ease), transform .15s var(--ease);
   display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 9px; font-size: 12px; line-height: 1.25;
   box-shadow: 0 4px 14px -4px rgba(0, 0, 0, .3); z-index: 3; }
-.barras--pico .rel-pico small { font-size: 10.5px; font-weight: 500; opacity: .7; }
+.barras--pico .rel-pico small { font-size: 11px; font-weight: 500; opacity: .7; }
 .barras--pico .barras__coluna:hover .rel-pico { opacity: 1; transform: translate(-50%, 0); }
 
 /* ── 28. Relatórios ────────────────────────────────────────────────────────
@@ -1472,7 +1472,7 @@ html .form-ficha .form-ficha__resumo [hidden], html .form-ficha .form-ficha__res
   background: var(--action); color: var(--on-action); font-size: 12px; font-weight: 600; line-height: 1.3; white-space: nowrap; font-variant-numeric: tabular-nums;
   box-shadow: 0 4px 14px -4px rgba(0, 0, 0, .3); opacity: 0; pointer-events: none; transform: translate(-50%, 4px);
   transition: opacity .15s var(--ease), transform .15s var(--ease); }
-.barras__dica small { font-size: 10.5px; font-weight: 500; opacity: .7; }
+.barras__dica small { font-size: 11px; font-weight: 500; opacity: .7; }
 .barras__dica > span { display: flex; align-items: center; gap: 6px; }
 .barras__dica i { flex: none; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .barras__dica i.is-saida { background: color-mix(in srgb, currentColor 45%, transparent); }
@@ -1664,38 +1664,38 @@ html.mf-aberta { overflow: hidden; }
    do card, com o desenho fino da referência: linha de 1,5 px com pequenas ondas no azul do sistema e o degradê
    descendo do azul para o cinza escuro do sistema no finalzinho, como uma mistura das duas cores. */
 .fat__quadro { flex: 1 1 auto; display: grid; grid-template-columns: auto minmax(0, 1fr); column-gap: 10px; min-height: 220px; }
-.fat__escala { display: flex; flex-direction: column; justify-content: space-between; margin-top: -6px; padding-bottom: 18px; font-size: 10px; color: var(--text-tertiary);
+.fat__escala { display: flex; flex-direction: column; justify-content: space-between; margin-top: -6px; padding-bottom: 18px; font-size: 11px; color: var(--text-tertiary);
   text-align: right; font-variant-numeric: tabular-nums; }
 .fat__area-grafico { position: relative; min-width: 0; }
 .fat__grade { position: absolute; left: 0; right: 0; height: 1px; background: var(--hairline); }
 .fat__grafico { position: absolute; left: 0; right: 0; top: 0; bottom: 18px; z-index: 1; cursor: default; touch-action: pan-y; }
 .fat__grafico svg { position: absolute; inset: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; animation: curva-surge 1.1s var(--ease-saida) both; }
 @keyframes curva-surge { from { clip-path: inset(-12px 100% -12px -12px); } to { clip-path: inset(-12px -12px -12px -12px); } }
-.fat__linha { fill: none; stroke: var(--acento); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
-.fat__degrade-azul { stop-color: var(--acento); stop-opacity: .26; }
-.fat__degrade-meio { stop-color: color-mix(in srgb, var(--acento) 45%, var(--grafico-1)); stop-opacity: .1; }
-.fat__degrade-cinza { stop-color: var(--grafico-1); stop-opacity: .03; }
-[data-theme="dark"] .fat__degrade-azul { stop-opacity: .3; }
+.fat__linha { fill: none; stroke: var(--grafico-1); stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round; vector-effect: non-scaling-stroke; }
+.fat__degrade-azul { stop-color: var(--grafico-1); stop-opacity: .16; }
+.fat__degrade-meio { stop-color: var(--grafico-1); stop-opacity: .07; }
+.fat__degrade-cinza { stop-color: var(--grafico-1); stop-opacity: .02; }
+[data-theme="dark"] .fat__degrade-azul { stop-opacity: .2; }
 .fat__meses { position: absolute; left: 0; right: 0; bottom: 0; height: 18px; pointer-events: none; }
-.fat__meses span { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 10.5px; color: var(--text-secondary); white-space: nowrap; }
+.fat__meses span { position: absolute; bottom: 0; transform: translateX(-50%); font-size: 11px; color: var(--text-secondary); white-space: nowrap; }
 .fat__meses span.is-inicio { transform: none; }
 .fat__meses span.is-fim { transform: translateX(-100%); }
 .fat__dica.is-a-direita { transform: translate(-16px, calc(-100% - 12px)); }
 /* Ponto e balão que deslizam sobre a linha (posicionados pelo script da tela, quadro a quadro). */
-.fat__ponto { position: absolute; z-index: 2; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--acento); box-shadow: 0 0 0 3px var(--card);
+.fat__ponto { position: absolute; z-index: 2; width: 9px; height: 9px; margin: -4.5px 0 0 -4.5px; border-radius: 50%; background: var(--grafico-1); box-shadow: 0 0 0 3px var(--card);
   opacity: 0; pointer-events: none; transition: opacity .15s var(--ease); }
 .fat__dica { position: absolute; z-index: 3; display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 5px 10px; border-radius: 9px;
   background: var(--action); color: var(--on-action); font-size: 12px; font-weight: 600; line-height: 1.25; white-space: nowrap; font-variant-numeric: tabular-nums;
   box-shadow: 0 4px 14px -4px rgba(0, 0, 0, .3); transform: translate(-50%, calc(-100% - 12px)); opacity: 0; pointer-events: none; transition: opacity .15s var(--ease); }
 .fat__dica.is-a-esquerda { transform: translate(calc(-100% + 16px), calc(-100% - 12px)); }
-.fat__dica small { font-size: 10.5px; font-weight: 500; opacity: .7; }
+.fat__dica small { font-size: 11px; font-weight: 500; opacity: .7; }
 .fat__grafico.is-seguindo .fat__ponto, .fat__grafico.is-seguindo .fat__dica { opacity: 1; }
 @media (max-width: 599.98px) { .fat__quadro { min-height: 180px; } }
 @media (prefers-reduced-motion: reduce) { .rosca__desenho--tracos line, .fat__grafico svg { animation: none; } }
 /* Azul do sistema só no que está acontecendo agora ou no que está sob o mouse: a coluna de hoje e a coluna
    escolhida no Fluxo de OS × Receita, as OS em andamento no anel e o ponto que segue o mouse na linha. */
 .pm[data-metrica="os"] .pm__col.is-hoje i.o, .pm[data-metrica="rec"] .pm__col.is-hoje i.r,
-.pm[data-metrica="os"] .pm__col.is-ativa i.o, .pm[data-metrica="rec"] .pm__col.is-ativa i.r { background: var(--acento); }
+.pm[data-metrica="os"] .pm__col.is-ativa i.o, .pm[data-metrica="rec"] .pm__col.is-ativa i.r { background: var(--grafico-2); }
 .pm__eixo span:last-child { color: var(--link); }
 
 /* ── 43. Agenda: rodapé de páginas (o mesmo "Mostrando X de Y" das tabelas), num cartão fino abaixo dos dias. */
@@ -1755,7 +1755,7 @@ a.placa-caixa:hover { opacity: .75; }
 .fin-evolucao .fat__quadro { min-height: 240px; }
 .fat__linha--saida { stroke: color-mix(in srgb, var(--grafico-1) 55%, transparent); stroke-width: 1.25; }
 .fat__ponto--saida { width: 7px; height: 7px; margin: -3.5px 0 0 -3.5px; background: color-mix(in srgb, var(--grafico-1) 70%, var(--card)); }
-.legenda-linha { flex: none; width: 14px; height: 2px; border-radius: 1px; background: var(--acento); }
+.legenda-linha { flex: none; width: 14px; height: 2px; border-radius: 1px; background: var(--grafico-1); }
 .legenda-linha--saida { background: color-mix(in srgb, var(--grafico-1) 55%, transparent); }
 .fin-linha__dica { align-items: stretch !important; gap: 2px !important; }
 .fin-linha__dica small { text-align: center; }
@@ -2285,4 +2285,32 @@ div.cu-cartao { cursor: default; }
   .mf__nota { display: none; }
   .mf__rodape .btn { flex: 1; justify-content: center; }
   .content > .mf { border-radius: 16px; }
+}
+
+
+/* ── 28. Revisão visual (26/11/2026) ──────────────────────────────────────────────────────────────── */
+/* Linha da tabela sem o botão "⋯" (a própria conta): reserva o espaço para o lápis ficar alinhado com os outros. */
+.acoes-linha__reserva { visibility: hidden; pointer-events: none; }
+/* A janela "Nova OS" aberta direto na página não encosta mais na barra superior. */
+.content > .mf { margin-top: 24px; }
+@media (min-width: 900px) { .content > .mf { height: calc(100dvh - 164px); } }
+/* Nomes que não cabem quebram em até duas linhas em vez de virar "…" onde há espaço vertical. */
+.composicao__nome { white-space: normal; overflow-wrap: anywhere; line-height: 1.3; }
+.cu-nivel__nome { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; white-space: normal; overflow-wrap: anywhere; line-height: 1.25; }
+/* Tabela de OS: veículo e técnico com largura mínima, para não quebrar em três linhas. */
+@media (min-width: 900px) {
+  .table--ordens th:nth-child(3), .table--ordens td:nth-child(3) { min-width: 168px; }
+  .table--ordens th:nth-child(6), .table--ordens td:nth-child(6) { min-width: 150px; }
+}
+@media (max-width: 899.98px) {
+  .content > .mf { margin-top: 12px; }
+  /* Faixas que rolam de lado mostram uma sombra na borda que ainda tem conteúdo (abas da Nova OS e dias da agenda). */
+  .mf__nav {
+    background:
+      linear-gradient(to right, var(--card) 30%, transparent) 0 0 / 36px 100% no-repeat local,
+      linear-gradient(to left, var(--card) 30%, transparent) 100% 0 / 36px 100% no-repeat local,
+      radial-gradient(farthest-side at 0 50%, rgba(0, 0, 0, .14), transparent) 0 0 / 12px 100% no-repeat scroll,
+      radial-gradient(farthest-side at 100% 50%, rgba(0, 0, 0, .14), transparent) 100% 0 / 12px 100% no-repeat scroll;
+  }
+  .cu-tira__dias { -webkit-mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); mask-image: linear-gradient(to right, transparent 0, #000 18px, #000 calc(100% - 18px), transparent 100%); }
 }

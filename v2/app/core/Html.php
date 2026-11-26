@@ -32,15 +32,27 @@ function json_para_script($valor): string
     return json_encode($valor, JSON_UNESCAPED_UNICODE | JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_APOS | JSON_HEX_QUOT);
 }
 
+/**
+ * Valor em reais no padrão único do sistema: "R$ 1.234,56" e, se negativo, "-R$ 1.234,56" (sinal colado, como nas
+ * listas de movimento). O espaço entre "R$" e o número não separa, para o valor nunca quebrar em duas linhas.
+ */
 function dinheiro($valor): string
 {
-    return 'R$ ' . number_format((float) $valor, 2, ',', '.');
+    $n = round((float) $valor, 2);
+
+    return ($n < 0 ? '-' : '') . "R$\u{00A0}" . number_format(abs($n), 2, ',', '.');
+}
+
+/** "1 conta", "3 contas": a quantidade com a palavra no singular ou no plural. */
+function plural(int $n, string $um, string $varios): string
+{
+    return $n . ' ' . ($n === 1 ? $um : $varios);
 }
 
 function data_br(?string $data, bool $comHora = false): string
 {
     if (!$data) {
-        return '—';
+        return '-';
     }
 
     return date($comHora ? 'd/m/Y H:i' : 'd/m/Y', strtotime($data));
@@ -153,6 +165,20 @@ function curva_suave(array $pts): string
         $d .= ' C ' . $f($pts[$i][0] + $dx) . ' ' . $f($pts[$i][1] + $tan[$i] * $dx)
             . ', ' . $f($pts[$i + 1][0] - $dx) . ' ' . $f($pts[$i + 1][1] - $tan[$i + 1] * $dx)
             . ', ' . $f($pts[$i + 1][0]) . ' ' . $f($pts[$i + 1][1]);
+    }
+
+    return $d;
+}
+
+/**
+ * Caminho SVG de uma linha reta passando por cada ponto [[x, y], ...] (coordenadas de 0 a 100). Para séries diárias de
+ * valor, onde suavizar inventaria receita nos dias sem movimento (a curva suave serve para médias móveis).
+ */
+function linha_reta(array $pts): string
+{
+    $d = '';
+    foreach (array_values($pts) as $i => $p) {
+        $d .= ($i === 0 ? 'M ' : ' L ') . round($p[0], 3) . ' ' . round($p[1], 3);
     }
 
     return $d;

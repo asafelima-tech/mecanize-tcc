@@ -18,8 +18,8 @@ $dif = $fechado && $caixa['valor_esperado'] !== null ? (float) $caixa['valor_fec
       <h1>Caixa de <?= data_br($caixa['aberto_em']) ?></h1>
       <p class="ver-topo__meta">
         <span class="ver-chip<?= $fechado ? '' : ' ver-chip--escuro' ?>"><?= $fechado ? 'Fechado' : 'Aberto' ?></span>
-        <span class="ver-chip"><?= icone('clock', 13) ?> Aberto por <?= e($caixa['aberto_por_nome'] ?? '—') ?> às <?= date('H:i', strtotime($caixa['aberto_em'])) ?></span>
-        <?php if ($fechado): ?><span class="ver-chip"><?= icone('lock', 13) ?> Fechado por <?= e($caixa['fechado_por_nome'] ?? '—') ?> em <?= data_br($caixa['fechado_em'], true) ?></span><?php endif; ?>
+        <span class="ver-chip"><?= icone('clock', 13) ?> Aberto por <?= e($caixa['aberto_por_nome'] ?? '-') ?> às <?= date('H:i', strtotime($caixa['aberto_em'])) ?></span>
+        <?php if ($fechado): ?><span class="ver-chip"><?= icone('lock', 13) ?> Fechado por <?= e($caixa['fechado_por_nome'] ?? '-') ?> em <?= data_br($caixa['fechado_em'], true) ?></span><?php endif; ?>
       </p>
     </div>
   </div>
@@ -30,7 +30,7 @@ $dif = $fechado && $caixa['valor_esperado'] !== null ? (float) $caixa['valor_fec
   <div><span>Saldo anterior</span><strong><?= dinheiro($fechamento['anterior']) ?></strong><small>em dinheiro, do caixa anterior</small></div>
   <div><span>Entradas</span><strong><?= dinheiro($fechamento['entradas']) ?></strong><small>todas as formas</small></div>
   <div><span>Saídas</span><strong><?= dinheiro($fechamento['saidas']) ?></strong><small>todas as formas</small></div>
-  <div><span>Saldo final<?= $fechado ? '' : ' até agora' ?></span><strong><?= ($fechamento['saldo'] < 0 ? '− ' : '') . dinheiro(abs($fechamento['saldo'])) ?></strong>
+  <div><span>Saldo final<?= $fechado ? '' : ' até agora' ?></span><strong><?= ($fechamento['saldo'] < 0 ? '-' : '') . dinheiro(abs($fechamento['saldo'])) ?></strong>
     <small><?= dinheiro($fechamento['dinheiro']) ?> em dinheiro na gaveta</small></div>
 </div>
 
@@ -63,7 +63,7 @@ $dif = $fechado && $caixa['valor_esperado'] !== null ? (float) $caixa['valor_fec
 
     <section class="card card--tabela ver-historico" aria-labelledby="ver-movs">
       <header class="ver-historico__cabeca">
-        <div><h2 id="ver-movs">Movimentos</h2><p><?= $movimentos ? count($movimentos) . ' movimento(s), do mais recente para o mais antigo.' : 'Recebimentos, pagamentos, suprimentos e sangrias da sessão.' ?></p></div>
+        <div><h2 id="ver-movs">Movimentos</h2><p><?= $movimentos ? plural(count($movimentos), 'movimento', 'movimentos') . ', do mais recente para o mais antigo.' : 'Recebimentos, pagamentos, suprimentos e sangrias da sessão.' ?></p></div>
       </header>
       <?php require __DIR__ . '/_movimentos.php'; ?>
     </section>

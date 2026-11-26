@@ -87,7 +87,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
   <div class="app">
     <aside class="sidebar" id="menu-principal" aria-label="Menu principal">
       <div class="sidebar__brand">
-        <a href="./<?= e(Permissao::inicio($perfil)) ?>" aria-label="Mecanize — início" title="Início">
+        <a href="./<?= e(Permissao::inicio($perfil)) ?>" aria-label="Mecanize, início" title="Início">
           <img class="sidebar__logo-full logo-p-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="Mecanize">
           <img class="sidebar__logo-full logo-p-escuro" src="./img/logo-branco.png<?= $logoV ?? '' ?>" data-recorte="logo" alt="" aria-hidden="true">
           <img class="sidebar__logo-icon logo-p-claro" src="./img/logo.png<?= $logoV ?? '' ?>" data-recorte="simbolo" alt="Mecanize">
@@ -168,7 +168,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
   <?php if ($perfil === 'TECNICO'): ?>
     <!-- Técnico no celular: as três telas dele numa barra embaixo, ao alcance do polegar (some no computador). -->
     <nav class="tec-barra" aria-label="Navegação do técnico">
-      <?php foreach ([['servicos', ['servico'], 'mechanic', 'Serviços'], ['pedidos', [], 'box', 'Pedidos'], ['perfil', [], 'user', 'Perfil']] as [$r, $filhas, $ic, $rot]):
+      <?php foreach ([['servicos', ['servico'], 'mechanic', 'Meus serviços'], ['pedidos', [], 'send', 'Pedidos de material'], ['perfil', [], 'user', 'Perfil']] as [$r, $filhas, $ic, $rot]):
         $na = $rotaAtual === $r || in_array($rotaAtual, $filhas, true); ?>
         <a href="./<?= $r ?>"<?= $na ? ' class="ativa" aria-current="page"' : '' ?>><?= icone($ic, 22, $na ? 2 : 1.5) ?><span><?= $rot ?></span></a>
       <?php endforeach; ?>

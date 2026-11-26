@@ -14,7 +14,6 @@ $feito = $receber ? 'Recebido' : 'Pago';
 $hoje = new DateTimeImmutable('today');
 $em7 = $hoje->modify('+7 days');
 $n = fn($v) => (int) $v;
-$plural = fn(int $q, string $um, string $varios) => $q . ' ' . ($q === 1 ? $um : $varios);
 
 // Link da própria lista trocando alguns filtros (os demais continuam; volta para a página 1).
 $base = array_filter(['tipo' => $f['tipo'], 'situacao' => $f['situacao'] !== 'abertos' ? $f['situacao'] : '', 'busca' => $f['busca'],
@@ -51,7 +50,7 @@ $contagem = ['abertos' => $ind['n_aberto'], 'vencidos' => $ind['n_atrasado'], 'p
     <p class="page-header__subtitle"><?= $receber ? 'O que os clientes devem à oficina, por vencimento.' : 'Despesas e compromissos da oficina, por vencimento.' ?></p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--contorno" href="./caixas"><?= icone('history') ?> Histórico de caixa</a>
+    <a class="btn btn--ghost" href="./caixas"><?= icone('history') ?> Histórico de caixa</a>
     <a class="btn btn--ghost" href="./comissoes"><?= icone('percent') ?> Comissões</a>
     <a class="btn btn--primary" href="./conta-form?tipo=<?= e($f['tipo']) ?>"><?= icone('plus') ?> <?= $receber ? 'Conta a receber' : 'Conta a pagar' ?></a>
   </div>
@@ -67,22 +66,22 @@ $contagem = ['abertos' => $ind['n_aberto'], 'vencidos' => $ind['n_atrasado'], 'p
   <a class="stat-card" href="<?= e($link(['situacao' => '', 'de' => '', 'ate' => ''])) ?>">
     <div class="stat-card__topo"><span class="stat-card__label"><?= $receber ? 'Total a receber' : 'Total a pagar' ?></span><?= icone($receber ? 'download' : 'upload') ?></div>
     <span class="stat-card__value"><?= dinheiro($ind['aberto']) ?></span>
-    <span class="stat-card__pe"><?= $plural($n($ind['n_aberto']), 'conta em aberto', 'contas em aberto') ?></span>
+    <span class="stat-card__pe"><?= plural($n($ind['n_aberto']), 'conta em aberto', 'contas em aberto') ?></span>
   </a>
   <a class="stat-card" href="<?= e($link(['situacao' => 'vencidos', 'de' => '', 'ate' => ''])) ?>">
     <div class="stat-card__topo"><span class="stat-card__label">Em atraso</span><?= icone('warning') ?></div>
     <span class="stat-card__value"><?= dinheiro($ind['atrasado']) ?></span>
-    <span class="stat-card__pe"><?= $ind['n_atrasado'] ? $plural($n($ind['n_atrasado']), 'conta vencida', 'contas vencidas') : 'nada vencido' ?></span>
+    <span class="stat-card__pe"><?= $ind['n_atrasado'] ? plural($n($ind['n_atrasado']), 'conta vencida', 'contas vencidas') : 'nada vencido' ?></span>
   </a>
   <a class="stat-card" href="<?= e($link(['situacao' => '', 'de' => $hoje->format('Y-m-d'), 'ate' => $em7->format('Y-m-d')])) ?>">
     <div class="stat-card__topo"><span class="stat-card__label">Próximos 7 dias</span><?= icone('calendar') ?></div>
     <span class="stat-card__value"><?= dinheiro($ind['proximos']) ?></span>
-    <span class="stat-card__pe"><?= $ind['n_proximos'] ? $plural($n($ind['n_proximos']), 'vencimento', 'vencimentos') . ' até ' . $em7->format('d/m') : 'nenhum vencimento' ?></span>
+    <span class="stat-card__pe"><?= $ind['n_proximos'] ? plural($n($ind['n_proximos']), 'vencimento', 'vencimentos') . ' até ' . $em7->format('d/m') : 'nenhum vencimento' ?></span>
   </a>
   <a class="stat-card" href="<?= e($link(['situacao' => 'pagos', 'de' => '', 'ate' => ''])) ?>">
     <div class="stat-card__topo"><span class="stat-card__label"><?= $feito ?> no mês</span><?= icone('check') ?></div>
     <span class="stat-card__value"><?= dinheiro($ind['realizado']) ?></span>
-    <span class="stat-card__pe"><?= $ind['n_realizado'] ? $plural($n($ind['n_realizado']), $receber ? 'recebimento' : 'pagamento', $receber ? 'recebimentos' : 'pagamentos') . ' desde o dia 1º' : ($receber ? 'nenhum recebimento' : 'nenhum pagamento') . ' este mês' ?></span>
+    <span class="stat-card__pe"><?= $ind['n_realizado'] ? plural($n($ind['n_realizado']), $receber ? 'recebimento' : 'pagamento', $receber ? 'recebimentos' : 'pagamentos') . ' desde o dia 1º' : ($receber ? 'nenhum recebimento' : 'nenhum pagamento') . ' este mês' ?></span>
   </a>
 </div>
 
@@ -140,11 +139,11 @@ $contagem = ['abertos' => $ind['n_aberto'], 'vencidos' => $ind['n_atrasado'], 'p
                   <td>
                     <?php if ($quem): ?>
                       <span class="celula-pessoa"><span class="avatar"><?= e($iniciais($quem)) ?></span><span><?= e($quem) ?><?php if (!$receber && $c['funcionario'] && !$c['fornecedor']): ?><span class="sub">funcionário</span><?php endif; ?></span></span>
-                    <?php else: ?><span class="secundario">—</span><?php endif; ?>
+                    <?php else: ?><span class="secundario">-</span><?php endif; ?>
                   </td>
                   <td><span class="badge badge--<?= $cor ?>"><?= $rotulo ?></span><?php if ($atrasada && $c['status'] === 'PARCIAL'): ?><span class="sub">pagamento parcial</span><?php endif; ?></td>
                   <td class="num"><?= dinheiro($c['devido']) ?><?php if ((float) $c['valor_pago'] > 0 && $c['status'] !== 'PAGO'): ?><span class="sub"><?= mb_strtolower($feito) ?> <?= dinheiro($c['valor_pago']) ?></span><?php endif; ?></td>
-                  <td class="num"><strong><?= $c['status'] === 'CANCELADO' ? '—' : dinheiro(max(0, $saldoConta)) ?></strong></td>
+                  <td class="num"><strong><?= $c['status'] === 'CANCELADO' ? '-' : dinheiro(max(0, $saldoConta)) ?></strong></td>
                   <td class="num">
                     <span class="contas-acoes">
                       <?php if ($aberta): ?>

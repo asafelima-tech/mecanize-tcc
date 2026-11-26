@@ -66,7 +66,7 @@ $acoes = [
       <ul class="tec-itens">
         <?php foreach ($servicos as $i): ?>
           <li class="<?= $i['meu'] ? 'is-meu' : '' ?>"><?= icone('mechanic', 18) ?><span><?= e($i['descricao']) ?><?php if ($qtd($i['quantidade']) !== '1'): ?> <small>× <?= $qtd($i['quantidade']) ?></small><?php endif; ?>
-            <?php if ($i['tecnico'] && !$i['meu']): ?><small>com <?= e($i['tecnico']) ?></small><?php elseif ($i['meu']): ?><small>seu</small><?php endif; ?></span></li>
+            <?php if ($i['tecnico'] && !$i['meu']): ?><small>com <?= e($i['tecnico']) ?></small><?php elseif ($i['meu']): ?><small class="tec-item__dono">seu</small><?php endif; ?></span></li>
         <?php endforeach; ?>
       </ul>
     <?php endif; ?>

@@ -130,8 +130,8 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
     <small>Peças <?= dinheiro($os['valor_pecas']) ?> · serviços <?= dinheiro($os['valor_servicos']) ?></small>
   </div>
   <div>
-    <span>Aprovado pelo cliente</span><strong><?= $os['valor_aprovado'] !== null ? dinheiro($os['valor_aprovado']) : '—' ?></strong>
-    <small><?php if ($os['valor_aprovado'] === null): ?><?= $os['aprovado_em'] ? 'aprovado em ' . data_br($os['aprovado_em']) : ($noOrcamento ? 'aguardando aprovação' : 'sem aprovação registrada') ?><?php elseif (abs($diferenca) > 0.004): ?>adicional <?= $diferenca > 0 ? '+' : '−' ?><?= dinheiro(abs($diferenca)) ?><?php else: ?>em <?= data_br($os['aprovado_em']) ?><?php endif; ?></small>
+    <span>Aprovado pelo cliente</span><strong><?= $os['valor_aprovado'] !== null ? dinheiro($os['valor_aprovado']) : '-' ?></strong>
+    <small><?php if ($os['valor_aprovado'] === null): ?><?= $os['aprovado_em'] ? 'aprovado em ' . data_br($os['aprovado_em']) : ($noOrcamento ? 'aguardando aprovação' : 'sem aprovação registrada') ?><?php elseif (abs($diferenca) > 0.004): ?>adicional <?= $diferenca > 0 ? '+' : '-' ?><?= dinheiro(abs($diferenca)) ?><?php else: ?>em <?= data_br($os['aprovado_em']) ?><?php endif; ?></small>
   </div>
   <div class="<?= $cobravel && $aReceber > 0.004 && $st === 'ENTREGUE' ? 'ver-numeros__alerta' : '' ?>">
     <span>Recebido</span><strong><?= dinheiro($recebido) ?></strong>
@@ -174,10 +174,10 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
           <?php if (!in_array($st, ['ENTREGUE', 'CANCELADA'], true)): ?><button type="button" class="btn btn--ghost btn--sm" data-abrir="dlg-dados"><?= icone('edit') ?> Editar</button><?php endif; ?>
         </div>
         <dl class="ver-lista">
-          <div><dt>Técnico responsável</dt><dd><?= e($os['tecnico'] ?? '—') ?></dd></div>
+          <div><dt>Técnico responsável</dt><dd><?= e($os['tecnico'] ?? '-') ?></dd></div>
           <div><dt>Previsão de entrega</dt><dd class="tabular"><?= data_br($os['previsao_conclusao'], true) ?></dd></div>
           <?php if ($st === 'ORCAMENTO'): ?><div><dt>Orçamento válido até</dt><dd class="tabular"><?= data_br($os['validade_orcamento']) ?></dd></div><?php endif; ?>
-          <div><dt>Quilometragem</dt><dd class="tabular"><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km' : '—' ?></dd></div>
+          <div><dt>Quilometragem</dt><dd class="tabular"><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') . ' km' : '-' ?></dd></div>
           <?php if ($os['aprovado_em']): ?><div><dt>Aprovação</dt><dd class="tabular"><?= data_br($os['aprovado_em'], true) ?><?= $os['aprovado_por_nome'] ? ' · ' . e($os['aprovado_por_nome']) : '' ?></dd></div><?php endif; ?>
           <?php if ($os['entregue_em']): ?><div><dt>Entregue em</dt><dd class="tabular"><?= data_br($os['entregue_em'], true) ?></dd></div><?php endif; ?>
         </dl>
@@ -244,7 +244,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
                   </td>
                   <td class="num"><?= $qtd($i['quantidade']) ?></td>
                   <td class="num"><?= dinheiro($i['valor_unitario']) ?></td>
-                  <td class="num secundario"><?= (float) $i['desconto'] > 0 ? '−' . dinheiro($i['desconto']) : '—' ?></td>
+                  <td class="num secundario"><?= (float) $i['desconto'] > 0 ? '-' . dinheiro($i['desconto']) : '-' ?></td>
                   <td class="num"><strong><?= dinheiro($i['valor_total']) ?></strong></td>
                   <?php if ($editavel): ?>
                     <td class="num os-itens__acoes">
@@ -269,7 +269,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
         <dl class="os-totais" aria-label="Totais">
           <div><dt>Peças</dt><dd><?= dinheiro($os['valor_pecas']) ?></dd></div>
           <div><dt>Serviços</dt><dd><?= dinheiro($os['valor_servicos']) ?></dd></div>
-          <?php if ((float) $os['valor_desconto'] > 0): ?><div><dt>Descontos</dt><dd>−<?= dinheiro($os['valor_desconto']) ?></dd></div><?php endif; ?>
+          <?php if ((float) $os['valor_desconto'] > 0): ?><div><dt>Descontos</dt><dd>-<?= dinheiro($os['valor_desconto']) ?></dd></div><?php endif; ?>
           <div class="os-totais__total"><dt>Total</dt><dd><?= dinheiro($os['valor_total']) ?></dd></div>
         </dl>
       <?php endif; ?>
@@ -472,12 +472,12 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
             <small><?= data_br($h['criado_em'], true) ?><?= $h['autor'] ? ' · ' . e($h['autor']) : '' ?></small>
             <?php if ($h['acao'] === 'APROVACAO' && $h['dados']): $d = json_decode($h['dados'], true); ?>
               <details class="os-linha-tempo__detalhe"><summary>Ver o que foi aprovado (<?= dinheiro($d['valor_aprovado'] ?? 0) ?>)</summary>
-                <ul><?php foreach ($d['itens'] ?? [] as $it): ?><li><?= e($it['descricao']) ?> — <?= $qtd($it['quantidade']) ?> × <?= dinheiro($it['valor_unitario']) ?><?= (float) $it['desconto'] > 0 ? ' − ' . dinheiro($it['desconto']) : '' ?> = <?= dinheiro($it['valor_total']) ?></li><?php endforeach; ?></ul>
+                <ul><?php foreach ($d['itens'] ?? [] as $it): ?><li><?= e($it['descricao']) ?> · <?= $qtd($it['quantidade']) ?> × <?= dinheiro($it['valor_unitario']) ?><?= (float) $it['desconto'] > 0 ? ' -' . dinheiro($it['desconto']) : '' ?> = <?= dinheiro($it['valor_total']) ?></li><?php endforeach; ?></ul>
               </details>
             <?php endif; ?>
             <?php if ($h['acao'] === 'ORCAMENTO_VERSAO' && $h['dados']): $d = json_decode($h['dados'], true); ?>
               <details class="os-linha-tempo__detalhe"><summary>Ver o orçamento original<?= isset($d['orcamento']['numero']) ? ' (' . e($d['orcamento']['numero']) . ')' : '' ?></summary>
-                <ul><?php foreach ($d['itens'] ?? [] as $it): ?><li><?= e($it['nome'] ?? $it['descricao'] ?? '') ?> — <?= $qtd($it['quantidade'] ?? 1) ?> × <?= dinheiro($it['preco_unitario'] ?? $it['valor_unitario'] ?? 0) ?></li><?php endforeach; ?></ul>
+                <ul><?php foreach ($d['itens'] ?? [] as $it): ?><li><?= e($it['nome'] ?? $it['descricao'] ?? '') ?> · <?= $qtd($it['quantidade'] ?? 1) ?> × <?= dinheiro($it['preco_unitario'] ?? $it['valor_unitario'] ?? 0) ?></li><?php endforeach; ?></ul>
                 <?php if (isset($d['orcamento']['valor_total_orcamento'])): ?><span class="form-dica">Total do orçamento: <?= dinheiro($d['orcamento']['valor_total_orcamento']) ?></span><?php endif; ?>
               </details>
             <?php endif; ?>
@@ -498,7 +498,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
     <div class="form-row-2">
       <div class="form-field"><label for="dados-km">Quilometragem</label><input id="dados-km" name="km_veiculo" value="<?= e($os['km_veiculo']) ?>" inputmode="numeric"></div>
       <div class="form-field"><label for="dados-tecnico">Técnico responsável</label>
-        <select id="dados-tecnico" name="tecnico_id"><option value="">—</option><?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $os['tecnico_id'] === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nome']) ?></option><?php endforeach; ?></select></div>
+        <select id="dados-tecnico" name="tecnico_id"><option value="">-</option><?php foreach ($tecnicos as $t): ?><option value="<?= (int) $t['id'] ?>" <?= (int) $os['tecnico_id'] === (int) $t['id'] ? 'selected' : '' ?>><?= e($t['nome']) ?></option><?php endforeach; ?></select></div>
       <div class="form-field"><label for="dados-previsao">Previsão de entrega</label><input id="dados-previsao" type="datetime-local" name="previsao_conclusao" value="<?= $os['previsao_conclusao'] ? date('Y-m-d\TH:i', strtotime($os['previsao_conclusao'])) : '' ?>"></div>
       <div class="form-field"><label for="dados-validade">Orçamento válido até</label><input id="dados-validade" type="date" name="validade_orcamento" value="<?= e($os['validade_orcamento']) ?>"></div>
     </div>

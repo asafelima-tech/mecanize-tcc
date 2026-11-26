@@ -469,3 +469,24 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
   .tec--servico .tec-bloco { scroll-margin-top: 140px; }
 }
 @media (min-width: 1100px) { .tec-atalhos { display: none !important; } .tec--servico .tec-bloco { scroll-margin-top: 88px; } }
+
+
+/* ── Revisão visual (26/11/2026) ─────────────────────────────────────────────────────────────────── */
+/* Respiro no topo, igual ao das telas do administrador (antes o título encostava na barra). */
+.tec { padding-top: 24px; }
+@media (max-width: 899.98px) { .tec { padding-top: 16px; } }
+/* Rodapé do cartão de serviço: o prazo nunca quebra; só o nome do cliente é cortado. */
+.tec-cartao__pe > span:first-child { flex: none; white-space: nowrap; }
+.tec-cartao__pe > span:last-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Marca "seu" ao lado do serviço: legível. */
+.tec-item__dono { font-size: 12px !important; }
+/* Tablet (720 a 1099 px): a tela do serviço fica numa coluna de largura confortável, centralizada. */
+@media (min-width: 720px) and (max-width: 1099px) { .tec--servico { max-width: 760px; margin-inline: auto; } }
+/* A faixa de atalhos rola de lado: deixa respiro à direita para o último atalho não encostar na borda. */
+.tec-atalhos { padding-right: 16px; scroll-padding-right: 16px; }
+/* Cabeçalho da tela: título e subtítulo empilhados em todas as larguras, como nas telas do administrador (antes, a
+   partir de 720 px o subtítulo ia para a direita, na mesma linha do título). */
+@media (min-width: 720px) {
+  .tec-cabeca { flex-direction: column; align-items: flex-start; justify-content: flex-start; flex-wrap: nowrap; gap: 2px; }
+  .tec-cabeca__oi { flex-basis: auto; }
+}

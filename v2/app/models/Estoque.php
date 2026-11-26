@@ -107,7 +107,7 @@ final class Estoque extends Modelo
                 $nomeForn = $fornecedor ? $this->valor('SELECT nome FROM fornecedores WHERE id = :id AND oficina_id = :oficina', ['id' => $fornecedor]) : null;
                 $lancamento = $this->inserir('lancamentos', [
                     'tipo' => 'PAGAR', 'categoria' => 'PECAS',
-                    'descricao' => mb_substr('Compra de peças' . ($documento ? " — NF {$documento}" : '') . ($nomeForn ? " — {$nomeForn}" : ''), 0, 200),
+                    'descricao' => mb_substr('Compra de peças' . ($documento ? " · NF {$documento}" : '') . ($nomeForn ? " · {$nomeForn}" : ''), 0, 200),
                     'valor' => $total, 'competencia' => date('Y-m-d'), 'vencimento' => date('Y-m-d', strtotime($d['vencimento'])),
                     'forma_prevista' => in_array($d['forma'] ?? '', ['DINHEIRO', 'PIX', 'CARTAO_DEBITO', 'CARTAO_CREDITO', 'BOLETO', 'TRANSFERENCIA', 'OUTRO'], true) ? $d['forma'] : null,
                     'fornecedor_id' => $fornecedor, 'documento' => $documento, 'criado_por' => Contexto::usuarioId(),

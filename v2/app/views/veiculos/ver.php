@@ -54,8 +54,8 @@ $qtd = fn($q) => rtrim(rtrim((string) $q, '0'), '.');
 <div class="ver-numeros" aria-label="Histórico do veículo">
   <div><span>Total em serviços</span><strong><?= dinheiro($totalServicos) ?></strong><small><?= count($entregues) ?> OS entregue<?= count($entregues) === 1 ? '' : 's' ?></small></div>
   <div><span>Ordens de serviço</span><strong><?= count($historico) ?></strong><small>no histórico</small></div>
-  <div><span>Última visita</span><strong><?= $ultima ? data_br($ultima['criado_em']) : '—' ?></strong><small><?= $ultima ? os_numero($ultima['numero']) : 'nenhuma OS ainda' ?></small></div>
-  <div><span>Maior quilometragem</span><strong><?= $ultimoKm ? number_format($ultimoKm, 0, ',', '.') . ' km' : '—' ?></strong><small><?= $ultimoKm ? 'registrada nas OS' : 'não registrada' ?></small></div>
+  <div><span>Última visita</span><strong><?= $ultima ? data_br($ultima['criado_em']) : '-' ?></strong><small><?= $ultima ? os_numero($ultima['numero']) : 'nenhuma OS ainda' ?></small></div>
+  <div><span>Maior quilometragem</span><strong><?= $ultimoKm ? number_format($ultimoKm, 0, ',', '.') . ' km' : '-' ?></strong><small><?= $ultimoKm ? 'registrada nas OS' : 'não registrada' ?></small></div>
 </div>
 
 <!-- Coluna única: proprietário e observações lado a lado num card de largura cheia; o histórico embaixo. -->
@@ -90,12 +90,12 @@ $qtd = fn($q) => rtrim(rtrim((string) $q, '0'), '.');
                 <tr data-href="<?= $link ?>">
                   <td><a href="<?= $link ?>"><strong><?= os_numero($os['numero']) ?></strong></a></td>
                   <td class="tabular"><?= data_br($os['criado_em']) ?></td>
-                  <td class="num secundario"><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') : '—' ?></td>
+                  <td class="num secundario"><?= $os['km_veiculo'] ? number_format((int) $os['km_veiculo'], 0, ',', '.') : '-' ?></td>
                   <td class="ver-os__itens">
                     <?php if ($os['defeito_relatado']): ?><strong><?= e($os['defeito_relatado']) ?></strong><?php endif; ?>
                     <?php if ($itens): ?>
                       <small><?= e(implode(' · ', array_map(fn($i) => $i['descricao'] . ((float) $i['quantidade'] != 1 ? ' × ' . $qtd($i['quantidade']) : ''), array_slice($itens, 0, 3)))) ?><?= count($itens) > 3 ? ' · +' . (count($itens) - 3) : '' ?></small>
-                    <?php elseif (!$os['defeito_relatado']): ?><small>—</small><?php endif; ?>
+                    <?php elseif (!$os['defeito_relatado']): ?><small>-</small><?php endif; ?>
                   </td>
                   <td><span class="badge badge--<?= $cor ?>"><?= $r ?></span></td>
                   <td class="num"><strong><?= dinheiro($os['valor_total']) ?></strong></td>

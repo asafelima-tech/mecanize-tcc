@@ -65,8 +65,8 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
 <?php endif; ?>
 
 <div class="ver-numeros" aria-label="Valores">
-  <div><span>Saldo</span><strong><?= $l['status'] === 'CANCELADO' ? '—' : dinheiro(max(0, $saldo)) ?></strong><small><?= $l['status'] === 'PAGO' ? 'quitada' : ($l['status'] === 'CANCELADO' ? 'conta cancelada' : ($receber ? 'falta receber' : 'falta pagar')) ?></small></div>
-  <div><span>Valor</span><strong><?= dinheiro($l['devido']) ?></strong><small><?= (float) $l['acrescimo'] > 0 || (float) $l['desconto'] > 0 ? dinheiro($l['valor']) . ((float) $l['acrescimo'] > 0 ? ' + ' . dinheiro($l['acrescimo']) . ' de juros' : '') . ((float) $l['desconto'] > 0 ? ' − ' . dinheiro($l['desconto']) . ' de desconto' : '') : 'valor da conta' ?></small></div>
+  <div><span>Saldo</span><strong><?= $l['status'] === 'CANCELADO' ? '-' : dinheiro(max(0, $saldo)) ?></strong><small><?= $l['status'] === 'PAGO' ? 'quitada' : ($l['status'] === 'CANCELADO' ? 'conta cancelada' : ($receber ? 'falta receber' : 'falta pagar')) ?></small></div>
+  <div><span>Valor</span><strong><?= dinheiro($l['devido']) ?></strong><small><?= (float) $l['acrescimo'] > 0 || (float) $l['desconto'] > 0 ? dinheiro($l['valor']) . ((float) $l['acrescimo'] > 0 ? ' + ' . dinheiro($l['acrescimo']) . ' de juros' : '') . ((float) $l['desconto'] > 0 ? ' -' . dinheiro($l['desconto']) . ' de desconto' : '') : 'valor da conta' ?></small></div>
   <div><span><?= $receber ? 'Recebido' : 'Pago' ?></span><strong><?= dinheiro($l['valor_pago']) ?></strong><small><?= $ultimo ? 'último em ' . data_br($ultimo) : 'nenhum ' . ($receber ? 'recebimento' : 'pagamento') ?></small></div>
   <div class="<?= $atrasada ? 'ver-numeros__alerta' : '' ?>"><span>Vencimento</span><strong><?= data_br($l['vencimento']) ?></strong><small><?= $prazo ?: 'competência ' . date('m/Y', strtotime($l['competencia'])) ?></small></div>
 </div>
@@ -111,8 +111,8 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
               <tr class="<?= $m['estornado'] ? 'inativo' : '' ?>">
                 <td class="tabular"><?= data_br($m['data_movimento'], true) ?><?= $estorno ? '<span class="sub">estorno: ' . e($m['descricao']) . '</span>' : ($m['descricao'] ? '<span class="sub">' . e($m['descricao']) . '</span>' : '') ?></td>
                 <td><?= e(Lancamento::FORMAS[$m['forma_pagamento']] ?? $m['forma_pagamento']) ?><?= (float) $m['taxa'] > 0 ? '<span class="sub">taxa ' . dinheiro($m['taxa']) . '</span>' : '' ?></td>
-                <td><?= e($m['usuario'] ?? '—') ?></td>
-                <td class="num"><strong><?= $estorno ? '− ' : '' ?><?= dinheiro($m['valor']) ?></strong></td>
+                <td><?= e($m['usuario'] ?? '-') ?></td>
+                <td class="num"><strong><?= $estorno ? '-' : '' ?><?= dinheiro($m['valor']) ?></strong></td>
                 <td class="num"><?php if (!$estorno && !$m['estornado']): ?><button type="button" class="btn btn--ghost btn--sm" data-estornar="<?= (int) $m['id'] ?>">Estornar</button><?php elseif ($m['estornado']): ?><span class="form-dica">estornado</span><?php endif; ?></td>
               </tr>
             <?php endforeach; ?>
@@ -184,7 +184,7 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
     <?= csrf_field() ?><input type="hidden" name="conta_id" value="<?= (int) $l['id'] ?>">
     <h3>Estornar <?= $receber ? 'recebimento' : 'pagamento' ?></h3>
     <p class="form-dica">O registro original continua; o estorno lança o valor contrário e a conta volta a ficar em aberto. Em dinheiro, o valor sai/volta pelo caixa aberto.</p>
-    <div class="form-field"><label>Motivo</label><textarea name="motivo" rows="2" required></textarea></div>
+    <div class="form-field"><label for="ver-motivo-187">Motivo</label><textarea id="ver-motivo-187" name="motivo" rows="2" required></textarea></div>
     <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Voltar</button><button class="btn btn--danger">Estornar</button></div>
   </form>
 </dialog>
@@ -193,7 +193,7 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
   <form method="post" action="./conta-cancelar?id=<?= (int) $l['id'] ?>">
     <?= csrf_field() ?>
     <h3>Cancelar conta</h3>
-    <div class="form-field"><label>Motivo</label><textarea name="motivo" rows="2" required></textarea></div>
+    <div class="form-field"><label for="ver-motivo-196">Motivo</label><textarea id="ver-motivo-196" name="motivo" rows="2" required></textarea></div>
     <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Voltar</button><button class="btn btn--danger">Cancelar conta</button></div>
   </form>
 </dialog>
@@ -202,14 +202,14 @@ $ultimo = $feitos ? max(array_column($feitos, 'data_movimento')) : null;
   <form method="post" action="./conta-editar?id=<?= (int) $l['id'] ?>">
     <?= csrf_field() ?>
     <h3>Editar conta</h3>
-    <div class="form-field"><label>Descrição</label><input name="descricao" value="<?= e($l['descricao']) ?>" maxlength="200"></div>
+    <div class="form-field"><label for="ver-descricao-205">Descrição</label><input id="ver-descricao-205" name="descricao" value="<?= e($l['descricao']) ?>" maxlength="200"></div>
     <div class="form-row-2">
-      <div class="form-field"><label>Categoria</label><select name="categoria"><?php foreach (Lancamento::CATEGORIAS[$l['tipo']] as $k => $r): ?><option value="<?= $k ?>" <?= $l['categoria'] === $k ? 'selected' : '' ?>><?= $r ?></option><?php endforeach; ?></select></div>
-      <div class="form-field"><label>Vencimento</label><input type="date" name="vencimento" value="<?= e($l['vencimento']) ?>"></div>
-      <?php if ($l['status'] === 'ABERTO' && !$l['ordem_servico_id']): ?><div class="form-field"><label>Valor (R$)</label><input name="valor" value="<?= e(number_format((float) $l['valor'], 2, ',', '.')) ?>" inputmode="decimal"></div><?php endif; ?>
-      <div class="form-field"><label>Documento</label><input name="documento" value="<?= e($l['documento']) ?>" maxlength="60"></div>
+      <div class="form-field"><label for="ver-categoria-207">Categoria</label><select id="ver-categoria-207" name="categoria"><?php foreach (Lancamento::CATEGORIAS[$l['tipo']] as $k => $r): ?><option value="<?= $k ?>" <?= $l['categoria'] === $k ? 'selected' : '' ?>><?= $r ?></option><?php endforeach; ?></select></div>
+      <div class="form-field"><label for="ver-vencimento-208">Vencimento</label><input id="ver-vencimento-208" type="date" name="vencimento" value="<?= e($l['vencimento']) ?>"></div>
+      <?php if ($l['status'] === 'ABERTO' && !$l['ordem_servico_id']): ?><div class="form-field"><label for="ver-valor-209">Valor (R$)</label><input id="ver-valor-209" name="valor" value="<?= e(number_format((float) $l['valor'], 2, ',', '.')) ?>" inputmode="decimal"></div><?php endif; ?>
+      <div class="form-field"><label for="ver-documento-210">Documento</label><input id="ver-documento-210" name="documento" value="<?= e($l['documento']) ?>" maxlength="60"></div>
     </div>
-    <div class="form-field"><label>Observação</label><input name="observacao" value="<?= e($l['observacao']) ?>" maxlength="255"></div>
+    <div class="form-field"><label for="ver-observacao-212">Observação</label><input id="ver-observacao-212" name="observacao" value="<?= e($l['observacao']) ?>" maxlength="255"></div>
     <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Cancelar</button><button class="btn btn--primary">Salvar</button></div>
   </form>
 </dialog>

@@ -42,7 +42,7 @@ $rotulos = ['abertas' => 'pedidos em aberto', 'atendidas' => 'pedidos atendidos'
               <?php if (!$s['produto'] && $s['item_descricao']): ?> · <span>fora do catálogo</span><?php endif; ?>
             </p>
             <?php if ($s['respondido_em']): ?>
-              <p class="pedidos-admin__resposta"><?= e($rotSit) ?> por <?= e($s['respondido_por_nome']) ?> em <?= data_br($s['respondido_em'], true) ?><?= $s['resposta'] ? ' — “' . e($s['resposta']) . '”' : '' ?></p>
+              <p class="pedidos-admin__resposta"><?= e($rotSit) ?> por <?= e($s['respondido_por_nome']) ?> em <?= data_br($s['respondido_em'], true) ?><?= $s['resposta'] ? ': “' . e($s['resposta']) . '”' : '' ?></p>
             <?php endif; ?>
           </div>
           <?php if ($aberto): ?>

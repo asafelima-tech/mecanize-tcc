@@ -192,7 +192,7 @@ final class Usuario extends Modelo
             if ($id === null) {
                 [$ativos, $limite] = $this->vagas();
                 if ($ativos >= $limite) {
-                    throw new DomainException("O plano da oficina permite {$limite} usuário(s) ativo(s). Desative alguém ou fale com o suporte para ampliar.");
+                    throw new DomainException("O plano da oficina permite " . plural((int) $limite, 'usuário ativo', 'usuários ativos') . ". Desative alguém ou fale com o suporte para ampliar.");
                 }
                 return $this->inserir('usuarios', $dados);
             }
@@ -214,7 +214,7 @@ final class Usuario extends Modelo
             if ($ativo && !(int) $u['ativo']) {
                 [$ativos, $limite] = $this->vagas();
                 if ($ativos >= $limite) {
-                    throw new DomainException("O plano da oficina permite {$limite} usuário(s) ativo(s).");
+                    throw new DomainException("O plano da oficina permite " . plural((int) $limite, 'usuário ativo', 'usuários ativos') . ".");
                 }
             }
             if (!$ativo && $u['perfil'] === 'ADMIN') {

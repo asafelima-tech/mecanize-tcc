@@ -32,7 +32,7 @@ $explica = ['RECEBIDA' => 'O administrador recebeu e vai analisar.', 'APROVADA' 
       <?php if ($abertas): ?>
         <div class="tec-campo"><label class="tec-campo__rotulo" for="ped-os">Serviço relacionado (opcional)</label>
           <select id="ped-os" name="ordem_servico_id">
-            <option value="">Nenhum — é para o estoque</option>
+            <option value="">Nenhum, é para o estoque</option>
             <?php foreach ($abertas as $o): ?><option value="<?= (int) $o['id'] ?>" <?= $novo['ordem_servico_id'] === (int) $o['id'] ? 'selected' : '' ?>><?= os_numero($o['numero']) ?> · <?= e($o['placa']) ?><?= $o['modelo'] ? ' · ' . e($o['modelo']) : '' ?></option><?php endforeach; ?>
           </select></div>
       <?php endif; ?>
@@ -57,7 +57,7 @@ $explica = ['RECEBIDA' => 'O administrador recebeu e vai analisar.', 'APROVADA' 
           <strong class="tec-pedido__titulo"><?= e(Solicitacao::TIPOS[$p['tipo']][0]) ?><?= $nome ? ': ' . e($nome) : '' ?><?= $p['quantidade'] ? ' · ' . $qtd($p['quantidade']) . ' un.' : '' ?></strong>
           <span class="tec-pedido__texto"><?= e($p['justificativa']) ?></span>
           <?php if ($p['os_numero']): ?><a class="tec-pedido__os" href="./servico?id=<?= (int) $p['ordem_servico_id'] ?>"><?= icone('work-order', 14) ?> <?= os_numero($p['os_numero']) ?><?= $p['placa'] ? ' · ' . e($p['placa']) : '' ?></a><?php endif; ?>
-          <span class="tec-pedido__resposta"><?= $p['resposta'] ? '“' . e($p['resposta']) . '”' . ($p['respondido_por_nome'] ? ' — ' . e($p['respondido_por_nome']) : '') : e($explica[$p['status']]) ?></span>
+          <span class="tec-pedido__resposta"><?= $p['resposta'] ? '“' . e($p['resposta']) . '”' . ($p['respondido_por_nome'] ? ' · ' . e($p['respondido_por_nome']) : '') : e($explica[$p['status']]) ?></span>
         </li>
       <?php endforeach; ?>
     </ul>

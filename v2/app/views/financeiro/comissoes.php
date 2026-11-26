@@ -33,7 +33,6 @@ $iniciais = function (string $nome): string {
     $p = preg_split('/\s+/', trim($nome));
     return mb_strtoupper(mb_substr($p[0], 0, 1) . (count($p) > 1 ? mb_substr(end($p), 0, 1) : ''));
 };
-$plural = fn(int $n, string $um, string $varios) => $n . ' ' . ($n === 1 ? $um : $varios);
 $hoje = date('Y-m-d');
 $situacaoConta = function (array $c) use ($hoje): array {
     if (in_array($c['status'], ['ABERTO', 'PARCIAL'], true) && $c['vencimento'] < $hoje) return ['Atrasada', 'danger'];
@@ -65,22 +64,22 @@ $baseItens = round(array_sum(array_column($itens, 'valor_total')), 2);
   <div>
     <span>A lançar<?= $sel ? ' · ' . e(strtok($sel['nome'], ' ')) : '' ?></span>
     <strong><?= dinheiro($resumo['pendente']) ?></strong>
-    <small><?= $resumo['pend_os'] ? $plural($resumo['pend_os'], 'OS concluída', 'OS concluídas') . ($sel ? '' : ' · ' . $plural($resumo['pend_pessoas'], 'pessoa', 'pessoas')) : 'nada pendente' ?></small>
+    <small><?= $resumo['pend_os'] ? plural($resumo['pend_os'], 'OS concluída', 'OS concluídas') . ($sel ? '' : ' · ' . plural($resumo['pend_pessoas'], 'pessoa', 'pessoas')) : 'nada pendente' ?></small>
   </div>
   <div>
     <span>Lançado a pagar</span>
     <strong><?= dinheiro($resumo['aberto']) ?></strong>
-    <small><?= $resumo['n_aberto'] ? $plural($resumo['n_aberto'], 'conta em aberto', 'contas em aberto') : 'nenhuma conta em aberto' ?></small>
+    <small><?= $resumo['n_aberto'] ? plural($resumo['n_aberto'], 'conta em aberto', 'contas em aberto') : 'nenhuma conta em aberto' ?></small>
   </div>
   <div>
     <span>Pago no período</span>
     <strong><?= dinheiro($resumo['pago']) ?></strong>
-    <small><?= $periodo ?> · <?= $resumo['n_pago'] ? $plural($resumo['n_pago'], 'pagamento', 'pagamentos') : 'nenhum pagamento' ?></small>
+    <small><?= $periodo ?> · <?= $resumo['n_pago'] ? plural($resumo['n_pago'], 'pagamento', 'pagamentos') : 'nenhum pagamento' ?></small>
   </div>
   <div>
     <span>Lançado no período</span>
     <strong><?= dinheiro($resumo['lancado']) ?></strong>
-    <small><?= $periodo ?> · <?= $plural($resumo['n_lancado'], 'conta', 'contas') ?></small>
+    <small><?= $periodo ?> · <?= plural($resumo['n_lancado'], 'conta', 'contas') ?></small>
   </div>
 </div>
 
@@ -91,7 +90,7 @@ $baseItens = round(array_sum(array_column($itens, 'valor_total')), 2);
   </select>
   <label class="campo-periodo comissoes-periodo" title="Período: vale para lançado, pago e o histórico"><?= icone('calendar') ?>
     <input type="date" name="de" value="<?= e($f['de']) ?>" aria-label="De" onchange="this.form.submit()">
-    <span>–</span>
+    <span>a</span>
     <input type="date" name="ate" value="<?= e($f['ate']) ?>" aria-label="Até" onchange="this.form.submit()">
   </label>
   <select name="situacao" aria-label="Situação do pagamento" onchange="this.form.submit()">
@@ -129,11 +128,11 @@ $baseItens = round(array_sum(array_column($itens, 'valor_total')), 2);
                 <span class="celula-pessoa"><span class="avatar<?= $ativa ? ' avatar--eu' : '' ?>"><?= e($iniciais($pessoa['nome'])) ?></span>
                   <span><strong><?= e($pessoa['nome']) ?></strong><span class="sub"><?= e($regra($pessoa)) ?><?= $pessoa['ativo'] ? '' : ' · inativo' ?></span></span></span>
               </td>
-              <td class="tabular"><?= $pend ? data_br($pessoa['pend_desde']) : '<span class="secundario">—</span>' ?></td>
-              <td class="num"><?= $pend ? (int) $pessoa['pend_os'] : '<span class="secundario">—</span>' ?></td>
-              <td class="num"><?= $pend ? dinheiro($pessoa['pend_base']) : '<span class="secundario">—</span>' ?></td>
+              <td class="tabular"><?= $pend ? data_br($pessoa['pend_desde']) : '<span class="secundario">-</span>' ?></td>
+              <td class="num"><?= $pend ? (int) $pessoa['pend_os'] : '<span class="secundario">-</span>' ?></td>
+              <td class="num"><?= $pend ? dinheiro($pessoa['pend_base']) : '<span class="secundario">-</span>' ?></td>
               <td class="num"><strong><?= $pend ? dinheiro($pessoa['pend_total']) : '<span class="secundario">' . dinheiro(0) . '</span>' ?></strong></td>
-              <td class="num"><?= (float) $pessoa['aberto'] > 0 ? dinheiro($pessoa['aberto']) . '<span class="sub">' . $plural((int) $pessoa['n_aberto'], 'conta', 'contas') . '</span>' : '<span class="secundario">—</span>' ?></td>
+              <td class="num"><?= (float) $pessoa['aberto'] > 0 ? dinheiro($pessoa['aberto']) . '<span class="sub">' . plural((int) $pessoa['n_aberto'], 'conta', 'contas') . '</span>' : '<span class="secundario">-</span>' ?></td>
               <td class="num">
                 <span class="comissoes-acoes">
                   <?php if ($pend): ?>
@@ -189,7 +188,7 @@ $baseItens = round(array_sum(array_column($itens, 'valor_total')), 2);
               <?php endforeach; ?>
             </tbody>
           <?php endforeach; ?>
-          <tfoot><tr><td colspan="2"><?= $plural(count($itens), 'item', 'itens') ?> em <?= $plural(count($porOs), 'OS', 'OS') ?></td><td class="num"><?= dinheiro($baseItens) ?></td><td></td><td class="num"><strong><?= dinheiro($totalItens) ?></strong></td></tr></tfoot>
+          <tfoot><tr><td colspan="2"><?= plural(count($itens), 'item', 'itens') ?> em <?= plural(count($porOs), 'OS', 'OS') ?></td><td class="num"><?= dinheiro($baseItens) ?></td><td></td><td class="num"><strong><?= dinheiro($totalItens) ?></strong></td></tr></tfoot>
         </table>
       </div>
     <?php endif; ?>
@@ -216,15 +215,15 @@ $baseItens = round(array_sum(array_column($itens, 'valor_total')), 2);
               $ver = './conta?id=' . (int) $c['id']; ?>
             <tr data-href="<?= $ver ?>" class="<?= $c['status'] === 'CANCELADO' ? 'inativo' : '' ?>">
               <td class="tabular"><?= data_br($c['criado_em']) ?></td>
-              <td><?= e($c['funcionario'] ?? '—') ?></td>
+              <td><?= e($c['funcionario'] ?? '-') ?></td>
               <td class="comissoes-os-lista">
                 <?php if ($numeros): ?><?= e(implode(', ', array_slice($numeros, 0, 3))) ?><?= count($numeros) > 3 ? ' <span class="secundario">+' . (count($numeros) - 3) . '</span>' : '' ?>
-                <?php else: ?><span class="secundario"><?= e(preg_replace('/^OS:\s*/', '', (string) $c['observacao']) ?: '—') ?></span><?php endif; ?>
+                <?php else: ?><span class="secundario"><?= e(preg_replace('/^OS:\s*/', '', (string) $c['observacao']) ?: '-') ?></span><?php endif; ?>
               </td>
               <td class="tabular"><?= data_br($c['vencimento']) ?></td>
               <td><span class="badge badge--<?= $cor ?>"><?= $rotulo ?></span></td>
               <td class="num"><strong><?= dinheiro($c['devido']) ?></strong></td>
-              <td class="num"><?= (float) $c['valor_pago'] > 0 ? dinheiro($c['valor_pago']) . ($c['pago_em'] ? '<span class="sub">em ' . data_br($c['pago_em']) . '</span>' : '') : '<span class="secundario">—</span>' ?></td>
+              <td class="num"><?= (float) $c['valor_pago'] > 0 ? dinheiro($c['valor_pago']) . ($c['pago_em'] ? '<span class="sub">em ' . data_br($c['pago_em']) . '</span>' : '') : '<span class="secundario">-</span>' ?></td>
               <td class="num">
                 <span class="comissoes-acoes">
                   <?php if ($aberta): ?>

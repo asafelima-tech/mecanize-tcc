@@ -87,7 +87,7 @@ foreach ($pecas as $p) { if ((int) $p['id'] === $sel) { $atual = $p; } }
           pDif.textContent = (dif > 0 ? '+' : '') + fmt(dif);
           if (dif) pDif.classList.add(dif > 0 ? 'is-entra' : 'is-sai');
           texto.textContent = dif === 0 ? 'A contagem bate com o sistema: nada muda no saldo.'
-            : (dif > 0 ? 'Entram ' + fmt(dif) : 'Saem ' + fmt(-dif)) + ' unidade(s). O saldo vai de ' + fmt(saldo) + ' para ' + fmt(c) + '.';
+            : (dif > 0 ? 'Entram ' + fmt(dif) : 'Saem ' + fmt(-dif)) + (Math.abs(dif) === 1 ? ' unidade' : ' unidades') + '. O saldo vai de ' + fmt(saldo) + ' para ' + fmt(c) + '.';
         } else {
           pDif.textContent = '';
           texto.textContent = tem ? 'Informe a contagem para ver a diferença.' : 'Escolha a peça e informe a contagem.';

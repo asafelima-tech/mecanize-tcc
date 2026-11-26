@@ -57,8 +57,8 @@ $admin = Permissao::permite(Contexto::perfil(), Permissao::ADMIN);
 <div class="ver-numeros" aria-label="Relacionamento">
   <div><span>Total gasto</span><strong><?= dinheiro($totalGasto) ?></strong><small><?= count($entregues) ?> OS entregue<?= count($entregues) === 1 ? '' : 's' ?></small></div>
   <div><span>Ordens de serviço</span><strong><?= count($historico) ?></strong><small>no histórico</small></div>
-  <div><span>Última visita</span><strong><?= $ultima ? data_br($ultima) : '—' ?></strong><small><?= $ultima ? 'abertura da OS mais recente' : 'nenhuma OS ainda' ?></small></div>
-  <div><span>Veículos</span><strong><?= count($veiculos) ?></strong><small><?= count(array_filter($veiculos, fn($v) => $v['ativo'])) ?> ativo(s)</small></div>
+  <div><span>Última visita</span><strong><?= $ultima ? data_br($ultima) : '-' ?></strong><small><?= $ultima ? 'abertura da OS mais recente' : 'nenhuma OS ainda' ?></small></div>
+  <div><span>Veículos</span><strong><?= count($veiculos) ?></strong><small><?= count(array_filter($veiculos, fn($v) => $v['ativo'])) === 1 ? '1 ativo' : count(array_filter($veiculos, fn($v) => $v['ativo'])) . ' ativos' ?></small></div>
 </div>
 
 <!-- Coluna única: veículos numa faixa de cartões, os dados em três colunas e o histórico, tudo em largura cheia. -->
@@ -124,7 +124,7 @@ $admin = Permissao::permite(Contexto::perfil(), Permissao::ADMIN);
                   <td><a href="<?= $link ?>"><strong><?= os_numero($os['numero']) ?></strong></a></td>
                   <td><?= placa_caixa($os['placa']) ?></td>
                   <td class="tabular"><?= data_br($os['criado_em']) ?></td>
-                  <td class="tabular secundario"><?= $os['entregue_em'] ? data_br($os['entregue_em']) : '—' ?></td>
+                  <td class="tabular secundario"><?= $os['entregue_em'] ? data_br($os['entregue_em']) : '-' ?></td>
                   <td><span class="badge badge--<?= $cor ?>"><?= $r ?></span></td>
                   <td class="num"><strong><?= dinheiro($os['valor_total']) ?></strong></td>
                 </tr>

@@ -79,7 +79,7 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
         : 'Abra o caixa para receber e pagar em dinheiro.' ?></p>
   </div>
   <div class="page-header__actions">
-    <?php if ($admin): ?><a class="btn btn--contorno" href="./relatorios"><?= icone('chart') ?> Relatório de caixa</a><?php endif; ?>
+    <?php if ($admin): ?><a class="btn btn--ghost" href="./relatorios"><?= icone('chart') ?> Relatório de caixa</a><?php endif; ?>
     <?php if ($caixa): ?>
       <button type="button" class="btn btn--ghost" data-abrir="dlg-mov" data-natureza="SUPRIMENTO"><?= icone('download') ?> Suprimento</button>
       <button type="button" class="btn btn--ghost" data-abrir="dlg-mov" data-natureza="SANGRIA"><?= icone('upload') ?> Sangria</button>
@@ -156,7 +156,7 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
       <?php endif; ?>
       <div class="composicao__resultado">
         <span>Resultado da sessão<small>entradas menos saídas</small></span>
-        <b><?= $resultado < 0 ? '−' : '' ?><?= dinheiro(abs($resultado)) ?></b>
+        <b><?= $resultado < 0 ? '-' : '' ?><?= dinheiro(abs($resultado)) ?></b>
       </div>
     </section>
 
@@ -168,7 +168,7 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
           <li>
             <span class="lancamentos__hora"><?= date('H:i', strtotime($m['data_movimento'])) ?></span>
             <span class="lancamentos__texto"><?php if ($l): ?><a href="<?= e($l) ?>"><?= e($t) ?></a><?php else: ?><?= e($t) ?><?php endif; ?><small><?= e($sub) ?></small></span>
-            <b class="lancamentos__valor"><?= $m['direcao'] === 'ENTRADA' ? '' : '− ' ?><?= dinheiro($m['valor']) ?></b>
+            <b class="lancamentos__valor"><?= $m['direcao'] === 'ENTRADA' ? '' : '-' ?><?= dinheiro($m['valor']) ?></b>
           </li>
         <?php endforeach; ?>
       </ul>
@@ -186,8 +186,8 @@ $linkMov = fn (array $m): ?string => $m['lancamento_id'] ? './' . ($admin ? 'con
     <form method="post" action="./caixa-movimento">
       <?= csrf_field() ?><input type="hidden" name="natureza"><input type="hidden" name="chave" value="<?= bin2hex(random_bytes(16)) ?>">
       <h3 data-titulo></h3>
-      <div class="form-field"><label>Valor (R$)</label><input name="valor" inputmode="decimal" required></div>
-      <div class="form-field"><label>Motivo</label><input name="descricao" maxlength="200" required placeholder="Ex.: troco, depósito no banco"></div>
+      <div class="form-field"><label for="atual-valor-189">Valor (R$)</label><input id="atual-valor-189" name="valor" inputmode="decimal" required></div>
+      <div class="form-field"><label for="atual-descricao-190">Motivo</label><input id="atual-descricao-190" name="descricao" maxlength="200" required placeholder="Ex.: troco, depósito no banco"></div>
       <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Cancelar</button><button class="btn btn--primary">Registrar</button></div>
     </form>
   </dialog>

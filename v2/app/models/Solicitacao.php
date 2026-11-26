@@ -85,7 +85,7 @@ final class Solicitacao extends Modelo
 
             $numero = $osId ? $this->valor('SELECT numero FROM ordens_servico WHERE id = :id AND oficina_id = :oficina', ['id' => $osId]) : null;
             (new Notificacao($this->db))->paraAdmins('PEDIDO_MATERIAL', self::TIPOS[$tipo][0] . ($item ? ': ' . $item : ''),
-                Contexto::usuario()['nome'] . ($numero ? ' · ' . os_numero($numero) : '') . ' — ' . $justificativa,
+                Contexto::usuario()['nome'] . ($numero ? ' · ' . os_numero($numero) : '') . ': ' . $justificativa,
                 './solicitacoes', 'PEDIDO:' . $id);
 
             return $id;

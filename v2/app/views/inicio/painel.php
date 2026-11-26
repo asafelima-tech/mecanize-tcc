@@ -35,7 +35,7 @@ $pmTotRec = array_sum($pmRec);
 // marca só o que está acontecendo agora (aqui, as OS em andamento), como o dia de hoje e o mês atual nos outros gráficos.
 $tom = fn (int $p): string => 'color-mix(in srgb, var(--grafico-1) ' . $p . '%, var(--card))';
 $fatias = [
-    'concluidas' => ['Concluídas', $tom(100)], 'andamento' => ['Em andamento', 'var(--acento)'], 'peca' => ['Aguardando peça', $tom(58)],
+    'concluidas' => ['Concluídas', $tom(100)], 'andamento' => ['Em andamento', $tom(80)], 'peca' => ['Aguardando peça', $tom(58)],
     'abertas' => ['Abertas', $tom(42)], 'canceladas' => ['Canceladas', $tom(28)],
 ];
 $totalMes = array_sum($g['status_mes']);
@@ -53,16 +53,16 @@ $maxPeca = max(array_merge([1], array_map('floatval', array_column($g['pecas'], 
 
 // Variação do faturamento contra o mesmo trecho do mês anterior.
 $variacao = $g['mes_anterior'] > 0 ? ($resumo['faturado_mes'] - $g['mes_anterior']) / $g['mes_anterior'] : null;
+if ($variacao !== null && abs($variacao) > 9.99) { $variacao = null; }
 
 $avisos = [];
-$plural = fn (int $n, string $um, string $varios): string => $n . ' ' . ($n === 1 ? $um : $varios);
-if (!empty($alertas['validar'])) $avisos[] = ['checklist', $plural((int) $alertas['validar'], 'serviço para validar', 'serviços para validar'), './ordens?situacao=validacao', ''];
-if (!empty($alertas['pedidos'])) $avisos[] = ['box', $plural((int) $alertas['pedidos'], 'pedido de técnico', 'pedidos de técnicos'), './solicitacoes', ''];
-if ($alertas['orc_vencidos']) $avisos[] = ['calendar', $plural((int) $alertas['orc_vencidos'], 'orçamento vencido', 'orçamentos vencidos'), './ordens?situacao=orcamento', ''];
-if ($admin && $alertas['receber_vencidas']) $avisos[] = ['error', $plural((int) $alertas['receber_vencidas'], 'a receber vencida', 'a receber vencidas') . ' · ' . dinheiro($alertas['receber_valor']), './financeiro?tipo=RECEBER&situacao=vencidos', 'danger'];
-if ($admin && $alertas['pagar_vencidas']) $avisos[] = ['warning', $plural((int) $alertas['pagar_vencidas'], 'a pagar vencida', 'a pagar vencidas') . ' · ' . dinheiro($alertas['pagar_valor']), './financeiro?tipo=PAGAR&situacao=vencidos', 'danger'];
-if ($admin && $alertas['estoque_baixo']) $avisos[] = ['part', $plural((int) $alertas['estoque_baixo'], 'peça no mínimo', 'peças no mínimo'), './produtos?tipo=PECA&baixo=1', ''];
-if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['agenda_hoje'], 'agendamento hoje', 'agendamentos hoje'), './agenda?periodo=dia', ''];
+if (!empty($alertas['validar'])) $avisos[] = ['checklist', plural((int) $alertas['validar'], 'serviço para validar', 'serviços para validar'), './ordens?situacao=validacao', ''];
+if (!empty($alertas['pedidos'])) $avisos[] = ['box', plural((int) $alertas['pedidos'], 'pedido de técnico', 'pedidos de técnicos'), './solicitacoes', ''];
+if ($alertas['orc_vencidos']) $avisos[] = ['calendar', plural((int) $alertas['orc_vencidos'], 'orçamento vencido', 'orçamentos vencidos'), './ordens?situacao=orcamento', ''];
+if ($admin && $alertas['receber_vencidas']) $avisos[] = ['error', plural((int) $alertas['receber_vencidas'], 'a receber vencida', 'a receber vencidas') . ' · ' . dinheiro($alertas['receber_valor']), './financeiro?tipo=RECEBER&situacao=vencidos', 'danger'];
+if ($admin && $alertas['pagar_vencidas']) $avisos[] = ['warning', plural((int) $alertas['pagar_vencidas'], 'a pagar vencida', 'a pagar vencidas') . ' · ' . dinheiro($alertas['pagar_valor']), './financeiro?tipo=PAGAR&situacao=vencidos', 'danger'];
+if ($admin && $alertas['estoque_baixo']) $avisos[] = ['part', plural((int) $alertas['estoque_baixo'], 'peça no mínimo', 'peças no mínimo'), './produtos?tipo=PECA&baixo=1', ''];
+if ($alertas['agenda_hoje']) $avisos[] = ['calendar', plural((int) $alertas['agenda_hoje'], 'agendamento hoje', 'agendamentos hoje'), './agenda?periodo=dia', ''];
 ?>
 <div class="page-header painel-hero">
   <div>
@@ -82,7 +82,7 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
     <span class="stat-card__pe">Aguardando início</span>
   </a>
   <a class="stat-card" href="./ordens?situacao=execucao">
-    <div class="stat-card__topo"><span class="stat-card__label">Em andamento</span><?php if ($resumo['prontas']): ?><span class="stat-card__chip"><?= (int) $resumo['prontas'] ?> pronta(s)</span><?php endif; ?></div>
+    <div class="stat-card__topo"><span class="stat-card__label">Em andamento</span><?php if ($resumo['prontas']): ?><span class="stat-card__chip"><?= plural((int) $resumo['prontas'], 'pronta', 'prontas') ?></span><?php endif; ?></div>
     <span class="stat-card__value"><?= (int) $resumo['em_execucao'] ?></span>
     <span class="stat-card__pe">Serviços em execução</span>
   </a>
@@ -93,9 +93,9 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
   </a>
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Faturamento mensal</span>
-      <?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '−' ?><?= $pct(abs($variacao)) ?></span><?php endif; ?></div>
+      <?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '-' ?><?= $pct(abs($variacao)) ?></span><?php endif; ?></div>
     <span class="stat-card__value"><?= dinheiro($resumo['faturado_mes']) ?></span>
-    <span class="stat-card__pe"><?= (int) $resumo['entregues_mes'] ?> OS entregue(s) no mês</span>
+    <span class="stat-card__pe"><?= plural((int) $resumo['entregues_mes'], 'OS entregue', 'OS entregues') ?> no mês</span>
   </div>
 </div>
 
@@ -241,13 +241,13 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
       </div>
       <ul class="rosca__legenda">
         <?php foreach ($fatias as $k => [$rotulo, $cor]): $v = $g['status_mes'][$k]; ?>
-          <li><span class="legenda-cor" style="background:<?= $cor ?>"></span><span><?= e($rotulo) ?></span><b><?= $v ?></b><span class="secundario"><?= $totalMes ? $pct($v / $totalMes) : '—' ?></span></li>
+          <li><span class="legenda-cor" style="background:<?= $cor ?>"></span><span><?= e($rotulo) ?></span><b><?= $v ?></b><span class="secundario"><?= $totalMes ? $pct($v / $totalMes) : '-' ?></span></li>
         <?php endforeach; ?>
       </ul>
     </div>
     <div class="mini-numeros">
-      <div><span>Tempo médio até concluir</span><b><?= $g['tempo_medio'] === null ? '—' : number_format($g['tempo_medio'], 1, ',', '.') . ' dias' ?></b></div>
-      <div><span>Concluídas no prazo</span><b><?= $g['no_prazo'] === null ? '—' : $pct($g['no_prazo']) ?></b></div>
+      <div><span>Tempo médio até concluir</span><b><?= $g['tempo_medio'] === null ? '-' : number_format($g['tempo_medio'], 1, ',', '.') . ' dias' ?></b></div>
+      <div><span>Concluídas no prazo</span><b><?= $g['no_prazo'] === null ? '-' : $pct($g['no_prazo']) ?></b></div>
     </div>
   </section>
 
@@ -354,8 +354,8 @@ if ($alertas['agenda_hoje']) $avisos[] = ['calendar', $plural((int) $alertas['ag
   <section class="card quadro">
     <div class="quadro__topo"><h2 class="card__title">Ticket médio &amp; peças mais vendidas</h2></div>
     <div class="mini-numeros">
-      <div><span>Ticket médio (mês)</span><b><?= $g['ticket_mes'] === null ? '—' : dinheiro($g['ticket_mes']) ?></b></div>
-      <div><span>Ticket médio (geral)</span><b><?= $g['ticket_geral'] === null ? '—' : dinheiro($g['ticket_geral']) ?></b></div>
+      <div><span>Ticket médio (mês)</span><b><?= $g['ticket_mes'] === null ? '-' : dinheiro($g['ticket_mes']) ?></b></div>
+      <div><span>Ticket médio (geral)</span><b><?= $g['ticket_geral'] === null ? '-' : dinheiro($g['ticket_geral']) ?></b></div>
     </div>
     <?php if (!$g['pecas']): ?>
       <p class="form-dica">Nenhuma peça vendida nos últimos 6 meses.</p>

@@ -19,9 +19,9 @@ $totalTela = $kanban ? array_sum(array_map('count', $colunas)) : (int) $p->total
   </div>
   <div class="page-header__actions">
     <?php if ($kanban): ?>
-      <a class="btn btn--contorno" href="<?= e(url_com(['modo' => null, 'pagina' => null])) ?>"><?= icone('menu') ?> Ver como lista</a>
+      <a class="btn btn--ghost" href="<?= e(url_com(['modo' => null, 'pagina' => null])) ?>"><?= icone('menu') ?> Ver como lista</a>
     <?php else: ?>
-      <a class="btn btn--contorno" href="<?= e(url_com(['modo' => 'kanban', 'situacao' => null, 'pagina' => null])) ?>"><?= icone('kanban') ?> Ver como Kanban</a>
+      <a class="btn btn--ghost" href="<?= e(url_com(['modo' => 'kanban', 'situacao' => null, 'pagina' => null])) ?>"><?= icone('kanban') ?> Ver como Kanban</a>
     <?php endif; ?>
     <a class="btn btn--primary" href="./os-nova"><?= icone('plus') ?> Nova ordem de serviço</a>
   </div>
@@ -56,7 +56,7 @@ $totalTela = $kanban ? array_sum(array_map('count', $colunas)) : (int) $p->total
       <div class="vazio"><?= icone('work-order', 32, 1.25) ?>Nenhuma ordem de serviço nesta situação.</div>
     <?php else: ?>
       <div class="table-wrap">
-        <table class="table">
+        <table class="table table--ordens">
           <thead><tr><th>OS</th><th>Cliente</th><th>Veículo</th><th>Situação</th><th>Entrada</th><th>Técnico</th><th class="num">Valor</th><th class="num">Ações</th></tr></thead>
           <tbody>
             <?php foreach ($ordens as $o): [$r, $cor] = os_status($o['status']); $link = './os?id=' . (int) $o['id']; ?>
@@ -66,7 +66,7 @@ $totalTela = $kanban ? array_sum(array_map('count', $colunas)) : (int) $p->total
                 <td><?= e($o['modelo'] ?: 'Veículo') ?><span class="sub placa"><?= e($o['placa']) ?></span></td>
                 <td><span class="os-situacao"><span class="badge badge--<?= $cor ?>"><?= $r ?></span><?php if (OrdemServico::atrasada($o)): ?><span class="os-situacao__atraso" title="Passou da previsão de entrega (<?= e(data_br($o['previsao_conclusao'], true)) ?>)"><?= icone('clock', 13, 2) ?>Atrasada</span><?php endif; ?></span></td>
                 <td class="secundario tabular"><?= data_br($o['criado_em']) ?></td>
-                <td><?= e($o['tecnico'] ?? '—') ?></td>
+                <td><?= e($o['tecnico'] ?? '-') ?></td>
                 <td class="num"><strong><?= dinheiro($o['valor_total']) ?></strong></td>
                 <td class="num">
                   <span class="acoes-linha">

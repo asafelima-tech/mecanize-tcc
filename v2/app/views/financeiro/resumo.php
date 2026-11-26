@@ -13,13 +13,17 @@ $variacao = function (float $atual, float $antes): ?string {
     }
     $v = ($atual - $antes) / abs($antes) * 100;
 
-    return ($v >= 0 ? '+' : '−') . number_format(abs($v), 0, ',', '.') . '%';
+    if (abs($v) > 999) {
+        return null; // base de comparação quase vazia: o percentual não diz nada
+    }
+
+    return ($v >= 0 ? '+' : '-') . number_format(abs($v), 0, ',', '.') . '%';
 };
 $resultado = $caixa['recebido'] - $caixa['taxas'] - $caixa['pago'];
 $resultadoAntes = $anterior['recebido'] - $anterior['taxas'] - $anterior['pago'];
 $periodoCurto = $de->format('Y') === $ate->format('Y')
-    ? $de->format('d/m') . ' – ' . $ate->format('d/m/Y')
-    : $de->format('d/m/Y') . ' – ' . $ate->format('d/m/Y');
+    ? $de->format('d/m') . ' a ' . $ate->format('d/m/Y')
+    : $de->format('d/m/Y') . ' a ' . $ate->format('d/m/Y');
 
 $maxFluxo = max(array_merge([0.0], array_column($fluxo, 'entradas'), array_column($fluxo, 'saidas')));
 $passo = $maxFluxo > 0 ? (float) pow(10, floor(log10($maxFluxo / 4))) : 1.0;
@@ -28,7 +32,7 @@ foreach ([1, 2, 2.5, 5, 10] as $m) {
 }
 $topo = max($passo * 4, 1);
 $escala = fn (float $v): string => $v >= 1000 ? number_format($v / 1000, fmod($v, 1000) ? 1 : 0, ',', '.') . ' mil' : number_format($v, 0, ',', '.');
-$pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $total * 100, 0) . '%' : '—';
+$pct = fn (float $v, float $total): string => $total > 0 ? number_format($v / $total * 100, 0) . '%' : '-';
 
 // Composição (entradas por forma, saídas por categoria): uma barra única dividida em partes, como a barra de
 // armazenamento do iPhone, e a lista logo abaixo. Do maior para o menor; cada parte num tom da cor dos gráficos.
@@ -57,7 +61,7 @@ $composicao = function (array $itens, float $total, callable $nome) use ($pct): 
     <p class="page-header__subtitle">Entradas, saídas e resultado da oficina por período.</p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--contorno" href="./caixas"><?= icone('history') ?> Histórico de caixa</a>
+    <a class="btn btn--ghost" href="./caixas"><?= icone('history') ?> Histórico de caixa</a>
     <a class="btn btn--ghost" href="./comissoes"><?= icone('percent') ?> Comissões</a>
     <details class="menu-mais"><summary class="btn btn--primary"><?= icone('plus') ?> Nova conta<?= icone('chevron-down', 14) ?></summary>
       <div class="menu-mais__lista">
@@ -86,7 +90,7 @@ $composicao = function (array $itens, float $total, callable $nome) use ($pct): 
   <div class="barra-periodo__filtros barra-periodo__filtros--largo">
     <label class="campo-periodo"><?= icone('calendar') ?>
       <input type="date" name="de" value="<?= e($de->format('Y-m-d')) ?>" aria-label="De">
-      <span>–</span>
+      <span>a</span>
       <input type="date" name="ate" value="<?= e($ate->format('Y-m-d')) ?>" aria-label="Até">
     </label>
     <button class="btn btn--ghost" type="submit">Aplicar</button>
@@ -106,13 +110,13 @@ $composicao = function (array $itens, float $total, callable $nome) use ($pct): 
   </div>
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Resultado do período</span><?php if ($v = $variacao($resultado, $resultadoAntes)): ?><span class="stat-card__chip" title="Comparado ao período anterior de mesmo tamanho"><?= $v ?></span><?php endif; ?></div>
-    <span class="stat-card__value"><?= $resultado < 0 ? '−' : '' ?><?= dinheiro(abs($resultado)) ?></span>
-    <span class="stat-card__pe">entradas − taxas − saídas</span>
+    <span class="stat-card__value"><?= $resultado < 0 ? '-' : '' ?><?= dinheiro(abs($resultado)) ?></span>
+    <span class="stat-card__pe">entradas menos taxas menos saídas</span>
   </div>
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Sessões de caixa</span><?= icone('cash') ?></div>
     <span class="stat-card__value"><?= (int) $sessoes['n'] ?></span>
-    <span class="stat-card__pe"><?= (int) $sessoes['diferenca'] ? (int) $sessoes['diferenca'] . ' fechada(s) com sobra ou falta' : 'nenhuma diferença na gaveta' ?></span>
+    <span class="stat-card__pe"><?= (int) $sessoes['diferenca'] ? ((int) $sessoes['diferenca'] === 1 ? '1 fechada com sobra ou falta' : (int) $sessoes['diferenca'] . ' fechadas com sobra ou falta') : 'nenhuma diferença na gaveta' ?></span>
   </div>
 </div>
 
@@ -292,9 +296,9 @@ $composicao = function (array $itens, float $total, callable $nome) use ($pct): 
               <td class="secundario tabular"><?= date('d/m H:i', strtotime($m['data_movimento'])) ?></td>
               <td><span class="badge badge--plain badge--sinal"><?= $estorno ? icone('refresh', 12, 2) . 'Estorno' : ($entrada ? icone('plus', 12, 2) . 'Entrada' : icone('minus', 12, 2) . 'Saída') ?></span></td>
               <td><?= e($m['tipo'] === 'RECEBER' ? (Lancamento::FORMAS[$m['forma_pagamento']] ?? $m['forma_pagamento']) : Lancamento::categoria('PAGAR', $m['categoria'])) ?></td>
-              <td><a href="./conta?id=<?= (int) $m['lancamento_id'] ?>"><?= e($m['descricao']) ?></a><?= $m['pessoa'] ? ' · ' . e($m['pessoa']) : '' ?></td>
-              <td><?= e($m['usuario'] ?? '—') ?></td>
-              <td class="num"><strong><?= $entrada ? '' : '− ' ?><?= dinheiro($m['valor']) ?></strong></td>
+              <td><a href="./conta?id=<?= (int) $m['lancamento_id'] ?>"><?= e($m['descricao']) ?></a><?= $m['pessoa'] && mb_stripos((string) $m['descricao'], (string) $m['pessoa']) === false ? ' · ' . e($m['pessoa']) : '' ?></td>
+              <td><?= e($m['usuario'] ?? '-') ?></td>
+              <td class="num"><strong><?= $entrada ? '+' : '-' ?><?= dinheiro($m['valor']) ?></strong></td>
             </tr>
           <?php endforeach; ?>
         </tbody>

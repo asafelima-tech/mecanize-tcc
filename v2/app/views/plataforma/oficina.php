@@ -42,7 +42,7 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
   </div>
   <div><span>Plano</span><strong><?= e(Oficina::PLANOS[$of['plano']][0] ?? $of['plano']) ?></strong><small>até <?= (int) (Oficina::PLANOS[$of['plano']][1] ?? $of['limite_usuarios']) ?> usuários no plano</small></div>
   <div class="<?= $acima ? 'ver-numeros__alerta' : '' ?>"><span>Usuários ativos</span><strong><?= (int) $of['usuarios_ativos'] ?> <span class="ver-numeros__de">de <?= (int) $of['limite_usuarios'] ?></span></strong><small><?= $acima ? 'acima do limite' : 'dentro do limite' ?></small></div>
-  <div><span>Administradores</span><strong><?= count($admins) ?></strong><small><?= count(array_filter($admins, fn($a) => $a['ativo'])) ?> ativo(s)</small></div>
+  <div><span>Administradores</span><strong><?= count($admins) ?></strong><small><?= count(array_filter($admins, fn($a) => $a['ativo'])) === 1 ? '1 ativo' : count(array_filter($admins, fn($a) => $a['ativo'])) . ' ativos' ?></small></div>
 </div>
 
 <!-- Coluna única: licença, cadastro em duas colunas, administradores numa faixa de cartões e o histórico, tudo em largura cheia. -->
@@ -64,16 +64,16 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
       <div class="ver-grupo">
         <h2 class="ver-grupo__titulo" id="pl-cadastro">Cadastro</h2>
         <dl class="ver-lista">
-          <div><dt>CNPJ</dt><dd class="tabular"><?= $of['cnpj'] ? e(documento_fmt($of['cnpj'])) : '—' ?></dd></div>
-          <div><dt>Cidade</dt><dd><?= e(trim(($of['cidade'] ?? '') . ($of['uf'] ? '/' . $of['uf'] : '')) ?: '—') ?></dd></div>
+          <div><dt>CNPJ</dt><dd class="tabular"><?= $of['cnpj'] ? e(documento_fmt($of['cnpj'])) : '-' ?></dd></div>
+          <div><dt>Cidade</dt><dd><?= e(trim(($of['cidade'] ?? '') . ($of['uf'] ? '/' . $of['uf'] : '')) ?: '-') ?></dd></div>
         </dl>
         <?php if ($acima): ?><p class="form-dica">Acima do limite: novos usuários ficam bloqueados.</p><?php endif; ?>
       </div>
       <div class="ver-grupo">
         <h2 class="ver-grupo__titulo">Contato</h2>
         <dl class="ver-lista">
-          <div><dt>Telefone</dt><dd class="tabular"><?= $of['telefone'] ? e(telefone_fmt($of['telefone'])) : '—' ?></dd></div>
-          <div><dt>E-mail</dt><dd><?= e($of['email'] ?: '—') ?></dd></div>
+          <div><dt>Telefone</dt><dd class="tabular"><?= $of['telefone'] ? e(telefone_fmt($of['telefone'])) : '-' ?></dd></div>
+          <div><dt>E-mail</dt><dd><?= e($of['email'] ?: '-') ?></dd></div>
         </dl>
       </div>
     </section>

@@ -34,7 +34,7 @@ final class AuthController extends Controller
         }
 
         if ($usuarios->estaBloqueado($conta)) {
-            $this->telaLogin('Conta bloqueada por excesso de tentativas. Tente de novo em ' . $usuarios->minutosDeBloqueio($conta) . ' minuto(s).', $email);
+            $this->telaLogin('Conta bloqueada por excesso de tentativas. Tente de novo em ' . plural((int) $usuarios->minutosDeBloqueio($conta), 'minuto', 'minutos') . '.', $email);
             return;
         }
         if ((int) $conta['ativo'] !== 1) {

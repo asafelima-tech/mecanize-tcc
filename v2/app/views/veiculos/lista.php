@@ -7,6 +7,7 @@
 $titulo = 'Veículos';
 $numero = fn (int $n): string => number_format($n, 0, ',', '.');
 $variacao = $resumo['novos_anterior'] > 0 ? ($resumo['novos_mes'] - $resumo['novos_anterior']) / $resumo['novos_anterior'] * 100 : null;
+if ($variacao !== null && abs($variacao) > 999) { $variacao = null; }
 // Cor do veículo é dado (não é situação), então o ponto mostra a cor de verdade.
 $cores = ['Branco' => '#FFFFFF', 'Branco Pérola' => '#F4F1EA', 'Preto' => '#1D1D1F', 'Prata' => '#C7C7CC', 'Cinza' => '#8E8E93', 'Grafite' => '#48484A',
           'Chumbo' => '#545458', 'Vermelho' => '#C62828', 'Vinho' => '#6D1F2B', 'Azul' => '#1E5AA8', 'Azul Marinho' => '#1B2A4A', 'Verde' => '#2E7D32',
@@ -16,7 +17,7 @@ $filtrado = $f['busca'] !== '' || $f['marca'] !== '' || $f['combustivel'] !== ''
 ?>
 <div class="page-header">
   <div>
-    <h1 class="page-header__title">Gestão de veículos</h1>
+    <h1 class="page-header__title">Veículos</h1>
     <p class="page-header__subtitle">Frota atendida, com placa, cor, combustível e proprietário.</p>
   </div>
   <div class="page-header__actions"><a class="btn btn--primary" href="./veiculo-form"><?= icone('plus') ?> Novo veículo</a></div>
@@ -26,16 +27,16 @@ $filtrado = $f['busca'] !== '' || $f['marca'] !== '' || $f['combustivel'] !== ''
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Total de veículos</span><?= icone('car') ?></div>
     <span class="stat-card__value"><?= $numero($resumo['ativos']) ?></span>
-    <span class="stat-card__pe">cadastrados<?= $resumo['inativos'] ? ' · ' . $numero($resumo['inativos']) . ' inativo(s)' : '' ?></span>
+    <span class="stat-card__pe">cadastrados<?= $resumo['inativos'] ? ' · ' . $numero($resumo['inativos']) . ((int) $resumo['inativos'] === 1 ? ' inativo' : ' inativos') : '' ?></span>
   </div>
   <div class="stat-card">
-    <div class="stat-card__topo"><span class="stat-card__label">Novos este mês</span><?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '−' ?><?= number_format(abs($variacao), 0) ?>%</span><?php endif; ?></div>
+    <div class="stat-card__topo"><span class="stat-card__label">Novos este mês</span><?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '-' ?><?= number_format(abs($variacao), 0) ?>%</span><?php endif; ?></div>
     <span class="stat-card__value"><?= $numero($resumo['novos_mes']) ?></span>
     <a class="stat-card__pe" href="./veiculos?novos=mes&amp;status=todos">ver lista do mês →</a>
   </div>
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Marca mais recorrente</span><?= icone('chart') ?></div>
-    <span class="stat-card__value"><?= $resumo['marca'] ? e($resumo['marca']) : '—' ?></span>
+    <span class="stat-card__value"><?= $resumo['marca'] ? e($resumo['marca']) : '-' ?></span>
     <span class="stat-card__pe"><?= $resumo['marca'] && $resumo['ativos'] ? number_format($resumo['marca_n'] / $resumo['ativos'] * 100, 0) . '% da frota atendida' : 'escolha o modelo do catálogo no cadastro' ?></span>
   </div>
 </div>
@@ -68,9 +69,9 @@ $filtrado = $f['busca'] !== '' || $f['marca'] !== '' || $f['combustivel'] !== ''
             <tr data-href="<?= e($link) ?>" class="<?= $v['ativo'] ? '' : 'inativo' ?>">
               <td><?= placa_caixa($v['placa'], true, $link) ?></td>
               <td><strong><?= e($v['modelo_nome'] ?: 'Veículo') ?></strong><?php if ($v['marca']): ?><span class="sub"><?= e($v['marca']) ?></span><?php endif; ?></td>
-              <td><?php if ($v['cor']): ?><span class="cor-veiculo"><span class="cor-veiculo__ponto" style="background:<?= e($cores[$v['cor']] ?? '#A1A1A6') ?>"></span><?= e($v['cor']) ?></span><?php else: ?><span class="secundario">—</span><?php endif; ?></td>
-              <td class="tabular"><?= e($v['ano'] ?? '—') ?></td>
-              <td><?= e($v['combustivel'] ?? '—') ?></td>
+              <td><?php if ($v['cor']): ?><span class="cor-veiculo"><span class="cor-veiculo__ponto" style="background:<?= e($cores[$v['cor']] ?? '#A1A1A6') ?>"></span><?= e($v['cor']) ?></span><?php else: ?><span class="secundario">-</span><?php endif; ?></td>
+              <td class="tabular"><?= e($v['ano'] ?? '-') ?></td>
+              <td><?= e($v['combustivel'] ?? '-') ?></td>
               <td><a href="./cliente?id=<?= (int) $v['cliente_id'] ?>" class="link-discreto"><?= e($v['cliente']) ?></a></td>
               <td class="num"><span class="acoes-linha">
                 <a class="btn btn--fantasma btn--icone" href="<?= e($link) ?>" aria-label="Abrir <?= e($v['placa']) ?>" title="Abrir"><?= icone('eye') ?></a>

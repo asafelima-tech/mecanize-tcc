@@ -10,14 +10,14 @@ $comTotais = $fechamentoTotais ?? true;
 $emAberto = $fechamentoAberto ?? true;
 $iconeForma = ['DINHEIRO' => 'cash', 'PIX' => 'qr-code', 'CARTAO_DEBITO' => 'credit-card', 'CARTAO_CREDITO' => 'credit-card',
                'BOLETO' => 'barcode', 'TRANSFERENCIA' => 'bank', 'OUTRO' => 'more-h'];
-$sinal = fn (float $v): string => ($v < 0 ? '− ' : '') . dinheiro(abs($v));
+$sinal = fn (float $v): string => ($v < 0 ? '-' : '') . dinheiro(abs($v));
 ?>
 <div class="fechamento">
   <?php if ($comTotais): ?>
     <dl class="fechamento__conta">
       <div><dt>Saldo anterior</dt><dd><?= dinheiro($fx['anterior']) ?></dd></div>
-      <div><dt>Entradas</dt><dd>+ <?= dinheiro($fx['entradas']) ?></dd></div>
-      <div><dt>Saídas</dt><dd>− <?= dinheiro($fx['saidas']) ?></dd></div>
+      <div><dt>Entradas</dt><dd>+<?= dinheiro($fx['entradas']) ?></dd></div>
+      <div><dt>Saídas</dt><dd>-<?= dinheiro($fx['saidas']) ?></dd></div>
       <div class="fechamento__total"><dt>Saldo final</dt><dd><?= $sinal($fx['saldo']) ?></dd></div>
     </dl>
   <?php endif; ?>
@@ -30,10 +30,10 @@ $sinal = fn (float $v): string => ($v < 0 ? '− ' : '') . dinheiro(abs($v));
           $partes[] = 'anterior ' . dinheiro($f['anterior']);
       }
       if ($f['entradas'] > 0 || $forma === 'DINHEIRO') {
-          $partes[] = '+ ' . dinheiro($f['entradas']);
+          $partes[] = '+' . dinheiro($f['entradas']);
       }
       if ($f['saidas'] > 0 || $forma === 'DINHEIRO') {
-          $partes[] = '− ' . dinheiro($f['saidas']);
+          $partes[] = '-' . dinheiro($f['saidas']);
       } ?>
       <li>
         <span class="fechamento__icone" aria-hidden="true"><?= icone($iconeForma[$forma] ?? 'coins', 17) ?></span>

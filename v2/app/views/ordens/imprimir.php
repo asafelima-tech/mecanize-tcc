@@ -92,13 +92,13 @@ $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
     <tbody>
       <?php foreach ($ativos as $i): ?>
         <tr><td><?= e($i['descricao']) ?><?= $i['origem'] === 'ADICIONAL' ? ' <em>(adicional)</em>' : '' ?></td><td class="n"><?= $qtd($i['quantidade']) ?></td>
-          <td class="n"><?= dinheiro($i['valor_unitario']) ?></td><td class="n"><?= (float) $i['desconto'] > 0 ? '−' . dinheiro($i['desconto']) : '' ?></td><td class="n"><?= dinheiro($i['valor_total']) ?></td></tr>
+          <td class="n"><?= dinheiro($i['valor_unitario']) ?></td><td class="n"><?= (float) $i['desconto'] > 0 ? '-' . dinheiro($i['desconto']) : '' ?></td><td class="n"><?= dinheiro($i['valor_total']) ?></td></tr>
       <?php endforeach; ?>
     </tbody>
     <tfoot>
       <tr><td colspan="4" class="n">Peças</td><td class="n"><?= dinheiro($os['valor_pecas']) ?></td></tr>
       <tr><td colspan="4" class="n">Serviços</td><td class="n"><?= dinheiro($os['valor_servicos']) ?></td></tr>
-      <?php if ((float) $os['valor_desconto'] > 0): ?><tr><td colspan="4" class="n">Descontos</td><td class="n">−<?= dinheiro($os['valor_desconto']) ?></td></tr><?php endif; ?>
+      <?php if ((float) $os['valor_desconto'] > 0): ?><tr><td colspan="4" class="n">Descontos</td><td class="n">-<?= dinheiro($os['valor_desconto']) ?></td></tr><?php endif; ?>
       <tr class="total"><td colspan="4" class="n">Total</td><td class="n"><?= dinheiro($os['valor_total']) ?></td></tr>
     </tfoot>
   </table>
@@ -108,7 +108,7 @@ $qtd = fn($n) => rtrim(rtrim(number_format((float) $n, 3, ',', '.'), '0'), ',');
 
   <div class="assinaturas">
     <div><?= $os['assinatura_cliente'] ? '<img src="' . e($os['assinatura_cliente']) . '" alt="" style="height:50px;display:block;margin:-54px auto 4px">' : '' ?>
-      <?= $ehOrcamento ? 'Aprovação do cliente' : 'Cliente' ?> — <?= e($os['aprovado_por_nome'] ?: $os['cliente']) ?></div>
+      <?= $ehOrcamento ? 'Aprovação do cliente' : 'Cliente' ?>: <?= e($os['aprovado_por_nome'] ?: $os['cliente']) ?></div>
     <div><?= e($oficina['nome']) ?></div>
   </div>
 </div>

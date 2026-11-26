@@ -2,7 +2,7 @@
 <dl class="dados" style="grid-template-columns:1fr">
   <div><dt>Abertura</dt><dd><?= dinheiro($caixa['valor_abertura']) ?></dd></div>
   <?php foreach (Lancamento::FORMAS as $k => $r): if (!isset($resumo['por_forma'][$k])) continue; $x = $resumo['por_forma'][$k]; ?>
-    <div><dt><?= $r ?></dt><dd><?= isset($x['ENTRADA']) ? '+' . dinheiro($x['ENTRADA']) : '' ?> <?= isset($x['SAIDA']) ? '−' . dinheiro($x['SAIDA']) : '' ?></dd></div>
+    <div><dt><?= $r ?></dt><dd><?= isset($x['ENTRADA']) ? '+' . dinheiro($x['ENTRADA']) : '' ?> <?= isset($x['SAIDA']) ? '-' . dinheiro($x['SAIDA']) : '' ?></dd></div>
   <?php endforeach; ?>
   <div><dt>Dinheiro esperado na gaveta</dt><dd><strong><?= dinheiro($resumo['esperado']) ?></strong></dd></div>
   <?php if ($caixa['status'] === 'FECHADO'): $dif = (float) $caixa['valor_fechamento'] - (float) $caixa['valor_esperado']; ?>

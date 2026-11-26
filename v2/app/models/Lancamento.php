@@ -540,7 +540,7 @@ final class Lancamento extends Modelo
             $ordens = array_unique(array_map(fn($i) => os_numero($i['numero']), $itens));
 
             $id = $this->criar([
-                'tipo' => 'PAGAR', 'categoria' => 'COMISSAO', 'descricao' => 'Comissão — ' . $nome,
+                'tipo' => 'PAGAR', 'categoria' => 'COMISSAO', 'descricao' => 'Comissão · ' . $nome,
                 'valor' => number_format($total, 2, '.', ''), 'vencimento' => $vencimento, 'funcionario_id' => $tecnicoId,
                 'observacao' => mb_substr('OS: ' . implode(', ', $ordens), 0, 255),
             ]);

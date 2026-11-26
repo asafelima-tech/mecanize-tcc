@@ -28,7 +28,7 @@ final class EstoqueController extends Controller
             $this->telaEntrada($_POST, $e->getMessage());
             return;
         }
-        $this->avisar("Entrada registrada: {$n} peça(s) no estoque." . (!empty($_POST['gerar_conta']) ? ' A conta a pagar foi lançada.' : ''));
+        $this->avisar("Entrada registrada: " . plural((int) $n, 'peça', 'peças') . " no estoque." . (!empty($_POST['gerar_conta']) ? ' A conta a pagar foi lançada.' : ''));
         $this->redirecionar('estoque');
     }
 

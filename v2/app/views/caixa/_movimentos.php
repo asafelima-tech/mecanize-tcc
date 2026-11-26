@@ -9,8 +9,8 @@
           <td><?= date('d/m H:i', strtotime($m['data_movimento'])) ?></td>
           <td><?= $rot ?><span class="sub"><?php if ($m['lancamento_id']): ?><a href="./<?= Contexto::perfil() === 'ADMIN' ? 'conta?id=' . (int) $m['lancamento_id'] : 'os?id=' . (int) $m['ordem_servico_id'] ?>"><?= e($m['lancamento']) ?></a><?php endif; ?><?= $m['descricao'] ? ' ' . e($m['descricao']) : '' ?></span></td>
           <td><?= e(Lancamento::FORMAS[$m['forma_pagamento']] ?? $m['forma_pagamento']) ?></td>
-          <td><?= e($m['usuario'] ?? '—') ?></td>
-          <td class="num"><?= $m['direcao'] === 'ENTRADA' ? '+' : '−' ?><?= dinheiro($m['valor']) ?></td>
+          <td><?= e($m['usuario'] ?? '-') ?></td>
+          <td class="num"><?= $m['direcao'] === 'ENTRADA' ? '+' : '-' ?><?= dinheiro($m['valor']) ?></td>
         </tr>
       <?php endforeach; ?>
     </tbody>

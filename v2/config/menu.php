@@ -13,7 +13,7 @@
 return [
     ['grupo' => '',           'rota' => 'inicio',       'rotulo' => 'Início',           'icone' => 'home', 'esconder' => ['TECNICO']],
     ['grupo' => '',           'rota' => 'servicos',     'rotulo' => 'Meus serviços',    'icone' => 'mechanic',   'rotas' => ['servico']],
-    ['grupo' => '',           'rota' => 'pedidos',      'rotulo' => 'Pedidos de material', 'icone' => 'box'],
+    ['grupo' => '',           'rota' => 'pedidos',      'rotulo' => 'Pedidos de material', 'icone' => 'send'],
     ['grupo' => 'Operação',   'rota' => 'agenda',       'rotulo' => 'Agenda',           'icone' => 'calendar',   'rotas' => ['agenda-form', 'agenda-salvar']],
     ['grupo' => 'Operação',   'rota' => 'ordens',       'rotulo' => 'Ordens de serviço','icone' => 'work-order', 'rotas' => ['os', 'os-nova', 'os-criar']],
     ['grupo' => 'Operação',   'rota' => 'solicitacoes', 'rotulo' => 'Pedidos dos técnicos', 'icone' => 'checklist'],

@@ -12,13 +12,12 @@ $fat = $faturamento;
 $serie = $tempo['serie'];
 $max = max(array_merge([0.0], array_column($serie, 'total')));
 $qtd = fn($v) => rtrim(rtrim(number_format((float) $v, 3, ',', '.'), '0'), ',');
-$pct = fn(?float $v) => $v === null ? '—' : number_format($v, 1, ',', '.') . '%';
-$plural = fn(int $n, string $um, string $varios): string => $n . ' ' . ($n === 1 ? $um : $varios);
+$pct = fn(?float $v) => $v === null ? '-' : number_format($v, 1, ',', '.') . '%';
 $abertasHoje = array_sum($ordens['abertas_hoje']);
 $variacao = function (float $atual, float $antes): ?array {
-    if ($antes <= 0) return null;
+    if ($antes <= 0 || abs(($atual - $antes) / $antes * 100) > 999) return null; // base quase vazia: o percentual não diz nada
     $v = ($atual - $antes) / $antes * 100;
-    return [($v >= 0 ? '+' : '−') . number_format(abs($v), 0, ',', '.') . '%', $v >= 0];
+    return [($v >= 0 ? '+' : '-') . number_format(abs($v), 0, ',', '.') . '%', $v >= 0];
 };
 $delta = function (?array $v): string {
     if (!$v) return '';
@@ -65,7 +64,7 @@ $nSerie = count($serie);
 $xSerie = fn (int $i): float => $nSerie > 1 ? $i / ($nSerie - 1) * 100 : 50.0;
 $ptsSerie = [];
 foreach ($serie as $i => $s) $ptsSerie[] = [$xSerie($i), 100 - min(100, (float) $s['total'] / $topo * 100)];
-$curvaSerie = curva_suave($ptsSerie);
+$curvaSerie = linha_reta($ptsSerie);
 $areaSerie = $ptsSerie ? $curvaSerie . ' L ' . round(end($ptsSerie)[0], 3) . ' 100 L ' . round($ptsSerie[0][0], 3) . ' 100 Z' : '';
 $dadosSerie = array_map(fn ($s) => [$s['rotulo'], dinheiro($s['total']), (int) $s['os']], $serie);
 
@@ -217,7 +216,7 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
         <header class="rl-cartao__cabeca"><h3>Ordens de serviço</h3><span>Abertas no período</span></header>
         <div class="rl-destaque">
           <strong><?= $pct($ordens['aprovacao']) ?></strong>
-          <span>dos orçamentos aprovados<small><?= $plural((int) $ordens['aprovadas'], 'aprovado', 'aprovados') ?> · <?= $plural((int) $ordens['recusadas'], 'recusado', 'recusados') ?></small></span>
+          <span>dos orçamentos aprovados<small><?= plural((int) $ordens['aprovadas'], 'aprovado', 'aprovados') ?> · <?= plural((int) $ordens['recusadas'], 'recusado', 'recusados') ?></small></span>
         </div>
         <?php if (array_sum($situacao) > 0): ?>
           <?= $composicao(array_map(fn ($r, $n) => [$r, null, (float) $n, (string) (int) $n], array_keys($situacao), array_values($situacao))) ?>
@@ -247,8 +246,8 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
     <h2 class="rl-painel__titulo">Dinheiro</h2>
     <div class="card rl-faixa">
       <div><span>Recebido</span><strong><?= dinheiro($caixa['recebido']) ?></strong></div>
-      <div><span>Taxas</span><strong>− <?= dinheiro($caixa['taxas']) ?></strong></div>
-      <div><span>Pago</span><strong>− <?= dinheiro($caixa['pago']) ?></strong></div>
+      <div><span>Taxas</span><strong>-<?= dinheiro($caixa['taxas']) ?></strong></div>
+      <div><span>Pago</span><strong>-<?= dinheiro($caixa['pago']) ?></strong></div>
       <div class="rl-faixa__total<?= $caixa['saldo'] < 0 ? ' is-negativo' : '' ?>"><span>Saldo</span><strong><?= dinheiro($caixa['saldo']) ?></strong></div>
     </div>
 
@@ -270,10 +269,10 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
     <div class="card rl-cartao">
       <header class="rl-cartao__cabeca"><h3>Contas em aberto <span class="rl-selo">hoje</span></h3><a class="rl-link nao-imprimir" href="./financeiro?situacao=vencidos">Ver vencidas<?= icone('chevron-right', 12, 2) ?></a></header>
       <div class="rl-numeros">
-        <div><span>A receber</span><strong><?= dinheiro($contas['RECEBER']['saldo']) ?></strong><small><?= $plural((int) $contas['RECEBER']['n'], 'conta', 'contas') ?></small></div>
-        <div class="<?= $contas['RECEBER']['vencido'] > 0 ? 'is-alerta' : '' ?>"><span>Vencido a receber</span><strong><?= dinheiro($contas['RECEBER']['vencido']) ?></strong><small><?= $plural((int) $contas['RECEBER']['n_vencidas'], 'conta', 'contas') ?></small></div>
-        <div><span>A pagar</span><strong><?= dinheiro($contas['PAGAR']['saldo']) ?></strong><small><?= $plural((int) $contas['PAGAR']['n'], 'conta', 'contas') ?></small></div>
-        <div class="<?= $contas['PAGAR']['vencido'] > 0 ? 'is-alerta' : '' ?>"><span>Vencido a pagar</span><strong><?= dinheiro($contas['PAGAR']['vencido']) ?></strong><small><?= $plural((int) $contas['PAGAR']['n_vencidas'], 'conta', 'contas') ?></small></div>
+        <div><span>A receber</span><strong><?= dinheiro($contas['RECEBER']['saldo']) ?></strong><small><?= plural((int) $contas['RECEBER']['n'], 'conta', 'contas') ?></small></div>
+        <div class="<?= $contas['RECEBER']['vencido'] > 0 ? 'is-alerta' : '' ?>"><span>Vencido a receber</span><strong><?= dinheiro($contas['RECEBER']['vencido']) ?></strong><small><?= plural((int) $contas['RECEBER']['n_vencidas'], 'conta', 'contas') ?></small></div>
+        <div><span>A pagar</span><strong><?= dinheiro($contas['PAGAR']['saldo']) ?></strong><small><?= plural((int) $contas['PAGAR']['n'], 'conta', 'contas') ?></small></div>
+        <div class="<?= $contas['PAGAR']['vencido'] > 0 ? 'is-alerta' : '' ?>"><span>Vencido a pagar</span><strong><?= dinheiro($contas['PAGAR']['vencido']) ?></strong><small><?= plural((int) $contas['PAGAR']['n_vencidas'], 'conta', 'contas') ?></small></div>
       </div>
     </div>
   </section>
@@ -292,7 +291,7 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
               <td class="num"><?= (int) $t['os'] ?></td>
               <td class="num"><strong><?= dinheiro($t['total']) ?></strong></td>
               <td class="num secundario"><?= dinheiro($t['comissao']) ?></td>
-              <td class="num"><?= $t['dias'] === null ? '—' : number_format($t['dias'], 1, ',', '.') . ' dias' ?></td>
+              <td class="num"><?= $t['dias'] === null ? '-' : number_format($t['dias'], 1, ',', '.') . ' dias' ?></td>
               <td class="num"><?= $prazo === null ? '<span class="secundario">sem previsão</span>' : number_format($prazo, 0) . '%' ?></td>
             </tr>
           <?php endforeach; ?></tbody>
@@ -306,7 +305,7 @@ $abas = ['vendas' => 'Vendas', 'dinheiro' => 'Dinheiro', 'equipe' => 'Equipe<spa
         <ol class="rl-lista rl-lista--clientes">
           <?php foreach (array_slice($clientes, 0, 6) as $pos => $c): ?>
             <li><span class="rl-posicao"><?= $pos + 1 ?></span>
-              <a class="rl-lista__nome" href="./cliente?id=<?= (int) $c['id'] ?>"><?= e($c['nome']) ?><small><?= $plural((int) $c['os'], 'OS', 'OS') ?></small></a>
+              <a class="rl-lista__nome" href="./cliente?id=<?= (int) $c['id'] ?>"><?= e($c['nome']) ?><small><?= plural((int) $c['os'], 'OS', 'OS') ?></small></a>
               <b><?= dinheiro($c['total']) ?></b></li>
           <?php endforeach; ?>
         </ol>

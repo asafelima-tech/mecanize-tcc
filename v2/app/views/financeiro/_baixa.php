@@ -20,12 +20,12 @@
       <div class="form-field"><label>Valor <?= $tipo === 'PAGAR' ? 'pago' : 'recebido' ?> (R$)</label><input name="valor" inputmode="decimal" required></div>
       <div class="form-field"><label>Forma</label>
         <select name="forma" required><?php foreach (Lancamento::FORMAS as $k => $r): ?><option value="<?= $k ?>"><?= $r ?></option><?php endforeach; ?></select></div>
-      <div class="form-field"><label>Juros / multa (R$)</label><input name="acrescimo" inputmode="decimal" placeholder="0,00"></div>
-      <div class="form-field"><label>Desconto (R$)</label><input name="desconto" inputmode="decimal" placeholder="0,00"></div>
-      <div class="form-field"><label>Data</label><input type="date" name="data" value="<?= date('Y-m-d') ?>"></div>
-      <div class="form-field"><label>Taxa da maquininha (R$)</label><input name="taxa" inputmode="decimal" placeholder="0,00"></div>
+      <div class="form-field"><label for="_baixa-acrescimo-23">Juros / multa (R$)</label><input id="_baixa-acrescimo-23" name="acrescimo" inputmode="decimal" placeholder="0,00"></div>
+      <div class="form-field"><label for="_baixa-desconto-24">Desconto (R$)</label><input id="_baixa-desconto-24" name="desconto" inputmode="decimal" placeholder="0,00"></div>
+      <div class="form-field"><label for="_baixa-data-25">Data</label><input id="_baixa-data-25" type="date" name="data" value="<?= date('Y-m-d') ?>"></div>
+      <div class="form-field"><label for="_baixa-taxa-26">Taxa da maquininha (R$)</label><input id="_baixa-taxa-26" name="taxa" inputmode="decimal" placeholder="0,00"></div>
     </div>
-    <div class="form-field"><label>Observação</label><input name="observacao" maxlength="200"></div>
+    <div class="form-field"><label for="_baixa-observacao-28">Observação</label><input id="_baixa-observacao-28" name="observacao" maxlength="200"></div>
     <p class="form-dica" style="margin-top:8px"><?= $caixa ? 'Vai entrar no caixa aberto.' : '<strong>Não há caixa aberto:</strong> pagamento em dinheiro não será aceito.' ?> Valor menor que o saldo fica como pagamento parcial.</p>
     <div class="form-acoes"><button type="button" class="btn btn--ghost" data-fechar>Cancelar</button><button class="btn btn--primary">Confirmar</button></div>
   </form>

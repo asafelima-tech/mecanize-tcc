@@ -15,7 +15,7 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
     <p class="page-header__subtitle">Entradas, saídas e ajustes das peças · <?= dinheiro($resumo['valor_custo']) ?> em estoque pelo custo.</p>
   </div>
   <div class="page-header__actions">
-    <a class="btn btn--contorno" href="./estoque-ajuste"><?= icone('checklist') ?> Ajuste por contagem</a>
+    <a class="btn btn--ghost" href="./estoque-ajuste"><?= icone('checklist') ?> Ajuste por contagem</a>
     <a class="btn btn--primary" href="./estoque-entrada"><?= icone('plus') ?> Entrada de mercadoria</a>
   </div>
 </div>
@@ -37,7 +37,7 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
     <span class="stat-card__pe">correções de inventário no mês</span>
   </div>
   <a class="stat-card" href="./produtos?situacao=baixo">
-    <div class="stat-card__topo"><span class="stat-card__label">Abaixo do mínimo</span><?= icone('warning') ?></div>
+    <div class="stat-card__topo"><span class="stat-card__label">No mínimo ou abaixo</span><?= icone('warning') ?></div>
     <span class="stat-card__value"><?= $numero((int) $resumo['abaixo_minimo']) ?></span>
     <span class="stat-card__pe">precisam de reposição</span>
   </a>
@@ -47,7 +47,7 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
   <!-- Peças abaixo do mínimo: uma faixa de cartões logo abaixo dos números (o livro fica com a largura toda). -->
   <section class="cu-faixa" aria-labelledby="es-h-minimo">
     <div class="cu-faixa__topo">
-      <h2 id="es-h-minimo">Abaixo do mínimo</h2>
+      <h2 id="es-h-minimo">No mínimo ou abaixo</h2>
       <span class="cu-faixa__info"><?= $numero($nMinimo) ?> ite<?= $nMinimo === 1 ? 'm' : 'ns' ?> para repor</span>
       <span class="cu-faixa__acoes">
         <?php if ($nMinimo > count($minimo)): ?><a class="cu-faixa__link" href="./produtos?situacao=baixo">Ver todas</a><?php endif; ?>
@@ -77,7 +77,7 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
         <?php endforeach; ?>
       </nav>
       <label class="campo-periodo campo-periodo--compacto"><?= icone('calendar') ?>
-        <input type="date" name="de" value="<?= e($f['de']) ?>" aria-label="De" onchange="this.form.submit()"><span>–</span>
+        <input type="date" name="de" value="<?= e($f['de']) ?>" aria-label="De" onchange="this.form.submit()"><span>a</span>
         <input type="date" name="ate" value="<?= e($f['ate']) ?>" aria-label="Até" onchange="this.form.submit()">
       </label>
       <?php if ($f['produto']): ?><a class="filtro-ativo" href="<?= e(url_com(['produto' => null, 'pagina' => null])) ?>">Só uma peça <?= icone('close', 12, 2) ?></a><?php endif; ?>
@@ -96,10 +96,10 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
                 <tr class="<?= $m['estornado'] ? 'inativo' : '' ?>">
                   <td><span class="celula-pessoa"><span class="icone-caixa"><?= icone($iconeMotivo[$m['motivo']] ?? 'transfer') ?></span>
                     <span><a href="./produto?id=<?= (int) $m['produto_id'] ?>" class="link-discreto"><strong><?= e($m['produto']) ?></strong></a>
-                      <span class="sub"><?php if ($m['os_id']): ?><a href="./os?id=<?= (int) $m['os_id'] ?>"><?= os_numero($m['os_numero']) ?></a><?php else: ?><?= e($origem ?: ($m['observacao'] ?: '—')) ?><?php endif; ?></span></span></span></td>
+                      <span class="sub"><?php if ($m['os_id']): ?><a href="./os?id=<?= (int) $m['os_id'] ?>"><?= os_numero($m['os_numero']) ?></a><?php else: ?><?= e($origem ?: ($m['observacao'] ?: '-')) ?><?php endif; ?></span></span></span></td>
                   <td><span class="badge badge--plain badge--sinal<?= $m['motivo'] === 'AJUSTE' || $m['motivo'] === 'ESTORNO' ? ' badge--tracejado' : '' ?>"><?= e($r) ?></span><?= $m['estornado'] ? '<span class="sub">estornado</span>' : '' ?></td>
-                  <td class="num"><strong><?= $positivo ? '+ ' : '− ' ?><?= $qtd(abs((float) $m['delta'])) ?></strong></td>
-                  <td class="num"><?= $m['custo_unitario'] !== null ? dinheiro($m['custo_unitario']) : '—' ?></td>
+                  <td class="num"><strong><?= $positivo ? '+' : '-' ?><?= $qtd(abs((float) $m['delta'])) ?></strong></td>
+                  <td class="num"><?= $m['custo_unitario'] !== null ? dinheiro($m['custo_unitario']) : '-' ?></td>
                   <td class="tabular"><?= date('d/m H:i', strtotime($m['criado_em'])) ?><span class="sub"><?= e($m['usuario'] ?? 'sistema') ?></span></td>
                   <td class="num">
                     <?php if (in_array($m['motivo'], ['COMPRA', 'AJUSTE'], true) && !$m['estornado']): ?>
@@ -128,7 +128,7 @@ $ocultos = array_filter(['motivo' => $f['motivo'], 'produto' => $f['produto']]);
     <h3>Estornar movimento</h3>
     <p class="form-dica" id="estorno-rotulo"></p>
     <p class="form-dica">O movimento original continua no livro; o estorno lança o contrário. Se a entrada gerou conta a pagar ainda não paga, a conta é reduzida ou cancelada.</p>
-    <div class="form-field"><label>Motivo</label><textarea name="motivo" rows="2" required></textarea></div>
+    <div class="form-field"><label for="livro-motivo-131">Motivo</label><textarea id="livro-motivo-131" name="motivo" rows="2" required></textarea></div>
     <div class="form-acoes"><button type="button" class="btn btn--ghost" onclick="this.closest('dialog').close()">Voltar</button><button class="btn btn--danger">Estornar</button></div>
   </form>
 </dialog>

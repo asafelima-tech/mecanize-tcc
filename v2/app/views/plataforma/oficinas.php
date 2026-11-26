@@ -42,10 +42,10 @@ $iniciais = function (string $nome): string { $p = preg_split('/\s+/', trim($nom
           <?php foreach ($oficinas as $o): $vencida = Licenca::vencida($o); $dias = Licenca::diasRestantes($o); $link = './plataforma-oficina?id=' . (int) $o['id']; ?>
             <tr data-href="<?= $link ?>">
               <td><span class="celula-pessoa"><span class="icone-caixa plataforma-sigla" aria-hidden="true"><?= e($iniciais($o['nome'])) ?></span>
-                <span><a href="<?= $link ?>" class="link-discreto"><strong><?= e($o['nome']) ?></strong></a><span class="sub"><?= e(implode(' · ', array_filter([$o['cnpj'] ? documento_fmt($o['cnpj']) : null, $o['email']])) ?: '—') ?></span></span></span></td>
+                <span><a href="<?= $link ?>" class="link-discreto"><strong><?= e($o['nome']) ?></strong></a><span class="sub"><?= e(implode(' · ', array_filter([$o['cnpj'] ? documento_fmt($o['cnpj']) : null, $o['email']])) ?: '-') ?></span></span></span></td>
               <td><?= e(Oficina::PLANOS[$o['plano']][0] ?? $o['plano']) ?></td>
               <td><span class="badge badge--<?= e($vencida && $o['status'] !== 'CANCELADA' ? 'danger' : ($cor[$o['status']] ?? 'neutral')) ?>"><?= e($vencida && $o['status'] !== 'CANCELADA' ? 'Vencida' : (Oficina::SITUACOES[$o['status']] ?? $o['status'])) ?></span></td>
-              <td class="tabular"><?= data_br($o['licenca_valida_ate']) ?><?php if (!$vencida && $dias <= Licenca::DIAS_AVISO && $o['status'] !== 'CANCELADA'): ?><span class="sub">vence em <?= $dias ?> dia(s)</span><?php endif; ?></td>
+              <td class="tabular"><?= data_br($o['licenca_valida_ate']) ?><?php if (!$vencida && $dias <= Licenca::DIAS_AVISO && $o['status'] !== 'CANCELADA'): ?><span class="sub">vence em <?= plural((int) $dias, 'dia', 'dias') ?></span><?php endif; ?></td>
               <td class="num"><strong><?= (int) $o['usuarios_ativos'] ?></strong> <span class="secundario">/ <?= (int) $o['limite_usuarios'] ?></span></td>
               <td class="num"><a class="btn btn--ghost btn--sm btn--icone" href="<?= $link ?>" aria-label="Abrir <?= e($o['nome']) ?>"><?= icone('chevron-right') ?></a></td>
             </tr>

@@ -55,7 +55,7 @@ final class Licenca
 
         $dias = self::diasRestantes($oficina, $hoje);
         if ($dias <= self::DIAS_AVISO) {
-            return $dias === 0 ? 'A licença vence hoje.' : "A licença vence em {$dias} dia(s).";
+            return $dias === 0 ? 'A licença vence hoje.' : "A licença vence em " . plural((int) $dias, 'dia', 'dias') . '.';
         }
 
         return null;

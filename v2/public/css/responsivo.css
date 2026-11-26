@@ -358,3 +358,18 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
   .rl-kpi__valor { font-size: 22px; }
   .rl-abas button { padding: 0 6px; font-size: 13px; }
 }
+
+
+/* ── Toque: alvos de 44 px nos controles que a revisão de 26/11/2026 mediu menores ───────────────── */
+@media (pointer: coarse) {
+  :root .topbar .topbar-criar, :root .topbar-caixa { height: 44px !important; }
+  :root .filtros input, :root .filtros select, :root .filtros .campo-periodo, :root .barra-periodo select, :root .filtros__busca--compacta input { height: 44px !important; }
+  :root .agenda-barra__vista a { min-height: 40px; display: inline-flex; align-items: center; }
+  /* Links de texto nas listas e cartões: a área de toque cresce sem mexer no desenho. */
+  .table td a:not(.btn):not(.placa-caixa), .card__title a, .card__titulo a, .stat-card a, .cu-faixa__link { display: inline-block; padding-block: 12px; margin-block: -12px; }
+}
+
+/* Celular: o título do cartão de tabela (ex.: "Últimas ordens de serviço") alinha com o dos outros cartões. */
+@media (max-width: 599.98px) {
+  :root .card__header { padding-left: 16px !important; padding-right: 16px !important; }
+}

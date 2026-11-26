@@ -202,7 +202,7 @@ $grupos = [
       });
       var ICONE = { editar: <?= $json(icone('edit', 16)) ?>, remover: <?= $json(icone('trash', 16)) ?> };
       var num = function (v) { v = String(v == null ? '' : v).trim(); if (!v) return null; if (v.indexOf(',') >= 0) v = v.replace(/\./g, '').replace(',', '.'); var n = parseFloat(v); return isNaN(n) ? null : n; };
-      var brl = function (n) { return 'R$ ' + (n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
+      var brl = function (n) { return ((n || 0) < 0 ? '-' : '') + 'R$ ' + Math.abs(n || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }); };
       var qtd = function (n) { return n.toLocaleString('pt-BR', { maximumFractionDigits: 3 }); };
       var esc = function (s) { var d = document.createElement('div'); d.textContent = s == null ? '' : s; return d.innerHTML; };
       var valores = function (i) {

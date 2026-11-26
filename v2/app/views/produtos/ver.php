@@ -59,7 +59,7 @@ $vazio = '<span class="secundario">Não informado</span>';
   <div><span>Preço de venda</span><strong><?= dinheiro($venda) ?></strong><small><?= $peca ? 'por unidade' : 'por serviço' ?></small></div>
   <?php if ($admin): ?>
     <div><span><?= $peca ? 'Custo' : 'Custo estimado' ?></span><strong><?= dinheiro($custo) ?></strong><small><?= $peca ? 'atualizado nas entradas' : 'informado no cadastro' ?></small></div>
-    <div><span>Margem</span><strong><?= $margem !== null ? number_format($margem, 1, ',', '.') . '%' : '—' ?></strong><small><?= $margem !== null ? ($venda - $custo >= 0 ? 'lucro de ' : 'prejuízo de ') . dinheiro(abs($venda - $custo)) : 'sem preço de venda' ?></small></div>
+    <div><span>Margem</span><strong><?= $margem !== null ? number_format($margem, 1, ',', '.') . '%' : '-' ?></strong><small><?= $margem !== null ? ($venda - $custo >= 0 ? 'lucro de ' : 'prejuízo de ') . dinheiro(abs($venda - $custo)) : 'sem preço de venda' ?></small></div>
   <?php endif; ?>
   <?php if ($peca): ?>
     <div><span>Em estoque</span><strong><?= $qtd($pr['estoque_atual']) ?></strong><small><?= (float) $pr['estoque_minimo'] > 0 ? 'mínimo de ' . $qtd($pr['estoque_minimo']) : 'sem mínimo definido' ?></small></div>

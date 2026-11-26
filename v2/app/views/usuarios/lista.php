@@ -46,7 +46,7 @@ $inativos = $resumo['total'] - $resumo['ativos'];
   <div class="stat-card">
     <div class="stat-card__topo"><span class="stat-card__label">Novos (30 dias)</span><?= icone('user') ?></div>
     <span class="stat-card__value"><?= (int) $resumo['novos'] ?></span>
-    <span class="stat-card__pe"><?= $resumo['ultimo_novo'] ? e($resumo['ultimo_novo']) : 'ninguém entrou no período' ?></span>
+    <span class="stat-card__pe"><?= $resumo['ultimo_novo'] ? ((int) $resumo['novos'] > 1 ? 'último: ' : '') . e($resumo['ultimo_novo']) : 'ninguém entrou no período' ?></span>
   </div>
 </div>
 
@@ -77,7 +77,7 @@ $inativos = $resumo['total'] - $resumo['ativos'];
                   <td><span class="celula-pessoa"><span class="avatar avatar--g<?= $eu ? ' avatar--eu' : '' ?>"><?= e($iniciais($u['nome'])) ?></span>
                     <span><a href="<?= e($link) ?>"><?= e($u['nome']) ?></a><?= $eu ? ' <span class="secundario">(você)</span>' : '' ?><?= $bloqueado ? ' <span class="badge badge--warning">Bloqueado</span>' : '' ?><span class="sub"><?= e($u['email']) ?></span></span></span></td>
                   <td><span class="badge badge--plain badge--perfil-<?= strtolower($u['perfil']) ?>"><?= e(Usuario::PERFIS[$u['perfil']] ?? $u['perfil']) ?></span></td>
-                  <td><?= $u['comissao_tipo'] === 'NENHUMA' ? '<span class="secundario">—</span>' : e(rtrim(rtrim((string) $u['comissao_percentual'], '0'), '.')) . '% ' . e(mb_substr(Usuario::COMISSOES[$u['comissao_tipo']], 2)) ?></td>
+                  <td><?= $u['comissao_tipo'] === 'NENHUMA' ? '<span class="secundario">-</span>' : e(rtrim(rtrim((string) $u['comissao_percentual'], '0'), '.')) . '% ' . e(mb_substr(Usuario::COMISSOES[$u['comissao_tipo']], 2)) ?></td>
                   <td class="secundario tabular"><?= data_br($u['criado_em']) ?></td>
                   <td class="num"><span class="acoes-linha">
                     <a class="btn btn--fantasma btn--icone" href="<?= e($link) ?>" aria-label="Editar <?= e($u['nome']) ?>" title="Editar"><?= icone('edit') ?></a>
@@ -90,7 +90,7 @@ $inativos = $resumo['total'] - $resumo['ativos'];
                           </form>
                         </div>
                       </details>
-                    <?php endif; ?>
+                    <?php else: ?><span class="btn btn--fantasma btn--icone acoes-linha__reserva" aria-hidden="true"><?= icone('more-h') ?></span><?php endif; ?>
                   </span></td>
                 </tr>
               <?php endforeach; ?>

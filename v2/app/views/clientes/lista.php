@@ -11,7 +11,8 @@ $iniciais = function (string $nome): string {
 };
 $numero = fn (int $n): string => number_format($n, 0, ',', '.');
 $variacao = $resumo['novos_anterior'] > 0 ? ($resumo['novos_mes'] - $resumo['novos_anterior']) / $resumo['novos_anterior'] * 100 : null;
-$moeda = fn (float $v): string => 'R$ ' . number_format($v, $v == floor($v) ? 0 : 2, ',', '.');
+if ($variacao !== null && abs($variacao) > 999) { $variacao = null; }
+$moeda = fn (float $v): string => dinheiro($v);
 $acoes = function (array $c): string {
     $id = (int) $c['id'];
     $h = '<details class="menu-mais"><summary class="btn btn--fantasma btn--icone" aria-label="Ações de ' . e($c['nome']) . '">' . icone('more-h') . '</summary><div class="menu-mais__lista">'
@@ -25,7 +26,7 @@ $acoes = function (array $c): string {
 ?>
 <div class="page-header">
   <div>
-    <h1 class="page-header__title">Gestão de clientes</h1>
+    <h1 class="page-header__title">Clientes</h1>
     <p class="page-header__subtitle">Pessoas físicas e empresas atendidas pela oficina.</p>
   </div>
   <div class="page-header__actions"><a class="btn btn--primary" href="./cliente-form"><?= icone('plus') ?> Novo cliente</a></div>
@@ -38,7 +39,7 @@ $acoes = function (array $c): string {
     <span class="stat-card__pe"><?= $numero($resumo['ativos']) ?> ativos · <?= $numero($resumo['inativos']) ?> inativos</span>
   </div>
   <div class="stat-card">
-    <div class="stat-card__topo"><span class="stat-card__label">Novos este mês</span><?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '−' ?><?= number_format(abs($variacao), 0) ?>%</span><?php endif; ?></div>
+    <div class="stat-card__topo"><span class="stat-card__label">Novos este mês</span><?php if ($variacao !== null): ?><span class="stat-card__chip" title="Comparado ao mesmo período do mês anterior"><?= $variacao >= 0 ? '+' : '-' ?><?= number_format(abs($variacao), 0) ?>%</span><?php endif; ?></div>
     <span class="stat-card__value"><?= $numero($resumo['novos_mes']) ?></span>
     <a class="stat-card__pe" href="./clientes?novos=mes&amp;status=todos">ver lista do mês →</a>
   </div>
@@ -96,11 +97,11 @@ $acoes = function (array $c): string {
                 <tr data-href="./cliente?id=<?= (int) $c['id'] ?>" class="<?= $c['ativo'] ? '' : 'inativo' ?>">
                   <td><span class="celula-pessoa"><span class="avatar"><?= e($iniciais($c['nome'])) ?></span>
                     <span><a href="./cliente?id=<?= (int) $c['id'] ?>"><?= e($c['nome']) ?></a><span class="sub"><?= $c['documento'] ? ($c['tipo_pessoa'] === 'PJ' ? 'CNPJ ' : 'CPF ') . e(documento_fmt($c['documento'])) : ($c['tipo_pessoa'] === 'PJ' ? 'Pessoa jurídica' : 'Pessoa física') ?></span></span></span></td>
-                  <td><?= $c['telefone'] ? e(telefone_fmt($c['telefone'])) : '—' ?><?php if ($c['email']): ?><span class="sub"><?= e($c['email']) ?></span><?php endif; ?></td>
-                  <td><?php if (!$placas): ?><span class="secundario">—</span><?php else: ?>
+                  <td><?= $c['telefone'] ? e(telefone_fmt($c['telefone'])) : '-' ?><?php if ($c['email']): ?><span class="sub"><?= e($c['email']) ?></span><?php endif; ?></td>
+                  <td><?php if (!$placas): ?><span class="secundario">-</span><?php else: ?>
                     <?php foreach (array_slice($placas, 0, 2) as $pl): ?><span class="placa--bloco"><?= placa_caixa($pl) ?></span><?php endforeach; ?>
                     <?php if (count($placas) > 2): ?><span class="secundario">+<?= count($placas) - 2 ?></span><?php endif; ?><?php endif; ?></td>
-                  <td class="secundario tabular"><?= $c['ultima_os'] ? data_br($c['ultima_os']) : '—' ?></td>
+                  <td class="secundario tabular"><?= $c['ultima_os'] ? data_br($c['ultima_os']) : '-' ?></td>
                   <td class="num"><strong><?= $moeda((float) $c['total_gasto']) ?></strong></td>
                   <td class="num"><?= $acoes($c) ?></td>
                 </tr>

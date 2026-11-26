@@ -48,7 +48,7 @@ $vazio = '<span class="secundario">Não informado</span>';
 <div class="ver-numeros" aria-label="Relação com o fornecedor">
   <div><span>Total comprado</span><strong><?= dinheiro($resumo['compras']) ?></strong><small>pelo custo das notas</small></div>
   <div><span>Notas de entrada</span><strong><?= $resumo['notas'] ?></strong><small>entradas de mercadoria</small></div>
-  <div><span>Última compra</span><strong><?= $resumo['ultima'] ? data_br($resumo['ultima']) : '—' ?></strong><small><?= $resumo['ultima'] ? 'entrada mais recente' : 'nenhuma entrada ainda' ?></small></div>
+  <div><span>Última compra</span><strong><?= $resumo['ultima'] ? data_br($resumo['ultima']) : '-' ?></strong><small><?= $resumo['ultima'] ? 'entrada mais recente' : 'nenhuma entrada ainda' ?></small></div>
   <div><span>A pagar</span><strong><?= dinheiro($resumo['pagar_saldo']) ?></strong><small><?= $resumo['pagar_n'] ? $resumo['pagar_n'] . ' conta' . ($resumo['pagar_n'] === 1 ? '' : 's') . ' em aberto' : 'nada em aberto' ?></small></div>
 </div>
 
@@ -86,7 +86,7 @@ $vazio = '<span class="secundario">Não informado</span>';
                   <td><strong><?= $en['documento'] ? e($en['documento']) : '<span class="secundario">Sem nota</span>' ?></strong></td>
                   <td class="tabular"><?= data_br($en['criado_em'], true) ?></td>
                   <td class="num"><?= (int) $en['itens'] ?></td>
-                  <td class="secundario"><?= e($en['usuario'] ?: '—') ?></td>
+                  <td class="secundario"><?= e($en['usuario'] ?: '-') ?></td>
                   <td class="num"><strong><?= dinheiro($en['total']) ?></strong></td>
                 </tr>
               <?php endforeach; ?>

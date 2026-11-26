@@ -64,9 +64,9 @@ if ($periodo === 'dia') {
 } elseif ($periodo === 'mes') {
     $tituloCurto = ucfirst($mesesNome[(int) $dIni->format('n')]) . ' ' . $dIni->format('Y');
 } elseif ($dIni->format('n') === $dFim->format('n')) {
-    $tituloCurto = (int) $dIni->format('j') . '–' . (int) $dFim->format('j') . ' ' . $mesCurto($dFim) . ' ' . $dFim->format('Y');
+    $tituloCurto = (int) $dIni->format('j') . ' a ' . (int) $dFim->format('j') . ' ' . $mesCurto($dFim) . ' ' . $dFim->format('Y');
 } else {
-    $tituloCurto = (int) $dIni->format('j') . ' ' . $mesCurto($dIni) . ' – ' . (int) $dFim->format('j') . ' ' . $mesCurto($dFim) . ' ' . $dFim->format('Y');
+    $tituloCurto = (int) $dIni->format('j') . ' ' . $mesCurto($dIni) . ' a ' . (int) $dFim->format('j') . ' ' . $mesCurto($dFim) . ' ' . $dFim->format('Y');
 }
 $filtrosAtivos = ($f['status'] ? 1 : 0) + ($f['tecnico'] ? 1 : 0);
 ?>
@@ -146,7 +146,7 @@ $foco = $refDia >= $mesIni && $refDia < $mesFim ? $refDia : ($hoje >= $mesIni &&
     <?php for ($d = $mes; $d < $depois; $d = $d->modify('+1 day')): $ds = $d->format('Y-m-d'); $sem = (int) $d->format('w');
           $classes = ($ds === $hoje ? ' is-hoje' : '') . ($ds >= $ini && $ds < $fim ? ' is-periodo' : '') . (isset($diasMarcados[$ds]) ? ' tem-agenda' : '') . ($sem === 0 || $sem === 6 ? ' is-fds' : ''); ?>
       <a class="cu-tira__dia<?= $classes ?>" href="<?= e($link(['periodo' => 'dia', 'data' => $ds, 'mes' => null])) ?>"<?= $ds === $foco ? ' data-foco' : '' ?><?= $ds === $hoje ? ' aria-current="date"' : '' ?>
-         aria-label="<?= e($diasNome[(int) $d->format('N')] . ', ' . $dataLonga($d)) ?><?= isset($diasMarcados[$ds]) ? ', ' . $diasMarcados[$ds] . ' agendamento(s)' : '' ?>">
+         aria-label="<?= e($diasNome[(int) $d->format('N')] . ', ' . $dataLonga($d)) ?><?= isset($diasMarcados[$ds]) ? ', ' . plural((int) $diasMarcados[$ds], 'agendamento', 'agendamentos') : '' ?>">
         <span class="cu-tira__sem" aria-hidden="true"><?= $letrasSemana[$sem] ?></span><b><?= (int) $d->format('j') ?></b><i aria-hidden="true"></i>
       </a>
     <?php endfor; ?>
