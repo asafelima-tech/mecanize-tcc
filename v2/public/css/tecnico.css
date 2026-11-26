@@ -33,7 +33,7 @@
 .tec-abas a.ativa { background: var(--text); color: var(--card); box-shadow: none; font-weight: 600; }
 .tec-abas a.ativa span { color: color-mix(in srgb, var(--card) 65%, transparent); }
 .tec-abas a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
-@media (max-width: 360px) { .tec-abas a { font-size: 13px; padding: 0 6px; gap: 4px; } }
+@media (max-width: 374.98px) { .tec-abas a { font-size: 13px; padding: 0 6px; gap: 4px; } }
 @media (min-width: 720px) { .tec-abas { display: flex; gap: 8px; } .tec-abas a { padding: 0 18px; font-size: 14.5px; } }
 
 /* ── 2. Cartões de serviço ─────────────────────────────────────────────────────────────────────────── */
@@ -242,7 +242,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 .tec-acao { padding: 12px; border-radius: var(--tec-r); background: var(--card); }
 .tec-acao form { margin: 0; }
 .tec-acao__info { display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 52px; margin: 0; font-size: 15.5px; font-weight: 600; color: var(--text-secondary); }
-@media (min-width: 901px) { .dlg.tec-folha { width: min(520px, calc(100vw - 24px)) !important; padding: 24px !important; } }
+@media (min-width: 900px) { .dlg.tec-folha { width: min(520px, calc(100vw - 24px)) !important; padding: 24px !important; } }
 .tec-folha h3 { font-size: 22px !important; }
 .tec-folha p { font-size: 15px; line-height: 1.45; color: var(--text-secondary); }
 .tec-resumo { list-style: none; margin: 14px 0; padding: 0; display: flex; flex-direction: column; gap: 8px; }
@@ -251,7 +251,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 
 /* ── 5. Barra de navegação do técnico (celular) ────────────────────────────────────────────────────── */
 .tec-barra { display: none; }
-@media (max-width: 900px) {
+@media (max-width: 899.98px) {
   body.perfil-tecnico .tec-barra { position: fixed; left: 0; right: 0; bottom: 0; z-index: 40; display: grid; grid-template-columns: repeat(3, 1fr);
     padding: 6px 8px max(6px, env(safe-area-inset-bottom)); background: color-mix(in srgb, var(--card) 86%, transparent);
     -webkit-backdrop-filter: saturate(1.8) blur(20px); backdrop-filter: saturate(1.8) blur(20px); box-shadow: 0 -.5px 0 var(--hairline); }
@@ -272,7 +272,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
   /* No celular, sem o caminho do topo: o título da tela já diz onde ele está. */
   body.perfil-tecnico .topbar__caminho { display: none; }
 }
-@media (max-width: 420px) {
+@media (max-width: 599.98px) {
   .tec-cartao, .tec-pedido { padding: 15px 16px 14px; }
 }
 
@@ -308,7 +308,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
   .tec-pedidos__lista .tec-bloco__titulo--solto { margin-top: 0; }
   .tec-pedidos__lista .tec-lista { grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); }
 }
-@media (min-width: 720px) and (max-width: 1099px) {
+@media (min-width: 720px) and (max-width: 1099.98px) {
   .tec-pedidos__lista { margin-top: 6px; }
 }
 
@@ -346,7 +346,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 .pedidos-admin__acoes input:focus { outline: 2px solid var(--acento); outline-offset: 0; }
 .pedidos-admin__botoes { display: flex; flex-wrap: wrap; gap: 6px; }
 .pedidos-admin__dica { margin: 12px 2px 0; }
-@media (max-width: 900px) {
+@media (max-width: 899.98px) {
   .pedidos-admin__item { padding: 16px; }
   .pedidos-admin__botoes { width: 100%; }
   .pedidos-admin__botoes .btn { flex: 1; }
@@ -357,7 +357,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
    No celular, o menu (três linhas) e o sino são só os ícones, sem círculo nem contorno — a área de toque
    continua com 44 px. Os avisos abrem numa janela modal: folha que sobe de baixo no celular e painel
    que entra pela direita no computador, com o fundo escurecido. */
-@media (max-width: 900px) {
+@media (max-width: 899.98px) {
   .topbar .topbar__hamburger, .topbar .topbar-sino { width: 44px !important; height: 44px !important; min-width: 44px; min-height: 44px; padding: 0 !important;
     border: 0 !important; border-radius: 12px !important; background: transparent !important; box-shadow: none !important; color: var(--text) !important; }
   .topbar .topbar__hamburger { margin-left: -10px; }
@@ -415,7 +415,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 .avisos2__vazio strong { font-size: 16px; }
 .avisos2__vazio span { max-width: 280px; font-size: 14px; line-height: 1.5; color: var(--text-secondary); }
 
-@media (max-width: 900px) {
+@media (max-width: 899.98px) {
   .dlg.dlg--avisos.avisos2 { inset: auto 0 0 0 !important; width: 100% !important; max-height: 88vh !important; border-radius: 28px 28px 0 0 !important;
     padding-bottom: env(safe-area-inset-bottom) !important; box-shadow: 0 -10px 40px rgba(0, 0, 0, .2) !important; }
   .dlg.dlg--avisos.avisos2[open] { animation: avisos2-sobe .34s cubic-bezier(.32, .72, 0, 1); }
@@ -433,7 +433,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 .tec-acao__dica { display: none; margin: 2px 4px 10px; font-size: 13px; color: var(--text-secondary); }
 @media (min-width: 1100px) { .tec-acao { padding: 16px; } .tec-acao__dica { display: block; } }
 /* Tablet deitado / notebook estreito (901–1099 px): uma coluna; a ação fica presa embaixo, ao lado do menu lateral. */
-@media (min-width: 901px) and (max-width: 1099px) {
+@media (min-width: 900px) and (max-width: 1099.98px) {
   .tec-acao { position: fixed; left: calc(var(--lat, 248px) + 24px); right: 24px; bottom: 16px; z-index: 35; padding: 8px; border-radius: 22px;
     background: color-mix(in srgb, var(--card) 80%, transparent); -webkit-backdrop-filter: saturate(1.8) blur(18px); backdrop-filter: saturate(1.8) blur(18px);
     box-shadow: 0 0 0 .5px var(--hairline), 0 12px 32px rgba(0, 0, 0, .16); }
@@ -464,7 +464,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 .tec-atalhos a { flex: none; }
 .tec-atalhos a:focus-visible { outline: 2px solid var(--acento); outline-offset: 2px; }
 .tec--servico .tec-bloco { scroll-margin-top: 124px; }
-@media (min-width: 901px) {
+@media (min-width: 900px) {
   .tec-atalhos { --atalhos-topo: 64px; --atalhos-borda: 36px; }
   .tec--servico .tec-bloco { scroll-margin-top: 140px; }
 }
@@ -481,7 +481,7 @@ a.tec-cartao:focus-visible { outline: 2px solid var(--acento); outline-offset: 2
 /* Marca "seu" ao lado do serviço: legível. */
 .tec-item__dono { font-size: 12px !important; }
 /* Tablet (720 a 1099 px): a tela do serviço fica numa coluna de largura confortável, centralizada. */
-@media (min-width: 720px) and (max-width: 1099px) { .tec--servico { max-width: 760px; margin-inline: auto; } }
+@media (min-width: 720px) and (max-width: 1099.98px) { .tec--servico { max-width: 760px; margin-inline: auto; } }
 /* A faixa de atalhos rola de lado: deixa respiro à direita para o último atalho não encostar na borda. */
 .tec-atalhos { padding-right: 16px; scroll-padding-right: 16px; }
 /* Cabeçalho da tela: título e subtítulo empilhados em todas as larguras, como nas telas do administrador (antes, a

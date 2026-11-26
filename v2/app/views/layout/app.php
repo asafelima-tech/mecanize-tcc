@@ -261,7 +261,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
         var btMostrar = document.getElementById('lateralMostrar');
         if (!barra || !alca) return;
         var PADRAO = 248, MIN = 208, MAX = 248, TRILHO = 68, TEXTO = 150;
-        var computador = window.matchMedia('(min-width: 901px)');
+        var computador = window.matchMedia('(min-width: 900px)');
         var estado = html.getAttribute('data-lateral') || 'aberta';
         var largura = parseFloat(html.style.getPropertyValue('--lat-aberta')) || PADRAO;
         var limitar = function (v) { return Math.round(Math.min(MAX, Math.max(MIN, v))); };
@@ -393,10 +393,10 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
       }
       // Menu sobreposto: fecha com Esc e ao escolher um destino.
       document.addEventListener('keydown', function (e) { if (e.key === 'Escape') fechar(); });
-      document.querySelectorAll('.sidebar a').forEach(function (a) { a.addEventListener('click', function () { if (window.innerWidth <= 899) fechar(); }); });
+      document.querySelectorAll('.sidebar a').forEach(function (a) { a.addEventListener('click', function () { if (window.innerWidth < 900) fechar(); }); });
       var fundo = document.getElementById('sidebarBackdrop');
       if (fundo) fundo.addEventListener('click', fechar);
-      window.addEventListener('resize', function () { if (window.innerWidth > 900) fechar(); });
+      window.addEventListener('resize', function () { if (window.innerWidth >= 900) fechar(); });
 
       // Criar: painel logo abaixo do botão. Abre e fecha no botão; fecha no Esc, clicando fora ou ao escolher.
       var btCriar = document.querySelector('[data-abrir-criar]'), pnCriar = document.getElementById('painel-criar');
@@ -426,7 +426,7 @@ $caixaAberto = $veCaixa ? (new Caixa())->aberto() : null;
       var dlgAvisos = document.getElementById('dlg-avisos');
       var dlgCelular = document.getElementById('dlg-avisos-celular');
       var sino = document.querySelector('[data-abrir-avisos]');
-      var celular = window.matchMedia('(max-width: 900px)');
+      var celular = window.matchMedia('(max-width: 899.98px)');
       if (dlgAvisos && sino) {
         sino.setAttribute('aria-haspopup', 'true');
         sino.setAttribute('aria-expanded', 'false');
